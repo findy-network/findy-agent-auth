@@ -3,10 +3,11 @@ package findy_grpc
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
+	"log"
 	"net"
 	"os"
-	"path"
 	"testing"
 	"time"
 
@@ -21,19 +22,37 @@ import (
 )
 
 const bufSize = 1024 * 1024
+const pingReturn = "This is a TEST"
 
 var (
-	lis = bufconn.Listen(bufSize)
-	tls = true
+	lis    = bufconn.Listen(bufSize)
+	server *grpc.Server
+	conn   *grpc.ClientConn
 )
 
+func TestMain(m *testing.M) {
+	err2.Check(flag.Set("logtostderr", "true"))
+	err2.Check(flag.Set("v", "0"))
+	setUp()
+	code := m.Run()
+	tearDown()
+	os.Exit(code)
+}
+
+func setUp() {
+	runServer()
+	var err error
+	conn, err = newClient("findy-root", "localhost:50051")
+	err2.Check(err) // just dump error info out, we are inside a test
+}
+
+func tearDown() {
+	err := conn.Close()
+	err2.Check(err) // just dump information out, we are inside a test
+	server.GracefulStop()
+}
+
 func TestEnter(t *testing.T) {
-	RunServer()
-
-	conn, err := newClient("findy-root", "localhost:50051")
-	assert.NoError(t, err)
-	defer conn.Close()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
 	c := agency.NewDevOpsClient(conn)
@@ -41,60 +60,41 @@ func TestEnter(t *testing.T) {
 		Type: agency.Cmd_PING,
 	})
 	assert.NoError(t, err)
-	fmt.Println("result:", r.GetPing())
+	assert.Equal(t, pingReturn, r.GetPing())
+
 	defer cancel()
 }
 
 func newClient(user, addr string) (conn *grpc.ClientConn, err error) {
 	defer err2.Return(&err)
 
-	goPath := os.Getenv("GOPATH")
-	tlsPath := path.Join(goPath, "src/github.com/findy-network/findy-grpc/cert")
-	pw := rpc.PKI{
-		Server: rpc.CertFiles{
-			CertFile: path.Join(tlsPath, "server/server.crt"),
-		},
-		Client: rpc.CertFiles{
-			CertFile: path.Join(tlsPath, "client/client.crt"),
-			KeyFile:  path.Join(tlsPath, "client/client.key"),
-		},
-	}
+	pki := rpc.LoadPKI()
 
 	glog.V(5).Infoln("client with user:", user)
 	conn, err = rpc.ClientConn(rpc.ClientCfg{
-		PKI:  pw,
+		PKI:  *pki,
 		JWT:  jwt.BuildJWT(user),
 		Addr: addr,
-		TLS:  tls,
+		TLS:  true,
 		Opts: []grpc.DialOption{grpc.WithContextDialer(bufDialer)},
 	})
 	err2.Check(err)
 	return
 }
 
-func RunServer() {
-	goPath := os.Getenv("GOPATH")
-	tlsPath := path.Join(goPath, "src/github.com/findy-network/findy-grpc/cert")
-	certFile := path.Join(tlsPath, "server/server.crt")
-	keyFile := path.Join(tlsPath, "server/server.key")
-	clientCertFile := path.Join(tlsPath, "client/client.crt")
-
+func runServer() {
+	pki := rpc.LoadPKI()
 	glog.V(1).Infof("starting gRPC server with\ncrt:\t%s\nkey:\t%s\nclient:\t%s",
-		certFile, keyFile, clientCertFile)
+		pki.Server.CertFile, pki.Server.KeyFile, pki.Client.CertFile)
 
 	go func() {
-		rpc.Serve(rpc.ServerCfg{
-			Port: 50051,
-			TLS:  tls,
-			PKI: rpc.PKI{
-				Server: rpc.CertFiles{
-					CertFile: certFile,
-					KeyFile:  keyFile,
-				},
-				Client: rpc.CertFiles{
-					CertFile: clientCertFile,
-				},
-			},
+		defer err2.Catch(func(err error) {
+			log.Fatal(err)
+		})
+		s, lis, err := rpc.PrepareServe(rpc.ServerCfg{
+			Port:    50051,
+			TLS:     true,
+			PKI:     *pki,
 			TestLis: lis,
 			Register: func(s *grpc.Server) error {
 				agency.RegisterDevOpsServer(s, &devOpsServer{Root: "findy-root"})
@@ -102,6 +102,9 @@ func RunServer() {
 				return nil
 			},
 		})
+		err2.Check(err)
+		server = s
+		err2.Check(s.Serve(lis))
 	}()
 }
 
@@ -128,7 +131,7 @@ func (d devOpsServer) Enter(ctx context.Context, cmd *agency.Cmd) (cr *agency.Cm
 
 	switch cmd.Type {
 	case agency.Cmd_PING:
-		response := fmt.Sprintf("%s, ping ok", "This is a TEST")
+		response := pingReturn
 		cmdReturn.Response = &agency.CmdReturn_Ping{Ping: response}
 	case agency.Cmd_LOGGING:
 		//agencyCmd.ParseLoggingArgs(cmd.GetLogging())
