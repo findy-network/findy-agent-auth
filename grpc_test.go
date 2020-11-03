@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/findy-network/findy-agent-api/grpc/agency"
+	"github.com/findy-network/findy-agent-api/grpc/ops"
 	"github.com/findy-network/findy-grpc/jwt"
 	"github.com/findy-network/findy-grpc/rpc"
 	"github.com/golang/glog"
@@ -56,16 +56,16 @@ func tearDown() {
 func TestEnter(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
-	c := agency.NewDevOpsClient(conn)
-	r, err := c.Enter(ctx, &agency.Cmd{
-		Type: agency.Cmd_PING,
+	c := ops.NewDevOpsClient(conn)
+	r, err := c.Enter(ctx, &ops.Cmd{
+		Type: ops.Cmd_PING,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, pingReturn, r.GetPing())
 
 	doPanic = true
-	r, err = c.Enter(ctx, &agency.Cmd{
-		Type: agency.Cmd_PING,
+	r, err = c.Enter(ctx, &ops.Cmd{
+		Type: ops.Cmd_PING,
 	})
 	assert.Error(t, err)
 
@@ -104,7 +104,7 @@ func runServer() {
 			PKI:     *pki,
 			TestLis: lis,
 			Register: func(s *grpc.Server) error {
-				agency.RegisterDevOpsServer(s, &devOpsServer{Root: "findy-root"})
+				ops.RegisterDevOpsServer(s, &devOpsServer{Root: "findy-root"})
 				glog.V(10).Infoln("GRPC registration all done")
 				return nil
 			},
@@ -120,11 +120,11 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 }
 
 type devOpsServer struct {
-	agency.UnimplementedDevOpsServer
+	ops.UnimplementedDevOpsServer
 	Root string
 }
 
-func (d devOpsServer) Enter(ctx context.Context, cmd *agency.Cmd) (cr *agency.CmdReturn, err error) {
+func (d devOpsServer) Enter(ctx context.Context, cmd *ops.Cmd) (cr *ops.CmdReturn, err error) {
 	defer err2.Return(&err)
 
 	if doPanic {
@@ -134,23 +134,23 @@ func (d devOpsServer) Enter(ctx context.Context, cmd *agency.Cmd) (cr *agency.Cm
 	user := jwt.User(ctx)
 
 	if user != d.Root {
-		return &agency.CmdReturn{Type: cmd.Type}, errors.New("access right")
+		return &ops.CmdReturn{Type: cmd.Type}, errors.New("access right")
 	}
 
 	glog.V(3).Infoln("dev ops cmd", cmd.Type)
-	cmdReturn := &agency.CmdReturn{Type: cmd.Type}
+	cmdReturn := &ops.CmdReturn{Type: cmd.Type}
 
 	switch cmd.Type {
-	case agency.Cmd_PING:
+	case ops.Cmd_PING:
 		response := pingReturn
-		cmdReturn.Response = &agency.CmdReturn_Ping{Ping: response}
-	case agency.Cmd_LOGGING:
+		cmdReturn.Response = &ops.CmdReturn_Ping{Ping: response}
+	case ops.Cmd_LOGGING:
 		//agencyCmd.ParseLoggingArgs(cmd.GetLogging())
 		//response = fmt.Sprintf("logging = %s", cmd.GetLogging())
-	case agency.Cmd_COUNT:
+	case ops.Cmd_COUNT:
 		response := fmt.Sprintf("%d/%d cloud agents",
 			100, 1000)
-		cmdReturn.Response = &agency.CmdReturn_Ping{Ping: response}
+		cmdReturn.Response = &ops.CmdReturn_Ping{Ping: response}
 	}
 	return cmdReturn, nil
 }
