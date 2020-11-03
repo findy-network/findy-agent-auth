@@ -25,9 +25,10 @@ const bufSize = 1024 * 1024
 const pingReturn = "This is a TEST"
 
 var (
-	lis    = bufconn.Listen(bufSize)
-	server *grpc.Server
-	conn   *grpc.ClientConn
+	lis     = bufconn.Listen(bufSize)
+	server  *grpc.Server
+	conn    *grpc.ClientConn
+	doPanic = false
 )
 
 func TestMain(m *testing.M) {
@@ -61,6 +62,12 @@ func TestEnter(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, pingReturn, r.GetPing())
+
+	doPanic = true
+	r, err = c.Enter(ctx, &agency.Cmd{
+		Type: agency.Cmd_PING,
+	})
+	assert.Error(t, err)
 
 	defer cancel()
 }
@@ -119,6 +126,10 @@ type devOpsServer struct {
 
 func (d devOpsServer) Enter(ctx context.Context, cmd *agency.Cmd) (cr *agency.CmdReturn, err error) {
 	defer err2.Return(&err)
+
+	if doPanic {
+		panic("testing panic")
+	}
 
 	user := jwt.User(ctx)
 
