@@ -25,7 +25,7 @@ func main() {
 	pki := rpc.LoadPKI("./cert")
 	glog.V(1).Infof("starting gRPC server with\ncrt:\t%s\nkey:\t%s\nclient:\t%s",
 		pki.Server.CertFile, pki.Server.KeyFile, pki.Client.CertFile)
-	rpc.Serve(rpc.ServerCfg{
+	rpc.Serve(&rpc.ServerCfg{
 		Port: 50051,
 		PKI:  pki,
 		Register: func(s *grpc.Server) error {
