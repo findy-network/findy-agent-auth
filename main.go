@@ -27,8 +27,7 @@ func main() {
 		pki.Server.CertFile, pki.Server.KeyFile, pki.Client.CertFile)
 	rpc.Serve(rpc.ServerCfg{
 		Port: 50051,
-		TLS:  *tls,
-		PKI:  *pki,
+		PKI:  pki,
 		Register: func(s *grpc.Server) error {
 			ops.RegisterDevOpsServer(s, &devOpsServer{Root: "findy-root"})
 			glog.V(10).Infoln("GRPC registration all done")
