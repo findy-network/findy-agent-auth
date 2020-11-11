@@ -14,8 +14,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-var tls = flag.Bool("tls", true, "use TLS communication")
-
 func main() {
 	flag.Parse()
 
