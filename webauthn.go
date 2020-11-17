@@ -10,8 +10,8 @@ import (
 	"github.com/duo-labs/webauthn.io/session"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
-	"github.com/findy-network/findy-webauthn/enclave"
-	"github.com/findy-network/findy-webauthn/utils"
+	"github.com/findy-network/findy-grpc/enclave"
+	"github.com/findy-network/findy-grpc/utils"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	. "github.com/lainio/err2"
@@ -19,6 +19,7 @@ import (
 
 var (
 	loggingFlags string
+	port         int
 	webAuthn     *webauthn.WebAuthn
 	sessionStore *session.Store
 
@@ -27,21 +28,22 @@ var (
 
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
+	startServerCmd.IntVar(&port, "port", 8080, "server port")
 }
 
 func main() {
 	defer CatchTrace(func(err error) {
 		glog.Warningln("")
 	})
-
+	//startServerCmd.Parse(os.Args)
 	utils.ParseLoggingArgs(loggingFlags)
 	Check(enclave.InitSealedBox("fido-enclave.bolt"))
 
 	var err error
 	webAuthn, err = webauthn.New(&webauthn.Config{
-		RPDisplayName: "Foobar Corp.",      // Display Name for your site
-		RPID:          "guest",             // Generally the domain name for your site
-		RPOrigin:      "http://guest:8090", // The origin URL for WebAuthn requests
+		RPDisplayName: "OP Lab Corp.",                           // Display Name for your site
+		RPID:          "localhost",                              // Generally the domain name for your site
+		RPOrigin:      fmt.Sprintf("http://localhost:%d", port), // The origin URL for WebAuthn requests
 		// RPIcon: "https://duo.com/logo.png", // Optional icon URL for your site
 	})
 	Check(err)
@@ -58,7 +60,7 @@ func main() {
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 
-	serverAddress := ":8090"
+	serverAddress := fmt.Sprintf(":%d", port)
 	glog.Infoln("starting server at", serverAddress)
 	glog.Infoln(http.ListenAndServe(serverAddress, r))
 }
