@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/duo-labs/webauthn.io/session"
@@ -20,6 +21,8 @@ import (
 var (
 	loggingFlags string
 	port         int
+	agencyAddr   string
+	agencyPort   int
 	webAuthn     *webauthn.WebAuthn
 	sessionStore *session.Store
 
@@ -29,15 +32,20 @@ var (
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
 	startServerCmd.IntVar(&port, "port", 8080, "server port")
+	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
+	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
 }
 
 func main() {
 	defer CatchTrace(func(err error) {
 		glog.Warningln("")
 	})
-	//startServerCmd.Parse(os.Args)
+	Check(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
+	glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
+
 	Check(enclave.InitSealedBox("fido-enclave.bolt"))
+	enclave.Init(agencyAddr, agencyPort)
 
 	var err error
 	webAuthn, err = webauthn.New(&webauthn.Config{
