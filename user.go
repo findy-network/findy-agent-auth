@@ -10,7 +10,7 @@ import (
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/findy-network/findy-agent-api/grpc/ops"
-	"github.com/findy-network/findy-agent/grpc/client"
+	"github.com/findy-network/findy-grpc/agency/client"
 	"github.com/findy-network/findy-grpc/rpc"
 	"github.com/findy-network/findy-wrapper-go/dto"
 	"github.com/golang/glog"
