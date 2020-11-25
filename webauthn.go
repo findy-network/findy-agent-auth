@@ -55,7 +55,6 @@ func main() {
 	enclave.Init(agencyAddr, agencyPort)
 
 	var err error
-	// TODO: fix cors issues
 	webAuthn, err = webauthn.New(&webauthn.Config{
 		RPDisplayName: "OP Lab Corp.", // Display Name for your site
 		RPID:          "localhost",    // Generally the domain name for your site
