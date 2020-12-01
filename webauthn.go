@@ -16,6 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	. "github.com/lainio/err2"
+	"github.com/rs/cors"
 )
 
 var (
@@ -23,17 +24,23 @@ var (
 	port         int
 	agencyAddr   string
 	agencyPort   int
+	rpOrigin     string
 	webAuthn     *webauthn.WebAuthn
 	sessionStore *session.Store
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 )
 
+type AccessToken struct {
+	Token string `json:"token"`
+}
+
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
 	startServerCmd.IntVar(&port, "port", 8080, "server port")
 	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
+	startServerCmd.StringVar(&rpOrigin, "origin", fmt.Sprintf("http://localhost:%d", port), "origin URL for Webauthn requests")
 }
 
 func main() {
@@ -49,9 +56,9 @@ func main() {
 
 	var err error
 	webAuthn, err = webauthn.New(&webauthn.Config{
-		RPDisplayName: "OP Lab Corp.",                           // Display Name for your site
-		RPID:          "localhost",                              // Generally the domain name for your site
-		RPOrigin:      fmt.Sprintf("http://localhost:%d", port), // The origin URL for WebAuthn requests
+		RPDisplayName: "OP Lab Corp.", // Display Name for your site
+		RPID:          "localhost",    // Generally the domain name for your site
+		RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
 		// RPIcon: "https://duo.com/logo.png", // Optional icon URL for your site
 	})
 	Check(err)
@@ -68,9 +75,17 @@ func main() {
 
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 
+	// TODO: figure out CORS policy
+	hCors := cors.New(cors.Options{
+		AllowedOrigins:   []string{rpOrigin},
+		AllowCredentials: true,
+		// Enable Debugging for testing, consider disabling in production
+		Debug: true,
+	})
+
 	serverAddress := fmt.Sprintf(":%d", port)
 	glog.Infoln("starting server at", serverAddress)
-	glog.Infoln(http.ListenAndServe(serverAddress, r))
+	glog.Infoln(http.ListenAndServe(serverAddress, hCors.Handler(r)))
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
@@ -93,13 +108,17 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	user, exists, err := enclave.GetUser(username)
 	Check(err)
 
-	// user doesn't exist, create new user
-	if !exists {
-		displayName := strings.Split(username, "@")[0]
-		glog.V(2).Infoln("adding new user:", displayName)
-		user = enclave.NewUser(username, displayName)
-		Check(enclave.PutUser(user))
+	// TODO: add functionality for registering new device
+	if exists {
+		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"), http.StatusBadRequest)
+		return
 	}
+
+	// user doesn't exist, create new user
+	displayName := strings.Split(username, "@")[0]
+	glog.V(2).Infoln("adding new user:", displayName)
+	user = enclave.NewUser(username, displayName)
+	Check(enclave.PutUser(user))
 
 	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
 		credCreationOpts.CredentialExcludeList = user.CredentialExcludeList()
@@ -229,7 +248,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	Check(err)
 
 	// handle successful login
-	jsonResponse(w, "Login Success", http.StatusOK)
+	jsonResponse(w, &AccessToken{Token: user.JWT}, http.StatusOK)
 	glog.V(1).Infoln("END finish login", username)
 }
 
