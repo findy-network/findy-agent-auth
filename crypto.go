@@ -32,7 +32,7 @@ func NewCipher(k []byte) *myCipher {
 	return &myCipher{key: k, block: newBlock, aesGCM: newAesGCM}
 }
 
-func (c *myCipher) encrypt(in []byte) (out []byte, err error) {
+func (c *myCipher) _(in []byte) (out []byte, err error) {
 	defer err2.Return(&err)
 	return c.tryEncrypt(in), nil
 }
@@ -49,7 +49,7 @@ func (c *myCipher) tryEncrypt(in []byte) (out []byte) {
 	return c.aesGCM.Seal(nonce, nonce, in, nil)
 }
 
-func (c *myCipher) decrypt(in []byte) (out []byte, err error) {
+func (c *myCipher) _(in []byte) (out []byte, err error) {
 	defer err2.Return(&err)
 	return c.tryDecrypt(in), nil
 }
