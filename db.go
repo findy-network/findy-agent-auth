@@ -19,7 +19,7 @@ func assertDB() {
 	}
 }
 
-func open(filename string) (err error) {
+func Open(filename string, buckets [][]byte) (err error) {
 	if db != nil {
 		return ErrSealBoxAlreadyExists
 	}
@@ -31,26 +31,34 @@ func open(filename string) (err error) {
 	err2.Check(db.Update(func(tx *bolt.Tx) (err error) {
 		defer err2.Annotate("create buckets", &err)
 
-		err2.Try(tx.CreateBucketIfNotExists(userBucket))
+		for _, bucket := range buckets {
+			err2.Try(tx.CreateBucketIfNotExists(bucket))
+		}
 		return nil
 	}))
 	return err
 }
 
-type filter func(value []byte) (k []byte)
+type Filter func(value []byte) (k []byte)
 
-type dbData struct {
-	data  []byte
-	read  filter
-	write filter
+type DbData struct {
+	Data  []byte
+	Read  Filter
+	Write Filter
 }
 
-func (d *dbData) get() []byte {
-	return d.read(d.data)
+func (d *DbData) get() []byte {
+	if d.Read == nil {
+		return append(d.Data[:0:0], d.Data...)
+	}
+	return d.Read(d.Data)
 }
 
-func (d *dbData) set(b []byte) {
-	d.data = d.write(b)
+func (d *DbData) set(b []byte) {
+	if d.Write == nil {
+		copy(d.Data, b)
+	}
+	d.Data = d.Write(b)
 }
 
 // Close closes the sealed box of the enclave. It can be open again with
@@ -65,7 +73,7 @@ func Close() {
 	db = nil
 }
 
-func addKeyValueToBucket(bucket []byte, keyValue, index *dbData) (err error) {
+func AddKeyValueToBucket(bucket []byte, keyValue, index *DbData) (err error) {
 	assertDB()
 
 	defer err2.Annotate("add key", &err)
@@ -80,7 +88,7 @@ func addKeyValueToBucket(bucket []byte, keyValue, index *dbData) (err error) {
 	return nil
 }
 
-func getKeyValueFromBucket(bucket []byte, index, keyValue *dbData) (found bool, err error) {
+func GetKeyValueFromBucket(bucket []byte, index, keyValue *DbData) (found bool, err error) {
 	assertDB()
 
 	defer err2.Return(&err)

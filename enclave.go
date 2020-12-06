@@ -20,8 +20,10 @@ import (
 	"github.com/lainio/err2"
 )
 
+const user = 0
+
 var (
-	userBucket        = []byte{01, 01}
+	buckets           = [][]byte{{01, 01}}
 	sealedBoxFilename string
 
 	// todo: key must be set from production environment, SHA-256, 32 bytes
@@ -36,7 +38,7 @@ func InitSealedBox(filename string) (err error) {
 	theCipher = NewCipher(k)
 	glog.V(1).Infoln("init enclave", filename)
 	sealedBoxFilename = filename
-	return open(filename)
+	return Open(filename, buckets)
 }
 
 // WipeSealedBox closes and destroys the enclave permanently. This version only
@@ -57,14 +59,14 @@ func WipeSealedBox() {
 func PutUser(u *User) (err error) {
 	defer err2.Return(&err)
 
-	err2.Check(addKeyValueToBucket(userBucket,
-		&dbData{
-			data: u.Data(),
-			read: encrypt,
+	err2.Check(AddKeyValueToBucket(buckets[user],
+		&DbData{
+			Data: u.Data(),
+			Read: encrypt,
 		},
-		&dbData{
-			data: u.Key(),
-			read: hash,
+		&DbData{
+			Data: u.Key(),
+			Read: hash,
 		},
 	))
 
@@ -75,36 +77,36 @@ func PutUser(u *User) (err error) {
 func GetUser(name string) (u *User, exist bool, err error) {
 	defer err2.Return(&err)
 
-	value := &dbData{write: decrypt}
-	already, err := getKeyValueFromBucket(userBucket,
-		&dbData{
-			data: []byte(name),
-			read: hash,
+	value := &DbData{Write: decrypt}
+	already, err := GetKeyValueFromBucket(buckets[user],
+		&DbData{
+			Data: []byte(name),
+			Read: hash,
 		}, value)
 	err2.Check(err)
 	if !already {
 		return nil, already, err
 	}
 
-	return NewUserFromData(value.data), already, err
+	return NewUserFromData(value.Data), already, err
 }
 
 // GetUserMust returns user by name if exists in enclave
 func GetExistingUser(name string) (u *User, err error) {
 	defer err2.Return(&err)
 
-	value := &dbData{write: decrypt}
-	already, err := getKeyValueFromBucket(userBucket,
-		&dbData{
-			data: []byte(name),
-			read: hash,
+	value := &DbData{Write: decrypt}
+	already, err := GetKeyValueFromBucket(buckets[user],
+		&DbData{
+			Data: []byte(name),
+			Read: hash,
 		}, value)
 	err2.Check(err)
 	if !already {
 		return nil, fmt.Errorf("user (%s) not exist", name)
 	}
 
-	return NewUserFromData(value.data), err
+	return NewUserFromData(value.Data), err
 }
 
 // all of the following has same signature. They also panic on error
