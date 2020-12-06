@@ -28,7 +28,7 @@ var (
 
 	// todo: key must be set from production environment, SHA-256, 32 bytes
 	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
-	theCipher *myCipher
+	theCipher *Cipher
 )
 
 // InitSealedBox initialize enclave's sealed box. This must be called once
@@ -122,13 +122,13 @@ func hash(key []byte) (k []byte) {
 // encrypt encrypts the actual wallet key value. This is used when data is
 // stored do the DB aka sealed box.
 func encrypt(value []byte) (k []byte) {
-	return theCipher.tryEncrypt(value)
+	return theCipher.TryEncrypt(value)
 }
 
 // decrypt decrypts the actual wallet key value. This is used when data is
 // retrieved from the DB aka sealed box.
 func decrypt(value []byte) (k []byte) {
-	return theCipher.tryDecrypt(value)
+	return theCipher.TryDecrypt(value)
 }
 
 // noop function if need e.g. tests

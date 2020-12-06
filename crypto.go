@@ -10,13 +10,13 @@ import (
 	"github.com/lainio/err2"
 )
 
-type myCipher struct {
+type Cipher struct {
 	key    []byte
 	block  cipher.Block
 	aesGCM cipher.AEAD
 }
 
-func NewCipher(k []byte) *myCipher {
+func NewCipher(k []byte) *Cipher {
 	defer err2.Catch(func(err error) {
 		glog.Error(err)
 	})
@@ -29,15 +29,15 @@ func NewCipher(k []byte) *myCipher {
 	newAesGCM, err := cipher.NewGCM(newBlock)
 	err2.Check(err)
 
-	return &myCipher{key: k, block: newBlock, aesGCM: newAesGCM}
+	return &Cipher{key: k, block: newBlock, aesGCM: newAesGCM}
 }
 
-func (c *myCipher) _(in []byte) (out []byte, err error) {
+func (c *Cipher) _(in []byte) (out []byte, err error) {
 	defer err2.Return(&err)
-	return c.tryEncrypt(in), nil
+	return c.TryEncrypt(in), nil
 }
 
-func (c *myCipher) tryEncrypt(in []byte) (out []byte) {
+func (c *Cipher) TryEncrypt(in []byte) (out []byte) {
 	//Create a nonce. Nonce should be from GCM
 	nonce := make([]byte, c.aesGCM.NonceSize())
 	err2.Empty.Try(io.ReadFull(rand.Reader, nonce))
@@ -49,12 +49,12 @@ func (c *myCipher) tryEncrypt(in []byte) (out []byte) {
 	return c.aesGCM.Seal(nonce, nonce, in, nil)
 }
 
-func (c *myCipher) _(in []byte) (out []byte, err error) {
+func (c *Cipher) _(in []byte) (out []byte, err error) {
 	defer err2.Return(&err)
-	return c.tryDecrypt(in), nil
+	return c.TryDecrypt(in), nil
 }
 
-func (c *myCipher) tryDecrypt(in []byte) (out []byte) {
+func (c *Cipher) TryDecrypt(in []byte) (out []byte) {
 	//Get the nonce size
 	nonceSize := c.aesGCM.NonceSize()
 
