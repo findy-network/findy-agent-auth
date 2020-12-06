@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/findy-network/findy-grpc/crypto"
+	"github.com/findy-network/findy-grpc/crypto/db"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 )
@@ -28,25 +30,25 @@ var (
 
 	// todo: key must be set from production environment, SHA-256, 32 bytes
 	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
-	theCipher *Cipher
+	theCipher *crypto.Cipher
 )
 
 // InitSealedBox initialize enclave's sealed box. This must be called once
 // during the app life cycle.
 func InitSealedBox(filename string) (err error) {
 	k, _ := hex.DecodeString(hexKey)
-	theCipher = NewCipher(k)
+	theCipher = crypto.NewCipher(k)
 	glog.V(1).Infoln("init enclave", filename)
 	sealedBoxFilename = filename
-	return Open(filename, buckets)
+	return db.Open(filename, buckets)
 }
 
 // WipeSealedBox closes and destroys the enclave permanently. This version only
 // removes the sealed box file. In the future we might add sector wiping
 // functionality.
 func WipeSealedBox() {
-	if db != nil {
-		Close()
+	if db.DB != nil {
+		db.Close()
 	}
 
 	err := os.RemoveAll(sealedBoxFilename)
@@ -59,12 +61,12 @@ func WipeSealedBox() {
 func PutUser(u *User) (err error) {
 	defer err2.Return(&err)
 
-	err2.Check(AddKeyValueToBucket(buckets[user],
-		&DbData{
+	err2.Check(db.AddKeyValueToBucket(buckets[user],
+		&db.DbData{
 			Data: u.Data(),
 			Read: encrypt,
 		},
-		&DbData{
+		&db.DbData{
 			Data: u.Key(),
 			Read: hash,
 		},
@@ -77,9 +79,9 @@ func PutUser(u *User) (err error) {
 func GetUser(name string) (u *User, exist bool, err error) {
 	defer err2.Return(&err)
 
-	value := &DbData{Write: decrypt}
-	already, err := GetKeyValueFromBucket(buckets[user],
-		&DbData{
+	value := &db.DbData{Write: decrypt}
+	already, err := db.GetKeyValueFromBucket(buckets[user],
+		&db.DbData{
 			Data: []byte(name),
 			Read: hash,
 		}, value)
@@ -95,9 +97,9 @@ func GetUser(name string) (u *User, exist bool, err error) {
 func GetExistingUser(name string) (u *User, err error) {
 	defer err2.Return(&err)
 
-	value := &DbData{Write: decrypt}
-	already, err := GetKeyValueFromBucket(buckets[user],
-		&DbData{
+	value := &db.DbData{Write: decrypt}
+	already, err := db.GetKeyValueFromBucket(buckets[user],
+		&db.DbData{
 			Data: []byte(name),
 			Read: hash,
 		}, value)

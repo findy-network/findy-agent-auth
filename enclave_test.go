@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/findy-network/findy-grpc/crypto/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +26,7 @@ func setUp() {
 }
 
 func tearDown() {
-	Close()
+	db.Close()
 	WipeSealedBox()
 }
 
