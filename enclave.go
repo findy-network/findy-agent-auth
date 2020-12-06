@@ -11,6 +11,8 @@ addon/plugin system for cryptos when first implementation is done.
 package enclave
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 
@@ -18,13 +20,20 @@ import (
 	"github.com/lainio/err2"
 )
 
-var userBucket = []byte{01, 01}
+var (
+	userBucket        = []byte{01, 01}
+	sealedBoxFilename string
 
-var sealedBoxFilename string
+	// todo: key must be set from production environment, SHA-256, 32 bytes
+	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
+	theCipher *myCipher
+)
 
 // InitSealedBox initialize enclave's sealed box. This must be called once
 // during the app life cycle.
 func InitSealedBox(filename string) (err error) {
+	k, _ := hex.DecodeString(hexKey)
+	theCipher = NewCipher(k)
 	glog.V(1).Infoln("init enclave", filename)
 	sealedBoxFilename = filename
 	return open(filename)
@@ -98,29 +107,29 @@ func GetExistingUser(name string) (u *User, err error) {
 	return NewUserFromData(value.data), err
 }
 
-// Todo: these dummy functions must be implemented before production.
-
 // all of the following has same signature. They also panic on error
 
 // hash makes the cryptographic hash of the map key value. This prevents us to
 // store key value index (email, DID) to the DB aka sealed box as plain text.
 // Please use salt when implementing this.
 func hash(key []byte) (k []byte) {
-	return append(key[:0:0], key...)
+	h := md5.Sum(key)
+	return h[:]
 }
 
 // encrypt encrypts the actual wallet key value. This is used when data is
 // stored do the DB aka sealed box.
 func encrypt(value []byte) (k []byte) {
-	return append(value[:0:0], value...)
+	return theCipher.tryEncrypt(value)
 }
 
 // decrypt decrypts the actual wallet key value. This is used when data is
 // retrieved from the DB aka sealed box.
 func decrypt(value []byte) (k []byte) {
-	return append(value[:0:0], value...)
+	return theCipher.tryDecrypt(value)
 }
 
+// noop function if need e.g. tests
 func _(value []byte) (k []byte) {
 	println("noop called!")
 	return value
