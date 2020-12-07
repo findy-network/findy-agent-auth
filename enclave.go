@@ -62,11 +62,11 @@ func PutUser(u *User) (err error) {
 	defer err2.Return(&err)
 
 	err2.Check(db.AddKeyValueToBucket(buckets[user],
-		&db.DbData{
+		&db.Data{
 			Data: u.Data(),
 			Read: encrypt,
 		},
-		&db.DbData{
+		&db.Data{
 			Data: u.Key(),
 			Read: hash,
 		},
@@ -79,9 +79,9 @@ func PutUser(u *User) (err error) {
 func GetUser(name string) (u *User, exist bool, err error) {
 	defer err2.Return(&err)
 
-	value := &db.DbData{Write: decrypt}
+	value := &db.Data{Write: decrypt}
 	already, err := db.GetKeyValueFromBucket(buckets[user],
-		&db.DbData{
+		&db.Data{
 			Data: []byte(name),
 			Read: hash,
 		}, value)
@@ -97,9 +97,9 @@ func GetUser(name string) (u *User, exist bool, err error) {
 func GetExistingUser(name string) (u *User, err error) {
 	defer err2.Return(&err)
 
-	value := &db.DbData{Write: decrypt}
+	value := &db.Data{Write: decrypt}
 	already, err := db.GetKeyValueFromBucket(buckets[user],
-		&db.DbData{
+		&db.Data{
 			Data: []byte(name),
 			Read: hash,
 		}, value)
