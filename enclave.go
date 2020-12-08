@@ -79,12 +79,16 @@ func PutUser(u *User) (err error) {
 func GetUser(name string) (u *User, exist bool, err error) {
 	defer err2.Return(&err)
 
-	value := &db.Data{Write: decrypt}
+	value := &db.Data{
+		Write: decrypt,
+	}
 	already, err := db.GetKeyValueFromBucket(buckets[user],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
-		}, value)
+		},
+		value,
+	)
 	err2.Check(err)
 	if !already {
 		return nil, already, err
@@ -97,12 +101,16 @@ func GetUser(name string) (u *User, exist bool, err error) {
 func GetExistingUser(name string) (u *User, err error) {
 	defer err2.Return(&err)
 
-	value := &db.Data{Write: decrypt}
+	value := &db.Data{
+		Write: decrypt,
+	}
 	already, err := db.GetKeyValueFromBucket(buckets[user],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
-		}, value)
+		},
+		value,
+	)
 	err2.Check(err)
 	if !already {
 		return nil, fmt.Errorf("user (%s) not exist", name)
