@@ -84,8 +84,10 @@ func main() {
 	})
 
 	serverAddress := fmt.Sprintf(":%d", port)
-	glog.Infoln("starting server at", serverAddress)
-	glog.Infoln(http.ListenAndServe(serverAddress, hCors.Handler(r)))
+	if glog.V(1) {
+		glog.Infoln("starting server at", serverAddress)
+		glog.Infoln(http.ListenAndServe(serverAddress, hCors.Handler(r)))
+	}
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +165,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 	})
 
-	glog.Infoln("getting existing user", username)
+	glog.V(1).Infoln("getting existing user", username)
 	user, err := enclave.GetExistingUser(username)
 	Check(err)
 
@@ -214,7 +216,7 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 	Check(err)
 
 	jsonResponse(w, options, http.StatusOK)
-	glog.Infoln("END begin login", username)
+	glog.V(1).Infoln("END begin login", username)
 }
 
 func FinishLogin(w http.ResponseWriter, r *http.Request) {
@@ -227,7 +229,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	// get username
 	vars := mux.Vars(r)
 	username := vars["username"]
-	glog.Infoln("BEGIN finish login:", username)
+	glog.V(1).Infoln("BEGIN finish login:", username)
 
 	defer Handle(&err, func() {
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
