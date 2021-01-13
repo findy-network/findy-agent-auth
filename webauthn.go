@@ -25,6 +25,7 @@ var (
 	port         int
 	agencyAddr   string
 	agencyPort   int
+	rpID         string
 	rpOrigin     string
 	jwtSecret    string
 	webAuthn     *webauthn.WebAuthn
@@ -42,6 +43,7 @@ func init() {
 	startServerCmd.IntVar(&port, "port", 8080, "server port")
 	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
+	startServerCmd.StringVar(&rpID, "domain", "localhost", "the site domain name")
 	startServerCmd.StringVar(&rpOrigin, "origin", fmt.Sprintf("http://localhost:%d", port), "origin URL for Webauthn requests")
 	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
 }
@@ -64,7 +66,7 @@ func main() {
 	var err error
 	webAuthn, err = webauthn.New(&webauthn.Config{
 		RPDisplayName: "OP Lab Corp.", // Display Name for your site
-		RPID:          "localhost",    // Generally the domain name for your site
+		RPID:          rpID,           // Generally the domain name for your site
 		RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
 		// RPIcon: "https://duo.com/logo.png", // Optional icon URL for your site
 	})
