@@ -12,6 +12,7 @@ import (
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/findy-network/findy-grpc/enclave"
+	"github.com/findy-network/findy-grpc/jwt"
 	"github.com/findy-network/findy-grpc/utils"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -25,6 +26,7 @@ var (
 	agencyAddr   string
 	agencyPort   int
 	rpOrigin     string
+	jwtSecret    string
 	webAuthn     *webauthn.WebAuthn
 	sessionStore *session.Store
 
@@ -41,6 +43,7 @@ func init() {
 	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
 	startServerCmd.StringVar(&rpOrigin, "origin", fmt.Sprintf("http://localhost:%d", port), "origin URL for Webauthn requests")
+	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
 }
 
 func main() {
@@ -53,6 +56,10 @@ func main() {
 
 	Check(enclave.InitSealedBox("fido-enclave.bolt"))
 	enclave.Init(agencyAddr, agencyPort)
+
+	if jwtSecret != "" {
+		jwt.SetJWTSecret(jwtSecret)
+	}
 
 	var err error
 	webAuthn, err = webauthn.New(&webauthn.Config{
