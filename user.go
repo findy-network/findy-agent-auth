@@ -120,7 +120,7 @@ func (u *User) AllocateCloudAgent() (err error) {
 	glog.V(1).Infoln("starting cloud agent allocation for", u.Name)
 
 	conn := client.TryOpen("findy-root", baseCfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	agencyClient := ops.NewAgencyClient(conn)
 	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
