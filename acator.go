@@ -59,6 +59,6 @@ func AcatorUnmarshal(d []byte) error {
 	ad := protocol.AuthenticatorData{}
 	err := ad.Unmarshal(d)
 	b, err := json.MarshalIndent(ad, "", "\t")
-	fmt.Printf("%s", b)
+	fmt.Printf("%s\n", b)
 	return err
 }
