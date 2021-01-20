@@ -198,7 +198,7 @@ var data = []byte{
 	185,
 }
 
-var okJSON = `{
+var challengeJSON = `{
   "publicKey": {
     "challenge": "7vH6L70QspI4ToHZ6gTJLj74jQ9jj/AzlIQkSlkZX8E=",
     "rp": {
@@ -261,7 +261,7 @@ var okJSON = `{
 }
 `
 
-var response = `{
+var challengeResponseJSON = `{
   "id": "Ae3OpoEHZefub0h_5xMZm4WY1oIW8RU1f2xh49XqiQ9o530QPp6B09ZGXt0GyHas32YRrRKNJoA",
   "rawId": "Ae3OpoEHZefub0h_5xMZm4WY1oIW8RU1f2xh49XqiQ9o530QPp6B09ZGXt0GyHas32YRrRKNJoA",
   "type": "public-key",
@@ -300,8 +300,25 @@ var authenticatorAssertionResponse = `{
 }
 `
 
+func TestRegister(t *testing.T) {
+	out := Register(challengeJSON)
+	assert.NotNil(t, out)
+}
+
+func TestFinnishLogin(t *testing.T) {
+	//reqBody := ioutil.NopCloser(bytes.NewReader([]byte(authenticatorAssertionResponse)))
+	//httpReq := &http.Request{Body: reqBody}
+
+}
 func TestParseAssertionResponse(t *testing.T) {
 	ad, err := ParseAssertionResponse(authenticatorAssertionResponse)
+	assert.NoError(t, err)
+
+	ccd, err := ParseResponse(challengeResponseJSON)
+
+	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
+		"localhost", "http://localhost:8080", false,
+		ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey)
 	assert.NoError(t, err)
 
 	json, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
@@ -315,7 +332,7 @@ func TestActorUnmarshal(t *testing.T) {
 }
 
 func TestParseResponse(t *testing.T) {
-	ccd, err := ParseResponse(response)
+	ccd, err := ParseResponse(challengeResponseJSON)
 	assert.NoError(t, err)
 	assert.NotNil(t, ccd)
 
@@ -334,7 +351,7 @@ func TestNewCreation(t *testing.T) {
 		//wantCred protocol.CredentialCreation
 		wantErr bool
 	}{
-		{name: "success", args: args{s: okJSON}, wantErr: false},
+		{name: "success", args: args{s: challengeJSON}, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
