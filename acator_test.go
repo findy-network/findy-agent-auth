@@ -1,9 +1,15 @@
 package acator
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/sha256"
+	"math/big"
 	"testing"
 
+	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	"github.com/findy-network/findy-grpc/acator/authenticator"
+	"github.com/findy-network/findy-grpc/acator/cose"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -311,15 +317,42 @@ func TestFinnishLogin(t *testing.T) {
 
 }
 func TestParseAssertionResponse(t *testing.T) {
+	ccd, err := ParseResponse(challengeResponseJSON)
+
 	ad, err := ParseAssertionResponse(authenticatorAssertionResponse)
 	assert.NoError(t, err)
 
-	ccd, err := ParseResponse(challengeResponseJSON)
+	// Step 15. Let hash be the result of computing a hash over the cData using SHA-256.
+	clientDataHash := sha256.Sum256(ad.Raw.AssertionResponse.ClientDataJSON)
 
-	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
-		"localhost", "http://localhost:8080", false,
-		ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey)
+	// Step 16. Using the credential public key looked up in step 3, verify that sig is
+	// a valid signature over the binary concatenation of authData and hash.
+
+	sigData := append(ad.Raw.AssertionResponse.AuthenticatorData, clientDataHash[:]...)
+
+	credentialBytes := ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey
+	key, err := webauthncose.ParsePublicKey(credentialBytes)
+
+	k, ok := key.(webauthncose.EC2PublicKeyData)
+	assert.True(t, ok)
+	pubkey := &ecdsa.PublicKey{
+		Curve: elliptic.P256(),
+		X:     big.NewInt(0).SetBytes(k.XCoord),
+		Y:     big.NewInt(0).SetBytes(k.YCoord),
+	}
+
+	valid := cose.Verify(pubkey, sigData, ad.Response.Signature)
 	assert.NoError(t, err)
+	assert.True(t, valid)
+
+	valid, err = webauthncose.VerifySignature(key, sigData, ad.Response.Signature)
+	assert.NoError(t, err)
+	assert.True(t, valid)
+
+	//err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
+	//	"localhost", "http://localhost:8080", false,
+	//	credentialBytes)
+	//assert.NoError(t, err)
 
 	json, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
 	assert.NoError(t, err)

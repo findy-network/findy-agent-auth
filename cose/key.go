@@ -1,6 +1,7 @@
 package cose
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -56,4 +57,10 @@ func (k *Key) Sign(hash []byte) (s []byte, err error) {
 
 func (k *Key) Verify(hash, sig []byte) (ok bool) {
 	return ecdsa.VerifyASN1(&k.privKey.PublicKey, hash, sig)
+}
+
+func Verify(key *ecdsa.PublicKey, data, sig []byte) bool {
+	h := crypto.SHA256.New()
+	h.Write(data)
+	return ecdsa.VerifyASN1(key, h.Sum(nil), sig)
 }
