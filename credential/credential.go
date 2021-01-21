@@ -7,7 +7,7 @@ type Credential struct {
 }
 
 func (c *Credential) PKBytes() []byte {
-	return []byte{1,2}
+	return []byte{1, 2}
 }
 
 func New(creation *protocol.CredentialCreation) *Credential {

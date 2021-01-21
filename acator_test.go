@@ -314,8 +314,8 @@ func TestRegister(t *testing.T) {
 func TestFinnishLogin(t *testing.T) {
 	//reqBody := ioutil.NopCloser(bytes.NewReader([]byte(authenticatorAssertionResponse)))
 	//httpReq := &http.Request{Body: reqBody}
-
 }
+
 func TestParseAssertionResponse(t *testing.T) {
 	ccd, err := ParseResponse(challengeResponseJSON)
 
@@ -331,6 +331,12 @@ func TestParseAssertionResponse(t *testing.T) {
 	sigData := append(ad.Raw.AssertionResponse.AuthenticatorData, clientDataHash[:]...)
 
 	credentialBytes := ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey
+
+	coseKey, err := cose.NewFromData(credentialBytes)
+	assert.NoError(t, err)
+	valid := coseKey.Verify(sigData, ad.Response.Signature)
+	assert.True(t, valid)
+
 	key, err := webauthncose.ParsePublicKey(credentialBytes)
 
 	k, ok := key.(webauthncose.EC2PublicKeyData)
@@ -341,7 +347,7 @@ func TestParseAssertionResponse(t *testing.T) {
 		Y:     big.NewInt(0).SetBytes(k.YCoord),
 	}
 
-	valid := cose.Verify(pubkey, sigData, ad.Response.Signature)
+	valid = cose.Verify(pubkey, sigData, ad.Response.Signature)
 	assert.NoError(t, err)
 	assert.True(t, valid)
 
@@ -349,10 +355,10 @@ func TestParseAssertionResponse(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, valid)
 
-	//err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
-	//	"localhost", "http://localhost:8080", false,
-	//	credentialBytes)
-	//assert.NoError(t, err)
+	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
+		"localhost", "http://localhost:8080", false,
+		credentialBytes)
+	assert.NoError(t, err)
 
 	json, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
 	assert.NoError(t, err)

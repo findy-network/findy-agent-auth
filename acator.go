@@ -16,7 +16,7 @@ import (
 
 var (
 	counter uint32
-	aaGUID = uuid.New()
+	aaGUID  = uuid.New()
 )
 
 func Register(s string) (ccr *protocol.CredentialCreationResponse) {
@@ -35,22 +35,23 @@ func Register(s string) (ccr *protocol.CredentialCreationResponse) {
 	}
 	ccdByteJson, _ := json.Marshal(ccd)
 	ao := protocol.AttestationObject{
-		AuthData:     protocol.AuthenticatorData{
+		AuthData: protocol.AuthenticatorData{
 			RPIDHash: RPID[:],
-			Flags:    protocol.FlagAttestedCredentialData|protocol.FlagUserVerified|protocol.FlagUserPresent,
+			Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
 			Counter:  counter,
-			AttData:  protocol.AttestedCredentialData{
+			AttData: protocol.AttestedCredentialData{
 				AAGUID:              aaGUIDBytes,
 				CredentialID:        c.RawID,
 				CredentialPublicKey: c.PKBytes(),
 			},
-			ExtData:  nil,
+			ExtData: nil,
 		},
 		RawAuthData:  nil,
 		Format:       "none",
 		AttStatement: nil,
 	}
 	aoByteCBOR, _ := cbor.Marshal(ao)
+
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
 			Credential: protocol.Credential{},
