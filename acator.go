@@ -5,10 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/duo-labs/webauthn/protocol"
-	"github.com/findy-network/findy-grpc/acator/credential"
+	"github.com/findy-network/findy-grpc/acator/authenticator"
+	"github.com/findy-network/findy-grpc/acator/cose"
 	"github.com/fxamacker/cbor"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
@@ -19,13 +21,16 @@ var (
 	aaGUID  = uuid.New()
 )
 
-func Register(s string) (ccr *protocol.CredentialCreationResponse) {
-	cred, _ := NewCreation(s)
-	counter++
-	aaGUIDBytes, _ := aaGUID.MarshalBinary()
-	c := credential.New(&cred)
+func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, err error) {
+	defer err2.Annotate("register", &err)
 
-	RPID := sha256.Sum256([]byte(cred.Response.RelyingParty.ID))
+	cred, _ := NewCredentialCreation(jsonStream)
+	counter++
+	aaGUIDBytes := err2.Bytes.Try(aaGUID.MarshalBinary())
+
+	key := cose.TryNew()
+
+	RPIDHash := sha256.Sum256([]byte(cred.Response.RelyingParty.ID))
 	ccd := protocol.CollectedClientData{
 		Type:         protocol.CreateCeremony,
 		Challenge:    base64.RawURLEncoding.EncodeToString(cred.Response.Challenge),
@@ -34,19 +39,21 @@ func Register(s string) (ccr *protocol.CredentialCreationResponse) {
 		Hint:         "",
 	}
 	ccdByteJson, _ := json.Marshal(ccd)
-	ao := protocol.AttestationObject{
-		AuthData: protocol.AuthenticatorData{
-			RPIDHash: RPID[:],
-			Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
-			Counter:  counter,
-			AttData: protocol.AttestedCredentialData{
-				AAGUID:              aaGUIDBytes,
-				CredentialID:        c.RawID,
-				CredentialPublicKey: c.PKBytes(),
-			},
-			ExtData: nil,
+	secretPrivateKey := key.TryMarshalSecretPrivateKey()
+	authenticatorData := protocol.AuthenticatorData{
+		RPIDHash: RPIDHash[:],
+		Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
+		Counter:  counter,
+		AttData: protocol.AttestedCredentialData{
+			AAGUID:              aaGUIDBytes,
+			CredentialID:        secretPrivateKey,
+			CredentialPublicKey: key.TryMarshal(),
 		},
-		RawAuthData:  nil,
+		ExtData: nil,
+	}
+	ao := authenticator.AttestationObject{
+		//AuthData:     authenticatorData,
+		RawAuthData:  authenticator.TryMarshalData(&authenticatorData),
 		Format:       "none",
 		AttStatement: nil,
 	}
@@ -54,8 +61,11 @@ func Register(s string) (ccr *protocol.CredentialCreationResponse) {
 
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
-			Credential: protocol.Credential{},
-			RawID:      nil,
+			Credential: protocol.Credential{
+				ID:   base64.RawURLEncoding.EncodeToString(secretPrivateKey),
+				Type: "public-key",
+			},
+			RawID:      secretPrivateKey,
 			Extensions: nil,
 		},
 		AttestationResponse: protocol.AuthenticatorAttestationResponse{
@@ -66,10 +76,10 @@ func Register(s string) (ccr *protocol.CredentialCreationResponse) {
 	return
 }
 
-func NewCreation(s string) (cred protocol.CredentialCreation, err error) {
+func NewCredentialCreation(r io.Reader) (cred protocol.CredentialCreation, err error) {
 	defer err2.Annotate("new creation", &err)
 
-	err2.Check(json.Unmarshal([]byte(s), &cred))
+	err2.Check(json.NewDecoder(r).Decode(&cred))
 	return cred, nil
 }
 

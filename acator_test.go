@@ -4,7 +4,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
+	"encoding/json"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/duo-labs/webauthn/protocol/webauthncose"
@@ -307,8 +309,17 @@ var authenticatorAssertionResponse = `{
 `
 
 func TestRegister(t *testing.T) {
-	out := Register(challengeJSON)
+	r := strings.NewReader(challengeJSON)
+	out, err := Register(r)
+	assert.NoError(t, err)
 	assert.NotNil(t, out)
+
+	js, err := json.Marshal(out)
+	assert.NoError(t, err)
+
+	ccd, err := ParseResponse(string(js))
+	assert.NoError(t, err)
+	assert.NotNil(t, ccd)
 }
 
 func TestFinnishLogin(t *testing.T) {
@@ -397,9 +408,9 @@ func TestNewCreation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewCreation(tt.args.s)
+			_, err := NewCredentialCreation(strings.NewReader(tt.args.s))
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewCreation() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewCredentialCreation() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})

@@ -9,6 +9,21 @@ import (
 	"github.com/lainio/err2/assert"
 )
 
+type AttestationObject struct {
+	// The byteform version of the authenticator data, used in part for signature validation
+	RawAuthData []byte `json:"authData"`
+	// The format of the Attestation data.
+	Format string `json:"fmt"`
+	// The attestation statement data sent back if attestation is requested.
+	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
+}
+
+func TryMarshalData(data *protocol.AuthenticatorData) []byte {
+	b, err := MarshalData(data)
+	err2.Check(err)
+	return b
+}
+
 func MarshalData(data *protocol.AuthenticatorData) (json []byte, err error) {
 	defer err2.Annotate("marshal authenticator data", &err)
 

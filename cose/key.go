@@ -64,6 +64,12 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	return nil, nil
 }
 
+func TryNew() *Key {
+	k, err := New()
+	err2.Check(err)
+	return k
+}
+
 func New() (k *Key, err error) {
 	defer err2.Annotate("new", &err)
 
@@ -84,6 +90,10 @@ func New() (k *Key, err error) {
 
 func (k *Key) Marshal() ([]byte, error) {
 	return cbor.Marshal(k.EC2PublicKeyData)
+}
+
+func (k *Key) TryMarshal() []byte {
+	return err2.Bytes.Try(cbor.Marshal(k.EC2PublicKeyData))
 }
 
 func (k *Key) NewPrivateKey() (err error) {
