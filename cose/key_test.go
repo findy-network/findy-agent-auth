@@ -2,6 +2,8 @@ package cose
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestKey_Sign(t *testing.T) {
@@ -29,4 +31,14 @@ func TestKey_Sign(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestKey_TryMarshalSecretPrivateKey(t *testing.T) {
+	k, err := New()
+	assert.NoError(t, err)
+
+	d := k.TryMarshalSecretPrivateKey()
+
+	k2 := Key{}
+	k2.TryParseSecretPrivateKey(d)
 }

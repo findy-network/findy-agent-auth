@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/hex"
 	"math/big"
 
@@ -42,15 +43,17 @@ func NewFromData(data []byte) (k *Key, err error) {
 	return k1, nil
 }
 
-func parsePublicKey(keyBytes []byte) (interface{}, error) {
+func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
+	defer err2.Return(&err)
+
 	pk := webauthncose.PublicKeyData{}
-	cbor.Unmarshal(keyBytes, &pk)
+	err2.Check(cbor.Unmarshal(keyBytes, &pk))
 	switch webauthncose.COSEKeyType(pk.KeyType) {
 	case webauthncose.OctetKey:
 		assert.NoImplementation()
 	case webauthncose.EllipticKey:
 		var e webauthncose.EC2PublicKeyData
-		cbor.Unmarshal(keyBytes, &e)
+		err2.Check(cbor.Unmarshal(keyBytes, &e))
 		e.PublicKeyData = pk
 		return e, nil
 	case webauthncose.RSAKey:
@@ -73,10 +76,14 @@ func New() (k *Key, err error) {
 				Algorithm: -7,
 			},
 			Curve:  1,
-			XCoord: nil,
-			YCoord: nil,
+			XCoord: privateKey.X.Bytes(),
+			YCoord: privateKey.Y.Bytes(),
 		},
 		privKey: privateKey}, nil
+}
+
+func (k *Key) Marshal() ([]byte, error) {
+	return cbor.Marshal(k.EC2PublicKeyData)
 }
 
 func (k *Key) NewPrivateKey() (err error) {
@@ -110,6 +117,18 @@ func (k *Key) Verify(data, sig []byte) (ok bool) {
 
 	return ecdsa.VerifyASN1(pubkey, hash.Sum(nil), sig)
 	//return ecdsa.VerifyASN1(&k.privKey.PublicKey, hash, sig)
+}
+
+func (k *Key) TryMarshalSecretPrivateKey() []byte {
+	x509Encoded, err := x509.MarshalECPrivateKey(k.privKey)
+	err2.Check(err)
+	return theCipher.TryEncrypt(x509Encoded)
+}
+
+func (k *Key) TryParseSecretPrivateKey(data []byte) {
+	var err error
+	k.privKey, err = x509.ParseECPrivateKey(theCipher.TryDecrypt(data))
+	err2.Check(err)
 }
 
 func Verify(key *ecdsa.PublicKey, data, sig []byte) bool {
