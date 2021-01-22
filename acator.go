@@ -59,7 +59,7 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        credID,
-			CredentialPublicKey: key.TryMarshal(),
+			CredentialPublicKey: err2.Bytes.Try(key.Marshal()),
 		},
 		ExtData: nil,
 	}
@@ -98,7 +98,7 @@ func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, e
 	counter++
 	aaGUIDBytes := err2.Bytes.Try(aaGUID.MarshalBinary())
 
-	key := cose.TryNew()
+	key := cose.Must(cose.New())
 
 	RPIDHash := sha256.Sum256([]byte(cred.Response.RelyingParty.ID))
 	ccd := protocol.CollectedClientData{
@@ -117,7 +117,7 @@ func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, e
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        secretPrivateKey,
-			CredentialPublicKey: key.TryMarshal(),
+			CredentialPublicKey: err2.Bytes.Try(key.Marshal()),
 		},
 		ExtData: nil,
 	}

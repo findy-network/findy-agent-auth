@@ -32,8 +32,7 @@ type Key struct {
 	privKey *ecdsa.PrivateKey
 }
 
-func TryNewFromData(data []byte) *Key {
-	k, err := NewFromData(data)
+func Must(k *Key, err error) *Key {
 	err2.Check(err)
 	return k
 }
@@ -70,12 +69,6 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	return nil, nil
 }
 
-func TryNew() *Key {
-	k, err := New()
-	err2.Check(err)
-	return k
-}
-
 func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 	return &Key{
 		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
@@ -95,25 +88,11 @@ func New() (k *Key, err error) {
 
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	err2.Check(err)
-	return &Key{
-		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
-			PublicKeyData: webauthncose.PublicKeyData{
-				KeyType:   2,
-				Algorithm: -7,
-			},
-			Curve:  1,
-			XCoord: privateKey.X.Bytes(),
-			YCoord: privateKey.Y.Bytes(),
-		},
-		privKey: privateKey}, nil
+	return NewFromPrivateKey(privateKey), nil
 }
 
 func (k *Key) Marshal() ([]byte, error) {
 	return cbor.Marshal(k.EC2PublicKeyData)
-}
-
-func (k *Key) TryMarshal() []byte {
-	return err2.Bytes.Try(cbor.Marshal(k.EC2PublicKeyData))
 }
 
 func (k *Key) NewPrivateKey() (err error) {
@@ -142,14 +121,13 @@ func (k *Key) Verify(data, sig []byte) (ok bool) {
 	hash := crypto.SHA256.New()
 	hash.Write(data)
 
-	pubkey := &ecdsa.PublicKey{
+	pubKey := &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
 		X:     big.NewInt(0).SetBytes(k.XCoord),
 		Y:     big.NewInt(0).SetBytes(k.YCoord),
 	}
 
-	return ecdsa.VerifyASN1(pubkey, hash.Sum(nil), sig)
-	//return ecdsa.VerifyASN1(&k.privKey.PublicKey, hash, sig)
+	return ecdsa.VerifyASN1(pubKey, hash.Sum(nil), sig)
 }
 
 func (k *Key) TryMarshalSecretPrivateKey() []byte {
