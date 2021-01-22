@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestKey_Sign(t *testing.T) {
+func TestKey_SignAndVerify(t *testing.T) {
 	type args struct {
 		hash []byte
 	}
@@ -15,7 +15,7 @@ func TestKey_Sign(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"first", args{hash: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}}, false},
+		{"first", args{hash: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -24,10 +24,14 @@ func TestKey_Sign(t *testing.T) {
 				t.Errorf("New() error = %v", err)
 				return
 			}
-			_, err = k.Sign(tt.args.hash)
+			sig, err := k.Sign(tt.args.hash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			valid := k.Verify(tt.args.hash, sig)
+			if !valid {
+				t.Errorf("cannot verify")
 			}
 		})
 	}

@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -206,6 +207,7 @@ var data = []byte{
 	185,
 }
 
+// Credential creation/Register
 var challengeJSON = `{
   "publicKey": {
     "challenge": "7vH6L70QspI4ToHZ6gTJLj74jQ9jj/AzlIQkSlkZX8E=",
@@ -280,6 +282,7 @@ var challengeResponseJSON = `{
 }
 `
 
+// ==== assertion/Login
 var credentialRequestOptions = `{
   "publicKey": {
     "challenge": "yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE=",
@@ -289,6 +292,21 @@ var credentialRequestOptions = `{
       {
         "type": "public-key",
         "id": "Ae3OpoEHZefub0h/5xMZm4WY1oIW8RU1f2xh49XqiQ9o530QPp6B09ZGXt0GyHas32YRrRKNJoA="
+      }
+    ]
+  }
+}
+`
+
+var credentialRequestOptionsFmt = `{
+  "publicKey": {
+    "challenge": "yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE=",
+    "timeout": 60000,
+    "rpId": "localhost",
+    "allowCredentials": [
+      {
+        "type": "public-key",
+        "id": "%s"
       }
     ]
   }
@@ -320,6 +338,22 @@ func TestRegister(t *testing.T) {
 	ccd, err := ParseResponse(string(js))
 	assert.NoError(t, err)
 	assert.NotNil(t, ccd)
+	println(ccd.ID)
+}
+
+func TestLogin(t *testing.T) {
+	credReq := fmt.Sprintf(credentialRequestOptionsFmt, "QABRwuCGuynqf0lf35FK-CG-PY_WXai1oCzIZdIbY4S-81SMwZg1hD_V75cWyPwrGmFS4NpVegzMg8c-XnIBYPvmsl0hmkoxMCPDe7tKgV0kcSBC2Fy-BN8B22Ftt78CrZQUbYMJruutTWEp818XaVH9KDlRuV4s9k0G-T23lMUjqJHzUn-gfMbuP1uuVILV6rQu6kw")
+	car, err := Login(strings.NewReader(credReq))
+	assert.NoError(t, err)
+	assert.NotNil(t, car)
+
+	js, err := json.Marshal(car)
+	assert.NoError(t, err)
+
+	pcad, err := ParseAssertionResponse(string(js))
+	assert.NoError(t, err)
+	assert.NotNil(t, pcad)
+	println(pcad.ID)
 }
 
 func TestFinnishLogin(t *testing.T) {
@@ -431,7 +465,7 @@ func TestNewAssertion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewAssertion(tt.args.s)
+			_, err := NewAssertion(strings.NewReader(tt.args.s))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewAssertion() error = %v, wantErr %v", err, tt.wantErr)
 				return

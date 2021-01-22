@@ -32,6 +32,12 @@ type Key struct {
 	privKey *ecdsa.PrivateKey
 }
 
+func TryNewFromData(data []byte) *Key {
+	k, err := NewFromData(data)
+	err2.Check(err)
+	return k
+}
+
 func NewFromData(data []byte) (k *Key, err error) {
 	defer err2.Annotate("new key from data", &err)
 
@@ -70,6 +76,20 @@ func TryNew() *Key {
 	return k
 }
 
+func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
+	return &Key{
+		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
+			PublicKeyData: webauthncose.PublicKeyData{
+				KeyType:   2,
+				Algorithm: -7,
+			},
+			Curve:  1,
+			XCoord: priKey.X.Bytes(),
+			YCoord: priKey.Y.Bytes(),
+		},
+		privKey: priKey}
+}
+
 func New() (k *Key, err error) {
 	defer err2.Annotate("new", &err)
 
@@ -106,10 +126,13 @@ func (k *Key) NewPrivateKey() (err error) {
 	return nil
 }
 
-func (k *Key) Sign(hash []byte) (s []byte, err error) {
-	defer err2.Annotate("sing", &err)
+func (k *Key) Sign(data []byte) (s []byte, err error) {
+	defer err2.Annotate("sign", &err)
 
-	sig, err := ecdsa.SignASN1(rand.Reader, k.privKey, hash)
+	hash := crypto.SHA256.New()
+	hash.Write(data)
+
+	sig, err := ecdsa.SignASN1(rand.Reader, k.privKey, hash.Sum(nil))
 	err2.Check(err)
 
 	return sig, nil
@@ -136,9 +159,23 @@ func (k *Key) TryMarshalSecretPrivateKey() []byte {
 }
 
 func (k *Key) TryParseSecretPrivateKey(data []byte) {
-	var err error
-	k.privKey, err = x509.ParseECPrivateKey(theCipher.TryDecrypt(data))
+	err2.Check(k.ParseSecretPrivateKey(data))
+}
+
+func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
+	defer err2.Annotate("parse secret", &err)
+
+	k.privKey, err = ParseSecretPrivateKey(data)
 	err2.Check(err)
+	return nil
+}
+
+func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
+	defer err2.Annotate("parse secret private", &err)
+
+	pk, err = x509.ParseECPrivateKey(theCipher.TryDecrypt(data))
+	err2.Check(err)
+	return pk, nil
 }
 
 func Verify(key *ecdsa.PublicKey, data, sig []byte) bool {

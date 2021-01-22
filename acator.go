@@ -1,6 +1,7 @@
 package acator
 
 import (
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -18,13 +19,82 @@ import (
 
 var (
 	counter uint32
-	aaGUID  = uuid.New()
+	aaGUID  = uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511"))
 )
+
+func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err error) {
+	defer err2.Annotate("login", &err)
+
+	ca, err := NewAssertion(jsonStream)
+	err2.Check(err)
+	counter++
+	aaGUIDBytes := err2.Bytes.Try(aaGUID.MarshalBinary())
+
+	var priKey *ecdsa.PrivateKey
+	var credID []byte
+	for _, credential := range ca.Response.AllowedCredentials {
+		if pk, err := cose.ParseSecretPrivateKey(credential.CredentialID); err != nil {
+			credID = credential.CredentialID
+			priKey = pk
+			break
+		}
+	}
+	if priKey == nil {
+		return nil, fmt.Errorf("credential does not exist")
+	}
+
+	key := cose.NewFromPrivateKey(priKey)
+	RPIDHash := sha256.Sum256([]byte(ca.Response.RelyingPartyID))
+	ccd := protocol.CollectedClientData{
+		Type:      protocol.AssertCeremony,
+		Challenge: base64.RawURLEncoding.EncodeToString(ca.Response.Challenge),
+		Origin:    "http://localhost:8080",
+	}
+	ccdByteJson, _ := json.Marshal(ccd)
+
+	authenticatorData := protocol.AuthenticatorData{
+		RPIDHash: RPIDHash[:],
+		Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
+		Counter:  counter,
+		AttData: protocol.AttestedCredentialData{
+			AAGUID:              aaGUIDBytes,
+			CredentialID:        credID,
+			CredentialPublicKey: key.TryMarshal(),
+		},
+		ExtData: nil,
+	}
+	authenticatorRawData := authenticator.TryMarshalData(&authenticatorData)
+
+	clientDataHash := sha256.Sum256(ccdByteJson)
+
+	sigData := append(authenticatorRawData, clientDataHash[:]...)
+	sig := err2.Bytes.Try(key.Sign(sigData))
+
+	car = &protocol.CredentialAssertionResponse{
+		PublicKeyCredential: protocol.PublicKeyCredential{
+			Credential: protocol.Credential{
+				ID:   base64.RawURLEncoding.EncodeToString(credID),
+				Type: "public-key",
+			},
+			RawID:      credID,
+			Extensions: nil,
+		},
+		AssertionResponse: protocol.AuthenticatorAssertionResponse{
+			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},
+			AuthenticatorData:     authenticatorRawData,
+			Signature:             sig,
+		},
+	}
+	return car, nil
+}
 
 func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, err error) {
 	defer err2.Annotate("register", &err)
 
-	cred, _ := NewCredentialCreation(jsonStream)
+	println(aaGUID.String())
+
+	cred, err := NewCredentialCreation(jsonStream)
+	err2.Check(err)
 	counter++
 	aaGUIDBytes := err2.Bytes.Try(aaGUID.MarshalBinary())
 
@@ -52,7 +122,6 @@ func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, e
 		ExtData: nil,
 	}
 	ao := authenticator.AttestationObject{
-		//AuthData:     authenticatorData,
 		RawAuthData:  authenticator.TryMarshalData(&authenticatorData),
 		Format:       "none",
 		AttStatement: nil,
@@ -83,11 +152,11 @@ func NewCredentialCreation(r io.Reader) (cred protocol.CredentialCreation, err e
 	return cred, nil
 }
 
-func NewAssertion(s string) (cred *protocol.CredentialAssertion, err error) {
+func NewAssertion(r io.Reader) (_ *protocol.CredentialAssertion, err error) {
 	defer err2.Annotate("new assertion", &err)
 
 	var cr protocol.CredentialAssertion
-	err2.Check(json.Unmarshal([]byte(s), &cr))
+	err2.Check(json.NewDecoder(r).Decode(&cr))
 	return &cr, nil
 }
 
