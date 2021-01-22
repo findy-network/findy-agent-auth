@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/findy-network/findy-grpc/utils"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"golang.org/x/net/publicsuffix"
 )
 
 func main() {
@@ -26,7 +28,7 @@ func main() {
 	utils.ParseLoggingArgs(loggingFlags)
 	//glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
 
-	name := "user100"
+	name := "user101"
 
 	glog.Infoln("Let's start", name)
 
@@ -56,6 +58,8 @@ var (
 	urlStr       string
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
+
+	c = setupClient()
 )
 
 func init() {
@@ -66,9 +70,6 @@ func init() {
 func sendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser, err error) {
 	defer err2.Annotate("call http", &err)
 
-	c := &http.Client{
-		Timeout: 10 * time.Minute,
-	}
 	URL, err := url.Parse(addr)
 	err2.Check(err)
 
@@ -80,9 +81,13 @@ func sendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadC
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", urlStr)
+	request.Header.Add("Accept", "*/*")
+	request.Header.Add("Cookie", "kviwkdmc83en9csd893j2d298jd8u2c3jd283jcdn2cwc937jd97823jc73h2d67g9d236ch2")
 
 	response, err := c.Do(request)
 	err2.Check(err)
+
+	c.Jar.SetCookies(URL, response.Cookies())
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code: %v", response.Status)
@@ -103,4 +108,23 @@ func responseBodyJSON(r *http.Response) {
 		io.Reader
 		io.Closer
 	}{io.TeeReader(r.Body, os.Stdout), r.Body}
+}
+
+func setupClient() (client *http.Client) {
+	println("client setup")
+
+	// Set cookiejar options
+	options := cookiejar.Options{
+		PublicSuffixList: publicsuffix.List,
+	}
+
+	// Create new cookiejar for holding cookies
+	jar, _ := cookiejar.New(&options)
+
+	// Create new http client with predefined options
+	client = &http.Client{
+		Jar:     jar,
+		Timeout: time.Minute * 10,
+	}
+	return
 }
