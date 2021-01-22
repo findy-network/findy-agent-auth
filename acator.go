@@ -160,27 +160,6 @@ func NewAssertion(r io.Reader) (_ *protocol.CredentialAssertion, err error) {
 	return &cr, nil
 }
 
-func BuildResponse(cred protocol.CredentialCreation) (car protocol.CredentialAssertionResponse, err error) {
-	//tmp := protocol.AttestationObject{}
-	car = protocol.CredentialAssertionResponse{
-		PublicKeyCredential: protocol.PublicKeyCredential{
-			Credential: protocol.Credential{
-				ID:   "",
-				Type: "",
-			},
-			RawID:      nil,
-			Extensions: nil,
-		},
-		AssertionResponse: protocol.AuthenticatorAssertionResponse{
-			AuthenticatorResponse: protocol.AuthenticatorResponse{},
-			AuthenticatorData:     nil,
-			Signature:             nil,
-			UserHandle:            nil,
-		},
-	}
-	return car, nil
-}
-
 func ParseResponse(s string) (*protocol.ParsedCredentialCreationData, error) {
 	r := strings.NewReader(s)
 	return protocol.ParseCredentialCreationResponseBody(r)
