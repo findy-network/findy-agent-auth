@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -342,7 +343,14 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	credReq := fmt.Sprintf(credentialRequestOptionsFmt, "QABRwuCGuynqf0lf35FK-CG-PY_WXai1oCzIZdIbY4S-81SMwZg1hD_V75cWyPwrGmFS4NpVegzMg8c-XnIBYPvmsl0hmkoxMCPDe7tKgV0kcSBC2Fy-BN8B22Ftt78CrZQUbYMJruutTWEp818XaVH9KDlRuV4s9k0G-T23lMUjqJHzUn-gfMbuP1uuVILV6rQu6kw")
+	credID := "QABRwuCGuynqf0lf35FK-CG-PY_WXai1oCzIZdIbY4S-81SMwZg1hD_V75cWyPwrGmFS4NpVegzMg8c-XnIBYPvmsl0hmkoxMCPDe7tKgV0kcSBC2Fy-BN8B22Ftt78CrZQUbYMJruutTWEp818XaVH9KDlRuV4s9k0G-T23lMUjqJHzUn-gfMbuP1uuVILV6rQu6kw"
+	data, err := base64.RawURLEncoding.DecodeString(credID)
+	assert.NoError(t, err)
+
+	newStr := base64.StdEncoding.EncodeToString(data)
+	assert.NoError(t, err)
+	credID = newStr
+	credReq := fmt.Sprintf(credentialRequestOptionsFmt, credID)
 	car, err := Login(strings.NewReader(credReq))
 	assert.NoError(t, err)
 	assert.NotNil(t, car)
@@ -353,7 +361,13 @@ func TestLogin(t *testing.T) {
 	pcad, err := ParseAssertionResponse(string(js))
 	assert.NoError(t, err)
 	assert.NotNil(t, pcad)
-	println(pcad.ID)
+
+	credentialBytes := pcad.Response.AuthenticatorData.AttData.CredentialPublicKey
+	err = pcad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
+		"localhost", "http://localhost:8080", false,
+		credentialBytes)
+	assert.NoError(t, err)
+
 }
 
 func TestFinnishLogin(t *testing.T) {

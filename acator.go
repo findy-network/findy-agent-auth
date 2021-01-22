@@ -33,7 +33,7 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 	var priKey *ecdsa.PrivateKey
 	var credID []byte
 	for _, credential := range ca.Response.AllowedCredentials {
-		if pk, err := cose.ParseSecretPrivateKey(credential.CredentialID); err != nil {
+		if pk, err := cose.ParseSecretPrivateKey(credential.CredentialID); err == nil {
 			credID = credential.CredentialID
 			priKey = pk
 			break
