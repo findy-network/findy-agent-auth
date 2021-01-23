@@ -33,7 +33,18 @@ func main() {
 		return
 	}
 
-	glog.Infoln("Let's start", name)
+	err2.Check(cmdFuncs[cmd]())
+}
+
+func empty() error {
+	glog.Warningln("empty command handler called")
+	return nil
+}
+
+func registerUser() (err error) {
+	defer err2.Annotate("register user", &err)
+
+	glog.Infoln("Let's start REGISTER", name)
 
 	r, err := sendAndWaitHTTPRequest("GET", urlStr+"/register/begin/"+name, nil)
 	err2.Check(err)
@@ -42,18 +53,48 @@ func main() {
 	defer r.Close()
 	ccr, err := acator.Register(r)
 	err2.Check(err)
-	glog.Infoln("Register json ok handled")
+	glog.Infoln("Register json handled OK")
 
 	js, err := json.Marshal(ccr)
 	glog.Infoln("POSTing our registering message ")
 
 	r2, err := sendAndWaitHTTPRequest("POST", urlStr+"/register/finish/"+name, bytes.NewReader(js))
 	err2.Check(err)
-	glog.Infoln("POST sent ok, cot relpy")
+	glog.Infoln("POST sent ok, got reply")
 
 	defer r2.Close()
 	b := err2.Bytes.Try(ioutil.ReadAll(r2))
 	fmt.Println(string(b))
+
+	return nil
+}
+
+func loginUser() (err error) {
+	defer err2.Annotate("login user", &err)
+
+	glog.Infoln("Let's start LOGIN", name)
+
+	r, err := sendAndWaitHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
+	err2.Check(err)
+	glog.Infoln("GET send ok, receiving Login challenge")
+
+	defer r.Close()
+	assertionResponse, err := acator.Login(r)
+	err2.Check(err)
+	glog.Infoln("Login json handled OK")
+
+	js, err := json.Marshal(assertionResponse)
+
+	glog.Infoln("POSTing our login message ")
+	r2, err := sendAndWaitHTTPRequest("POST", urlStr+"/login/finish/"+name, bytes.NewReader(js))
+	err2.Check(err)
+	glog.Infoln("POST sent ok, got reply")
+
+	defer r2.Close()
+	b := err2.Bytes.Try(ioutil.ReadAll(r2))
+	fmt.Println(string(b))
+
+	return nil
 }
 
 func processArgs(args []string) (err error) {
@@ -72,6 +113,8 @@ const (
 	login
 )
 
+type cmdFunc func() error
+
 var (
 	cmd          cmdMode
 	name         string
@@ -86,11 +129,17 @@ var (
 		"register": register,
 		"login":    login,
 	}
+
+	cmdFuncs = []cmdFunc{
+		empty,
+		registerUser,
+		loginUser,
+	}
 )
 
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
-	startServerCmd.StringVar(&urlStr, "url", "http://localhost:8080", "web authn server url")
+	startServerCmd.StringVar(&urlStr, "url", "http://localhost:8090", "web authn server url")
 }
 
 func sendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser, err error) {
