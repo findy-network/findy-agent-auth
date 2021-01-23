@@ -28,7 +28,10 @@ func main() {
 	utils.ParseLoggingArgs(loggingFlags)
 	//glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
 
-	name := "user101"
+	if len(startServerCmd.Args()) != 2 || processArgs(startServerCmd.Args()) != nil {
+		println("usage:\tauthn <register|login> <reg-name>")
+		return
+	}
 
 	glog.Infoln("Let's start", name)
 
@@ -53,13 +56,36 @@ func main() {
 	fmt.Println(string(b))
 }
 
+func processArgs(args []string) (err error) {
+	cmd = cmdModes[args[0]]
+	if cmd == 0 {
+		return fmt.Errorf("wrong command")
+	}
+	name = args[1]
+	return nil
+}
+
+type cmdMode int
+
+const (
+	register cmdMode = iota + 1
+	login
+)
+
 var (
+	cmd          cmdMode
+	name         string
 	loggingFlags string
 	urlStr       string
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
 	c = setupClient()
+
+	cmdModes = map[string]cmdMode{
+		"register": register,
+		"login":    login,
+	}
 )
 
 func init() {
