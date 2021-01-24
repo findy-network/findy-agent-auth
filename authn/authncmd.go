@@ -138,14 +138,12 @@ func loginUser() (err error) {
 	glog.Infoln("GET send ok, receiving Login challenge")
 
 	defer r.Close()
-	assertionResponse, err := acator.Login(r)
+	js, err := acator.Login(r)
 	err2.Check(err)
 	glog.Infoln("Login json handled OK")
 
-	js, err := json.Marshal(assertionResponse)
-
 	glog.Infoln("POSTing our login message ")
-	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/login/finish/"+name, bytes.NewReader(js))
+	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
 	glog.Infoln("POST sent ok, got reply")
 
 	defer r2.Close()

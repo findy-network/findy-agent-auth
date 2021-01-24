@@ -465,26 +465,3 @@ func TestNewCreation(t *testing.T) {
 		})
 	}
 }
-
-func TestNewAssertion(t *testing.T) {
-	type args struct {
-		s string
-	}
-	tests := []struct {
-		name string
-		args args
-		//wantCred protocol.CredentialCreation
-		wantErr bool
-	}{
-		{name: "success", args: args{s: credentialRequestOptions}, wantErr: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewAssertion(strings.NewReader(tt.args.s))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewAssertion() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}

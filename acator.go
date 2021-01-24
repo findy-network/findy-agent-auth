@@ -13,6 +13,7 @@ import (
 	"github.com/findy-network/findy-grpc/acator/authenticator"
 	"github.com/findy-network/findy-grpc/acator/cose"
 	"github.com/fxamacker/cbor"
+	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
 )
@@ -22,11 +23,23 @@ var (
 	AAGUID  = uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511"))
 )
 
-func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err error) {
+func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 	defer err2.Annotate("login", &err)
+	pr, pw := io.Pipe()
 
-	ca, err := NewAssertion(jsonStream)
-	err2.Check(err)
+	go func() {
+		defer pw.Close()
+		defer err2.CatchTrace(func(err error) {
+			glog.Error(err)
+		})
+		ca := tryReadAssertion(jsonStream)
+		car := tryProcessLoginMessages(ca)
+		err2.Check(json.NewEncoder(pw).Encode(car))
+	}()
+	return pr, nil
+}
+
+func tryProcessLoginMessages(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
 	Counter++
 	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
 
@@ -40,7 +53,7 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 		}
 	}
 	if priKey == nil {
-		return nil, fmt.Errorf("credential does not exist")
+		err2.Check(fmt.Errorf("credential does not exist"))
 	}
 
 	key := cose.NewFromPrivateKey(priKey)
@@ -85,7 +98,7 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 			Signature:             sig,
 		},
 	}
-	return car, nil
+	return car
 }
 
 func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, err error) {
@@ -152,12 +165,10 @@ func NewCredentialCreation(r io.Reader) (cred protocol.CredentialCreation, err e
 	return cred, nil
 }
 
-func NewAssertion(r io.Reader) (_ *protocol.CredentialAssertion, err error) {
-	defer err2.Annotate("new assertion", &err)
-
+func tryReadAssertion(r io.Reader) (_ *protocol.CredentialAssertion) {
 	var cr protocol.CredentialAssertion
 	err2.Check(json.NewDecoder(r).Decode(&cr))
-	return &cr, nil
+	return &cr
 }
 
 func ParseResponse(s string) (*protocol.ParsedCredentialCreationData, error) {

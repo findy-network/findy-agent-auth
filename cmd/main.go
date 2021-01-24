@@ -30,7 +30,7 @@ func main() {
 		Url:      urlStr,
 		AAGUID:   "12c85a48-4baf-47bd-b51f-f192871a1511", // read from some where!!
 		Key:      "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c",
-		Counter:  3, // read from some where!!
+		Counter:  4, // read from some where!!
 	}
 	r, err := ac.Exec(os.Stdout)
 	err2.Check(err)
