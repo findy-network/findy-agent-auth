@@ -18,13 +18,24 @@ import (
 
 var (
 	// todo: key must be set from production environment, SHA-256, 32 bytes
+	//  We have SetMasterKey() for this now which is called from AuthnCmd
 	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	theCipher *crpt.Cipher
 )
 
 func init() {
+	// todo: we start with the default master key, we should drop this in
+	//  future and force to use SetMasterKey()
 	k, _ := hex.DecodeString(hexKey)
 	theCipher = crpt.NewCipher(k)
+}
+
+func SetMasterKey(hexKey string) (err error) {
+	defer err2.Annotate("set master key", &err)
+	k, err := hex.DecodeString(hexKey)
+	err2.Check(err)
+	theCipher = crpt.NewCipher(k)
+	return nil
 }
 
 type Key struct {

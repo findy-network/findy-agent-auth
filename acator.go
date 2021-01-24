@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	counter uint32
-	aaGUID  = uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511"))
+	Counter uint32
+	AAGUID  = uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511"))
 )
 
 func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err error) {
@@ -27,8 +27,8 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 
 	ca, err := NewAssertion(jsonStream)
 	err2.Check(err)
-	counter++
-	aaGUIDBytes := err2.Bytes.Try(aaGUID.MarshalBinary())
+	Counter++
+	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
 
 	var priKey *ecdsa.PrivateKey
 	var credID []byte
@@ -55,7 +55,7 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
 		Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
-		Counter:  counter,
+		Counter:  Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        credID,
@@ -91,12 +91,12 @@ func Login(jsonStream io.Reader) (car *protocol.CredentialAssertionResponse, err
 func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, err error) {
 	defer err2.Annotate("register", &err)
 
-	println(aaGUID.String())
+	println(AAGUID.String())
 
 	cred, err := NewCredentialCreation(jsonStream)
 	err2.Check(err)
-	counter++
-	aaGUIDBytes := err2.Bytes.Try(aaGUID.MarshalBinary())
+	Counter++
+	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
 
 	key := cose.Must(cose.New())
 
@@ -113,7 +113,7 @@ func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, e
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
 		Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
-		Counter:  counter,
+		Counter:  Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        secretPrivateKey,
