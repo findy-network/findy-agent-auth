@@ -11,6 +11,7 @@ import (
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/findy-network/findy-agent-api/grpc/ops"
 	"github.com/findy-network/findy-grpc/agency/client"
+	"github.com/findy-network/findy-grpc/jwt"
 	"github.com/findy-network/findy-grpc/rpc"
 	"github.com/findy-network/findy-wrapper-go/dto"
 	"github.com/golang/glog"
@@ -30,8 +31,12 @@ type User struct {
 	Name        string // full email address
 	DisplayName string // shortened version of the Name
 	DID         string
-	JWT         string
+	//JWT         string // remove this from here and make a method
 	Credentials []webauthn.Credential
+}
+
+func (u User) JWT() string {
+	return jwt.BuildJWT(u.DID)
 }
 
 func (u User) Key() []byte {
@@ -69,7 +74,7 @@ func randomUint64() uint64 {
 // WebAuthnID returns the user's ID
 func (u User) WebAuthnID() []byte {
 	buf := make([]byte, binary.MaxVarintLen64)
-	binary.PutUvarint(buf, uint64(u.Id))
+	binary.PutUvarint(buf, u.Id)
 	return buf
 }
 
@@ -101,8 +106,7 @@ func (u User) WebAuthnCredentials() []webauthn.Credential {
 // CredentialExcludeList returns a CredentialDescriptor array filled
 // with all the user's credentials
 func (u User) CredentialExcludeList() []protocol.CredentialDescriptor {
-
-	credentialExcludeList := []protocol.CredentialDescriptor{}
+	credentialExcludeList := make([]protocol.CredentialDescriptor, 0, len(u.Credentials))
 	for _, cred := range u.Credentials {
 		descriptor := protocol.CredentialDescriptor{
 			Type:         protocol.PublicKeyCredentialType,
@@ -110,7 +114,6 @@ func (u User) CredentialExcludeList() []protocol.CredentialDescriptor {
 		}
 		credentialExcludeList = append(credentialExcludeList, descriptor)
 	}
-
 	return credentialExcludeList
 }
 
@@ -132,7 +135,7 @@ func (u *User) AllocateCloudAgent() (err error) {
 		return fmt.Errorf("cannot allocate cloud agent for %v", u.Name)
 	}
 	u.DID = result.GetResult().CADID
-	u.JWT = result.GetResult().JWT
+	//u.JWT = result.GetResult().JWT // we must build it by our selves each time it's needed
 
 	return nil
 }
