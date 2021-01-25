@@ -94,8 +94,7 @@ func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 func New() (k *Key, err error) {
 	defer err2.Annotate("new", &err)
 
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	err2.Check(err)
+	privateKey := try(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
 	return NewFromPrivateKey(privateKey), nil
 }
 
@@ -106,8 +105,7 @@ func (k *Key) Marshal() ([]byte, error) {
 func (k *Key) NewPrivateKey() (err error) {
 	defer err2.Annotate("new key", &err)
 
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	err2.Check(err)
+	privateKey := try(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
 	k.privKey = privateKey
 
 	return nil
@@ -150,16 +148,14 @@ func (k *Key) TryParseSecretPrivateKey(data []byte) {
 func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 	defer err2.Annotate("parse secret", &err)
 
-	k.privKey, err = ParseSecretPrivateKey(data)
-	err2.Check(err)
+	k.privKey = try(ParseSecretPrivateKey(data))
 	return nil
 }
 
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	defer err2.Annotate("parse secret private", &err)
 
-	pk, err = x509.ParseECPrivateKey(theCipher.TryDecrypt(data))
-	err2.Check(err)
+	pk = try(x509.ParseECPrivateKey(theCipher.TryDecrypt(data)))
 	return pk, nil
 }
 
