@@ -32,8 +32,7 @@ func init() {
 
 func SetMasterKey(hexKey string) (err error) {
 	defer err2.Annotate("set master key", &err)
-	k, err := hex.DecodeString(hexKey)
-	err2.Check(err)
+	k := err2.Bytes.Try(hex.DecodeString(hexKey))
 	theCipher = crpt.NewCipher(k)
 	return nil
 }
@@ -51,10 +50,8 @@ func Must(k *Key, err error) *Key {
 func NewFromData(data []byte) (k *Key, err error) {
 	defer err2.Annotate("new key from data", &err)
 
-	k1, err := New()
-	err2.Check(err)
-	pkd, err := parsePublicKey(data)
-	err2.Check(err)
+	k1 := Must(New())
+	pkd := err2.Try(parsePublicKey(data))[0]
 	k1.EC2PublicKeyData = pkd.(webauthncose.EC2PublicKeyData)
 	return k1, nil
 }
@@ -122,8 +119,8 @@ func (k *Key) Sign(data []byte) (s []byte, err error) {
 	hash := crypto.SHA256.New()
 	hash.Write(data)
 
-	sig, err := ecdsa.SignASN1(rand.Reader, k.privKey, hash.Sum(nil))
-	err2.Check(err)
+	h := hash.Sum(nil)
+	sig := err2.Bytes.Try(ecdsa.SignASN1(rand.Reader, k.privKey, h))
 
 	return sig, nil
 }
@@ -142,8 +139,7 @@ func (k *Key) Verify(data, sig []byte) (ok bool) {
 }
 
 func (k *Key) TryMarshalSecretPrivateKey() []byte {
-	x509Encoded, err := x509.MarshalECPrivateKey(k.privKey)
-	err2.Check(err)
+	x509Encoded := err2.Bytes.Try(x509.MarshalECPrivateKey(k.privKey))
 	return theCipher.TryEncrypt(x509Encoded)
 }
 
@@ -171,4 +167,9 @@ func Verify(key *ecdsa.PublicKey, data, sig []byte) bool {
 	h := crypto.SHA256.New()
 	h.Write(data)
 	return ecdsa.VerifyASN1(key, h.Sum(nil), sig)
+}
+
+func try(pk *ecdsa.PrivateKey, err error) *ecdsa.PrivateKey {
+	err2.Check(err)
+	return pk
 }
