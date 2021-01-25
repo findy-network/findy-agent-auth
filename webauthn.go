@@ -71,6 +71,10 @@ func main() {
 		// RPIcon: "https://duo.com/logo.png", // Optional icon URL for your site
 	})
 	Check(err)
+	if port != 8080 && rpOrigin == "http://localhost:8080" {
+		fmt.Println("WRONG origin:", rpOrigin, "port:", port, "")
+		return
+	}
 
 	sessionStore, err = session.NewStore()
 	Check(err)
