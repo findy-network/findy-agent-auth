@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"strings"
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/findy-network/findy-grpc/acator/authenticator"
@@ -25,6 +24,8 @@ var (
 	Origin  url.URL
 )
 
+// Login reads CredentialAssertion JSON from the input stream and same time
+// process it and outputs CredentialAssertionResponse JSON to output stream.
 func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 	defer err2.Annotate("login", &err)
 	pr, pw := io.Pipe()
@@ -35,16 +36,15 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 			glog.Error(err)
 		})
 		ca := tryReadAssertion(jsonStream)
-		car := tryProcessLoginMessages(ca)
+		car := tryBuildAssertionResponse(ca)
 		err2.Check(json.NewEncoder(pw).Encode(car))
 	}()
 	return pr, nil
 }
 
-func tryProcessLoginMessages(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
+func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
 
-	//Counter++
 	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
 
 	var priKey *ecdsa.PrivateKey
@@ -105,6 +105,8 @@ func tryProcessLoginMessages(ca *protocol.CredentialAssertion) (car *protocol.Cr
 	return car
 }
 
+// Register reads CredentialCreation JSON from the input stream and same time
+// process it and outputs CredentialCreationResponse JSON to output stream.
 func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 	defer err2.Annotate("register", &err)
 
@@ -116,14 +118,14 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 			glog.Error(err)
 		})
 		cred := tryReadCreation(jsonStream)
-		ccr := tryProcessRegisterMessage(cred)
+		ccr := tryBuildCreationResponse(cred)
 		err2.Check(json.NewEncoder(pw).Encode(ccr))
 	}()
 	return pr, nil
 
 }
 
-func tryProcessRegisterMessage(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
+func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
 	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
 	newPrivKey := cose.Must(cose.New())
@@ -185,13 +187,4 @@ func tryReadAssertion(r io.Reader) *protocol.CredentialAssertion {
 	var cr protocol.CredentialAssertion
 	err2.Check(json.NewDecoder(r).Decode(&cr))
 	return &cr
-}
-
-func ParseResponse(r io.Reader) (*protocol.ParsedCredentialCreationData, error) {
-	return protocol.ParseCredentialCreationResponseBody(r)
-}
-
-func ParseAssertionResponse(s string) (*protocol.ParsedCredentialAssertionData, error) {
-	r := strings.NewReader(s)
-	return protocol.ParseCredentialRequestResponseBody(r)
 }

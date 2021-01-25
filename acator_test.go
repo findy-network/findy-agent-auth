@@ -147,10 +147,9 @@ func TestRegister(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, js)
 
-	ccd, err := ParseResponse(js)
+	ccd, err := protocol.ParseCredentialCreationResponseBody(js)
 	assert.NoError(t, err)
 	assert.NotNil(t, ccd)
-	println(ccd.ID)
 }
 
 func TestLogin(t *testing.T) {
@@ -181,9 +180,9 @@ func TestLogin(t *testing.T) {
 }
 
 func TestParseAssertionResponse(t *testing.T) {
-	ccd, err := ParseResponse(strings.NewReader(challengeResponseJSON))
+	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
 
-	ad, err := ParseAssertionResponse(authenticatorAssertionResponse)
+	ad, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse))
 	assert.NoError(t, err)
 
 	// Step 15. Let hash be the result of computing a hash over the cData using SHA-256.
@@ -201,9 +200,7 @@ func TestParseAssertionResponse(t *testing.T) {
 	valid := coseKey.Verify(sigData, ad.Response.Signature)
 	assert.True(t, valid)
 	keyData, _ := coseKey.Marshal()
-	//assert.NoError(t, err)
 	assert.Len(t, credentialBytes, len(keyData))
-	//assert.Equal(t, credentialBytes, keyData)
 
 	key, err := webauthncose.ParsePublicKey(keyData)
 	assert.NoError(t, err)
@@ -234,7 +231,7 @@ func TestParseAssertionResponse(t *testing.T) {
 }
 
 func TestParseResponse(t *testing.T) {
-	ccd, err := ParseResponse(strings.NewReader(challengeResponseJSON))
+	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
 	assert.NoError(t, err)
 	assert.NotNil(t, ccd)
 
