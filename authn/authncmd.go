@@ -2,6 +2,7 @@ package authn
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,7 +27,7 @@ type Cmd struct {
 	Url      string `json:"url"`
 	AAGUID   string `json:"aaguid"`
 	Key      string `json:"key"`
-	Counter  uint32 `json:"counter"`
+	Counter  uint64 `json:"counter"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -54,21 +55,20 @@ func (r Result) String() string {
 }
 
 func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
-	defer err2.Annotate("authn cmd exec", &err)
+	defer err2.Annotate("execute authenticator", &err)
 
 	err2.Check(ac.Validate())
 
 	err2.Check(cose.SetMasterKey(ac.Key))
 	cmd := cmdModes[ac.SubCmd]
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
-	acator.Counter = ac.Counter
+	acator.Counter = uint32(ac.Counter)
 	name = ac.UserName
 	urlStr = ac.Url
-	originURL, err := url.Parse(urlStr)
-	err2.Check(err)
+	originURL := err2.URL.Try(url.Parse(urlStr))
 	acator.Origin = *originURL
 
-	result, err := cmdFuncs[cmd]()
+	result, err := execute[cmd]()
 	err2.Check(err)
 
 	return *result, nil
@@ -94,7 +94,7 @@ var (
 		"login":    login,
 	}
 
-	cmdFuncs = []cmdFunc{
+	execute = []cmdFunc{
 		empty,
 		registerUser,
 		loginUser,
@@ -102,49 +102,35 @@ var (
 )
 
 func empty() (*Result, error) {
-	glog.Warningln("empty command handler called")
-	return nil, nil
+	msg := "empty command handler called"
+	glog.Warningln(msg)
+	return nil, errors.New(msg)
 }
 
 func registerUser() (result *Result, err error) {
 	defer err2.Annotate("register user", &err)
 
-	glog.Infoln("Let's start REGISTER", name)
-
 	r := trySendAndWaitHTTPRequest("GET", urlStr+"/register/begin/"+name, nil)
-	glog.Infoln("GET send ok, receiving reply")
-
 	defer r.Close()
+
 	js := err2.R.Try(acator.Register(r))
-	glog.Infoln("Register json handled OK")
 
-	glog.Infoln("POSTing our registering message ")
 	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
-	glog.Infoln("POST sent ok, got reply")
-
 	defer r2.Close()
-	b := err2.Bytes.Try(ioutil.ReadAll(r2))
-	fmt.Println(string(b))
 
+	b := err2.Bytes.Try(ioutil.ReadAll(r2))
 	return &Result{Token: string(b)}, nil
 }
 
 func loginUser() (_ *Result, err error) {
 	defer err2.Annotate("login user", &err)
 
-	glog.Infoln("Let's start LOGIN", name)
-
 	r := trySendAndWaitHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
-	glog.Infoln("GET send ok, receiving Login challenge")
-
 	defer r.Close()
+
 	js := err2.R.Try(acator.Login(r))
-	glog.Infoln("Login json handled OK")
 
-	glog.Infoln("POSTing our login message ")
 	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
-	glog.Infoln("POST sent ok, got reply")
-
 	defer r2.Close()
 
 	var result Result
@@ -157,9 +143,7 @@ func trySendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.Re
 	URL := err2.URL.Try(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
-	if msg != nil {
-		printBodyJSON(request)
-	}
+	echoReqToStdout(request)
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", urlStr)
@@ -173,19 +157,15 @@ func trySendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.Re
 	if response.StatusCode != http.StatusOK {
 		err2.Check(fmt.Errorf("status code: %v", response.Status))
 	}
-	responseBodyJSON(response)
+	echoRespToStdout(response)
 	return response.Body
 }
 
 func setupClient() (client *http.Client) {
-	println("client setup")
-
-	// Set cookiejar options
 	options := cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	}
 
-	// Create new cookiejar for holding cookies
 	jar, _ := cookiejar.New(&options)
 
 	// Create new http client with predefined options
@@ -196,16 +176,20 @@ func setupClient() (client *http.Client) {
 	return
 }
 
-func printBodyJSON(r *http.Request) {
-	r.Body = &struct {
-		io.Reader
-		io.Closer
-	}{io.TeeReader(r.Body, os.Stdout), r.Body}
+func echoReqToStdout(r *http.Request) {
+	if glog.V(5) && r.Body != nil {
+		r.Body = &struct {
+			io.Reader
+			io.Closer
+		}{io.TeeReader(r.Body, os.Stdout), r.Body}
+	}
 }
 
-func responseBodyJSON(r *http.Response) {
-	r.Body = &struct {
-		io.Reader
-		io.Closer
-	}{io.TeeReader(r.Body, os.Stdout), r.Body}
+func echoRespToStdout(r *http.Response) {
+	if glog.V(5) && r.Body != nil {
+		r.Body = &struct {
+			io.Reader
+			io.Closer
+		}{io.TeeReader(r.Body, os.Stdout), r.Body}
+	}
 }
