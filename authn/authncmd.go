@@ -1,7 +1,6 @@
 package authn
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -35,7 +34,7 @@ func (ac *Cmd) Validate() (err error) {
 	defer err2.Return(&err)
 
 	assert.NotEmpty(ac.SubCmd, "sub command needed")
-	assert.True(ac.SubCmd == "register" || ac.SubCmd == "login",
+	assert.Truef(ac.SubCmd == "register" || ac.SubCmd == "login",
 		"wrong sub command: %s: want: register|login", ac.SubCmd)
 	assert.NotEmpty(ac.UserName, "user name needed")
 	assert.NotEmpty(ac.Url, "connection url cannot be empty")
@@ -54,7 +53,7 @@ func (r Result) String() string {
 	return string(d)
 }
 
-func (ac *Cmd) Exec(progress io.Writer) (r Result, err error) {
+func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	defer err2.Annotate("authn cmd exec", &err)
 
 	err2.Check(ac.Validate())
@@ -65,10 +64,14 @@ func (ac *Cmd) Exec(progress io.Writer) (r Result, err error) {
 	acator.Counter = ac.Counter
 	name = ac.UserName
 	urlStr = ac.Url
+	originURL, err := url.Parse(urlStr)
+	err2.Check(err)
+	acator.Origin = *originURL
 
-	err2.Check(cmdFuncs[cmd]())
+	result, err := cmdFuncs[cmd]()
+	err2.Check(err)
 
-	return Result{}, nil
+	return *result, nil
 }
 
 type cmdMode int
@@ -78,7 +81,7 @@ const (
 	login
 )
 
-type cmdFunc func() error
+type cmdFunc func() (*Result, error)
 
 var (
 	name   string
@@ -98,12 +101,12 @@ var (
 	}
 )
 
-func empty() error {
+func empty() (*Result, error) {
 	glog.Warningln("empty command handler called")
-	return nil
+	return nil, nil
 }
 
-func registerUser() (err error) {
+func registerUser() (result *Result, err error) {
 	defer err2.Annotate("register user", &err)
 
 	glog.Infoln("Let's start REGISTER", name)
@@ -112,24 +115,21 @@ func registerUser() (err error) {
 	glog.Infoln("GET send ok, receiving reply")
 
 	defer r.Close()
-	ccr, err := acator.Register(r)
-	err2.Check(err)
+	js := err2.R.Try(acator.Register(r))
 	glog.Infoln("Register json handled OK")
 
-	js, err := json.Marshal(ccr)
 	glog.Infoln("POSTing our registering message ")
-
-	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/register/finish/"+name, bytes.NewReader(js))
+	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
 	glog.Infoln("POST sent ok, got reply")
 
 	defer r2.Close()
 	b := err2.Bytes.Try(ioutil.ReadAll(r2))
 	fmt.Println(string(b))
 
-	return nil
+	return &Result{Token: string(b)}, nil
 }
 
-func loginUser() (err error) {
+func loginUser() (_ *Result, err error) {
 	defer err2.Annotate("login user", &err)
 
 	glog.Infoln("Let's start LOGIN", name)
@@ -138,8 +138,7 @@ func loginUser() (err error) {
 	glog.Infoln("GET send ok, receiving Login challenge")
 
 	defer r.Close()
-	js, err := acator.Login(r)
-	err2.Check(err)
+	js := err2.R.Try(acator.Login(r))
 	glog.Infoln("Login json handled OK")
 
 	glog.Infoln("POSTing our login message ")
@@ -147,16 +146,15 @@ func loginUser() (err error) {
 	glog.Infoln("POST sent ok, got reply")
 
 	defer r2.Close()
-	b := err2.Bytes.Try(ioutil.ReadAll(r2))
-	fmt.Println(string(b))
 
-	return nil
+	var result Result
+	err2.Check(json.NewDecoder(r2).Decode(&result))
+
+	return &result, nil
 }
 
 func trySendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
-	URL, err := url.Parse(addr)
-	err2.Check(err)
-
+	URL := err2.URL.Try(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
 	if msg != nil {
@@ -168,8 +166,7 @@ func trySendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.Re
 	request.Header.Add("Accept", "*/*")
 	request.Header.Add("Cookie", "kviwkdmc83en9csd893j2d298jd8u2c3jd283jcdn2cwc937jd97823jc73h2d67g9d236ch2")
 
-	response, err := c.Do(request)
-	err2.Check(err)
+	response := err2.Response.Try(c.Do(request))
 
 	c.Jar.SetCookies(URL, response.Cookies())
 

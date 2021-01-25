@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"strings"
 
 	"github.com/duo-labs/webauthn/protocol"
@@ -21,6 +22,7 @@ import (
 var (
 	Counter uint32
 	AAGUID  = uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511"))
+	Origin  url.URL
 )
 
 func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
@@ -40,7 +42,9 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 }
 
 func tryProcessLoginMessages(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
-	Counter++
+	origin := protocol.FullyQualifiedOrigin(&Origin)
+
+	//Counter++
 	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
 
 	var priKey *ecdsa.PrivateKey
@@ -61,7 +65,7 @@ func tryProcessLoginMessages(ca *protocol.CredentialAssertion) (car *protocol.Cr
 	ccd := protocol.CollectedClientData{
 		Type:      protocol.AssertCeremony,
 		Challenge: base64.RawURLEncoding.EncodeToString(ca.Response.Challenge),
-		Origin:    "http://localhost:8080",
+		Origin:    origin,
 	}
 	ccdByteJson, _ := json.Marshal(ccd)
 
@@ -101,36 +105,49 @@ func tryProcessLoginMessages(ca *protocol.CredentialAssertion) (car *protocol.Cr
 	return car
 }
 
-func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, err error) {
+func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 	defer err2.Annotate("register", &err)
 
-	println(AAGUID.String())
+	pr, pw := io.Pipe()
 
-	cred, err := NewCredentialCreation(jsonStream)
-	err2.Check(err)
-	Counter++
+	go func() {
+		defer pw.Close()
+		defer err2.CatchTrace(func(err error) {
+			glog.Error(err)
+		})
+		cred := tryReadCreation(jsonStream)
+		ccr := tryProcessRegisterMessage(cred)
+		err2.Check(json.NewEncoder(pw).Encode(ccr))
+	}()
+	return pr, nil
+
+}
+
+func tryProcessRegisterMessage(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
+	origin := protocol.FullyQualifiedOrigin(&Origin)
 	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
+	newPrivKey := cose.Must(cose.New())
+	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
-	key := cose.Must(cose.New())
-
-	RPIDHash := sha256.Sum256([]byte(cred.Response.RelyingParty.ID))
 	ccd := protocol.CollectedClientData{
 		Type:         protocol.CreateCeremony,
-		Challenge:    base64.RawURLEncoding.EncodeToString(cred.Response.Challenge),
-		Origin:       "http://localhost:8080",
+		Challenge:    base64.RawURLEncoding.EncodeToString(creation.Response.Challenge),
+		Origin:       origin,
 		TokenBinding: nil,
 		Hint:         "",
 	}
-	ccdByteJson, _ := json.Marshal(ccd)
-	secretPrivateKey := key.TryMarshalSecretPrivateKey()
+	ccdByteJson := err2.Bytes.Try(json.Marshal(ccd))
+
+	secretPrivateKey := newPrivKey.TryMarshalSecretPrivateKey()
+	flags := protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
-		Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
+		Flags:    flags,
 		Counter:  Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        secretPrivateKey,
-			CredentialPublicKey: err2.Bytes.Try(key.Marshal()),
+			CredentialPublicKey: err2.Bytes.Try(newPrivKey.Marshal()),
 		},
 		ExtData: nil,
 	}
@@ -139,7 +156,7 @@ func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, e
 		Format:       "none",
 		AttStatement: nil,
 	}
-	aoByteCBOR, _ := cbor.Marshal(ao)
+	aoByteCBOR := err2.Bytes.Try(cbor.Marshal(ao))
 
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -155,36 +172,26 @@ func Register(jsonStream io.Reader) (ccr *protocol.CredentialCreationResponse, e
 			AttestationObject:     aoByteCBOR,
 		},
 	}
-	return
+	return ccr
 }
 
-func NewCredentialCreation(r io.Reader) (cred protocol.CredentialCreation, err error) {
-	defer err2.Annotate("new creation", &err)
-
-	err2.Check(json.NewDecoder(r).Decode(&cred))
-	return cred, nil
+func tryReadCreation(r io.Reader) *protocol.CredentialCreation {
+	var creation protocol.CredentialCreation
+	err2.Check(json.NewDecoder(r).Decode(&creation))
+	return &creation
 }
 
-func tryReadAssertion(r io.Reader) (_ *protocol.CredentialAssertion) {
+func tryReadAssertion(r io.Reader) *protocol.CredentialAssertion {
 	var cr protocol.CredentialAssertion
 	err2.Check(json.NewDecoder(r).Decode(&cr))
 	return &cr
 }
 
-func ParseResponse(s string) (*protocol.ParsedCredentialCreationData, error) {
-	r := strings.NewReader(s)
+func ParseResponse(r io.Reader) (*protocol.ParsedCredentialCreationData, error) {
 	return protocol.ParseCredentialCreationResponseBody(r)
 }
 
 func ParseAssertionResponse(s string) (*protocol.ParsedCredentialAssertionData, error) {
 	r := strings.NewReader(s)
 	return protocol.ParseCredentialRequestResponseBody(r)
-}
-
-func AcatorUnmarshal(d []byte) error {
-	ad := protocol.AuthenticatorData{}
-	err := ad.Unmarshal(d)
-	b, err := json.MarshalIndent(ad, "", "\t")
-	fmt.Printf("%s\n", b)
-	return err
 }

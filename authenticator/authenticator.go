@@ -41,7 +41,7 @@ func MarshalData(data *protocol.AuthenticatorData) (json []byte, err error) {
 }
 
 func marshalAttestedCredentialData(json []byte, data *protocol.AuthenticatorData) []byte {
-	assert.Len(data.AttData.AAGUID, 16, "wrong AAGUID len(%d)", len(data.AttData.AAGUID))
+	assert.Lenf(data.AttData.AAGUID, 16, "wrong AAGUID len(%d)", len(data.AttData.AAGUID))
 	assert.NotEmpty(data.AttData.CredentialID, "empty credential id")
 	assert.NotEmpty(data.AttData.CredentialPublicKey, "empty credential public key")
 

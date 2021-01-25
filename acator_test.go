@@ -5,208 +5,18 @@ import (
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"math/big"
+	"net/url"
 	"strings"
 	"testing"
 
+	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	"github.com/findy-network/findy-grpc/acator/authenticator"
 	"github.com/findy-network/findy-grpc/acator/cose"
 	"github.com/stretchr/testify/assert"
 )
-
-var data = []byte{
-	73,
-	150,
-	13,
-	229,
-	136,
-	14,
-	140,
-	104,
-	116,
-	52,
-	23,
-	15,
-	100,
-	118,
-	96,
-	91,
-	143,
-	228,
-	174,
-	185,
-	162,
-	134,
-	50,
-	199,
-	153,
-	92,
-	243,
-	186,
-	131,
-	29,
-	151,
-	99,
-	69,
-	96,
-	2,
-	220,
-	119,
-	173,
-	206,
-	0,
-	2,
-	53,
-	188,
-	198,
-	10,
-	100,
-	139,
-	11,
-	37,
-	241,
-	240,
-	85,
-	3,
-	0,
-	56,
-	1,
-	237,
-	206,
-	166,
-	129,
-	7,
-	101,
-	231,
-	238,
-	111,
-	72,
-	127,
-	231,
-	19,
-	25,
-	155,
-	133,
-	152,
-	214,
-	130,
-	22,
-	241,
-	21,
-	53,
-	127,
-	108,
-	97,
-	227,
-	213,
-	234,
-	137,
-	15,
-	104,
-	231,
-	125,
-	16,
-	62,
-	158,
-	129,
-	211,
-	214,
-	70,
-	94,
-	221,
-	6,
-	200,
-	118,
-	172,
-	223,
-	102,
-	17,
-	173,
-	18,
-	141,
-	38,
-	128,
-	165,
-	1,
-	2,
-	3,
-	38,
-	32,
-	1,
-	33,
-	88,
-	32,
-	135,
-	4,
-	102,
-	211,
-	195,
-	250,
-	222,
-	210,
-	130,
-	176,
-	66,
-	170,
-	143,
-	3,
-	154,
-	76,
-	202,
-	251,
-	152,
-	79,
-	68,
-	46,
-	192,
-	130,
-	191,
-	126,
-	227,
-	13,
-	132,
-	129,
-	205,
-	196,
-	34,
-	88,
-	32,
-	2,
-	185,
-	214,
-	73,
-	248,
-	10,
-	153,
-	52,
-	227,
-	90,
-	35,
-	175,
-	180,
-	219,
-	189,
-	10,
-	78,
-	227,
-	36,
-	50,
-	105,
-	84,
-	155,
-	223,
-	127,
-	176,
-	151,
-	255,
-	20,
-	33,
-	205,
-	185,
-}
 
 // Credential creation/Register
 var challengeJSON = `{
@@ -284,7 +94,8 @@ var challengeResponseJSON = `{
 `
 
 // ==== assertion/Login
-var credentialRequestOptions = `{
+// credentialRequestOptions
+var _ = `{
   "publicKey": {
     "challenge": "yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE=",
     "timeout": 60000,
@@ -328,21 +139,24 @@ var authenticatorAssertionResponse = `{
 `
 
 func TestRegister(t *testing.T) {
+	originURL, _ := url.Parse("http://localhost:8080")
+	Origin = *originURL
+
 	r := strings.NewReader(challengeJSON)
-	out, err := Register(r)
+	js, err := Register(r)
 	assert.NoError(t, err)
-	assert.NotNil(t, out)
+	assert.NotNil(t, js)
 
-	js, err := json.Marshal(out)
-	assert.NoError(t, err)
-
-	ccd, err := ParseResponse(string(js))
+	ccd, err := ParseResponse(js)
 	assert.NoError(t, err)
 	assert.NotNil(t, ccd)
 	println(ccd.ID)
 }
 
 func TestLogin(t *testing.T) {
+	originURL, _ := url.Parse("http://localhost:8080")
+	Origin = *originURL
+
 	credID := "QABRwuCGuynqf0lf35FK-CG-PY_WXai1oCzIZdIbY4S-81SMwZg1hD_V75cWyPwrGmFS4NpVegzMg8c-XnIBYPvmsl0hmkoxMCPDe7tKgV0kcSBC2Fy-BN8B22Ftt78CrZQUbYMJruutTWEp818XaVH9KDlRuV4s9k0G-T23lMUjqJHzUn-gfMbuP1uuVILV6rQu6kw"
 	data, err := base64.RawURLEncoding.DecodeString(credID)
 	assert.NoError(t, err)
@@ -355,10 +169,7 @@ func TestLogin(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, car)
 
-	js, err := json.Marshal(car)
-	assert.NoError(t, err)
-
-	pcad, err := ParseAssertionResponse(string(js))
+	pcad, err := protocol.ParseCredentialRequestResponseBody(car)
 	assert.NoError(t, err)
 	assert.NotNil(t, pcad)
 
@@ -367,16 +178,10 @@ func TestLogin(t *testing.T) {
 		"localhost", "http://localhost:8080", false,
 		credentialBytes)
 	assert.NoError(t, err)
-
-}
-
-func TestFinnishLogin(t *testing.T) {
-	//reqBody := ioutil.NopCloser(bytes.NewReader([]byte(authenticatorAssertionResponse)))
-	//httpReq := &http.Request{Body: reqBody}
 }
 
 func TestParseAssertionResponse(t *testing.T) {
-	ccd, err := ParseResponse(challengeResponseJSON)
+	ccd, err := ParseResponse(strings.NewReader(challengeResponseJSON))
 
 	ad, err := ParseAssertionResponse(authenticatorAssertionResponse)
 	assert.NoError(t, err)
@@ -423,45 +228,17 @@ func TestParseAssertionResponse(t *testing.T) {
 		credentialBytes)
 	assert.NoError(t, err)
 
-	json, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
+	authenticatorJSON, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
 	assert.NoError(t, err)
-	assert.Equal(t, json, []uint8(ad.Raw.AssertionResponse.AuthenticatorData))
-}
-
-func TestActorUnmarshal(t *testing.T) {
-	err := AcatorUnmarshal(data)
-	assert.NoError(t, err)
+	assert.Equal(t, authenticatorJSON, []uint8(ad.Raw.AssertionResponse.AuthenticatorData))
 }
 
 func TestParseResponse(t *testing.T) {
-	ccd, err := ParseResponse(challengeResponseJSON)
+	ccd, err := ParseResponse(strings.NewReader(challengeResponseJSON))
 	assert.NoError(t, err)
 	assert.NotNil(t, ccd)
 
-	json, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
+	js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
 	assert.NoError(t, err)
-	assert.Len(t, json, len(ccd.Response.AttestationObject.RawAuthData))
-}
-
-func TestNewCreation(t *testing.T) {
-	type args struct {
-		s string
-	}
-	tests := []struct {
-		name string
-		args args
-		//wantCred protocol.CredentialCreation
-		wantErr bool
-	}{
-		{name: "success", args: args{s: challengeJSON}, wantErr: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewCredentialCreation(strings.NewReader(tt.args.s))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewCredentialCreation() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
+	assert.Len(t, js, len(ccd.Response.AttestationObject.RawAuthData))
 }
