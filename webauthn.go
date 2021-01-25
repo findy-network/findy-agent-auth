@@ -20,6 +20,8 @@ import (
 	"github.com/rs/cors"
 )
 
+const defaultPort = 8080
+
 var (
 	loggingFlags string
 	port         int
@@ -32,6 +34,8 @@ var (
 	sessionStore *session.Store
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
+
+	defaultOrigin = fmt.Sprintf("http://localhost:%d", port)
 )
 
 type AccessToken struct {
@@ -40,11 +44,11 @@ type AccessToken struct {
 
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
-	startServerCmd.IntVar(&port, "port", 8080, "server port")
+	startServerCmd.IntVar(&port, "port", defaultPort, "server port")
 	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
 	startServerCmd.StringVar(&rpID, "domain", "localhost", "the site domain name")
-	startServerCmd.StringVar(&rpOrigin, "origin", fmt.Sprintf("http://localhost:%d", port), "origin URL for Webauthn requests")
+	startServerCmd.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
 	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
 }
 
@@ -54,6 +58,12 @@ func main() {
 	})
 	Check(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
+
+	if port != defaultPort && rpOrigin == defaultOrigin {
+		fmt.Println("Port mismatch origin:", rpOrigin, "port:", port, "")
+		return
+	}
+
 	glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
 
 	Check(enclave.InitSealedBox("fido-enclave.bolt"))
@@ -71,11 +81,6 @@ func main() {
 		// RPIcon: "https://duo.com/logo.png", // Optional icon URL for your site
 	})
 	Check(err)
-	if port != 8080 && rpOrigin == "http://localhost:8080" {
-		fmt.Println("WRONG origin:", rpOrigin, "port:", port, "")
-		return
-	}
-
 	sessionStore, err = session.NewStore()
 	Check(err)
 
@@ -263,7 +268,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	Check(err)
 
 	// handle successful login
-	jsonResponse(w, &AccessToken{Token: user.JWT}, http.StatusOK)
+	jsonResponse(w, &AccessToken{Token: user.JWT()}, http.StatusOK)
 	glog.V(1).Infoln("END finish login", username)
 }
 
