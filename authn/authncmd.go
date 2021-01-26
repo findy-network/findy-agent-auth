@@ -110,12 +110,12 @@ func empty() (*Result, error) {
 func registerUser() (result *Result, err error) {
 	defer err2.Annotate("register user", &err)
 
-	r := trySendAndWaitHTTPRequest("GET", urlStr+"/register/begin/"+name, nil)
+	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name, nil)
 	defer r.Close()
 
 	js := err2.R.Try(acator.Register(r))
 
-	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
+	r2 := tryHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
 	defer r2.Close()
 
 	b := err2.Bytes.Try(ioutil.ReadAll(r2))
@@ -125,12 +125,12 @@ func registerUser() (result *Result, err error) {
 func loginUser() (_ *Result, err error) {
 	defer err2.Annotate("login user", &err)
 
-	r := trySendAndWaitHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
+	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
 	defer r.Close()
 
 	js := err2.R.Try(acator.Login(r))
 
-	r2 := trySendAndWaitHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
+	r2 := tryHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
 	defer r2.Close()
 
 	var result Result
@@ -139,7 +139,7 @@ func loginUser() (_ *Result, err error) {
 	return &result, nil
 }
 
-func trySendAndWaitHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
+func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	URL := err2.URL.Try(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
