@@ -19,10 +19,19 @@ func main() {
 	err2.Check(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
+	jsonAPI := false
+	if startServerCmd.Arg(0) == "-" {
+		authnCmd = authnCmd.TryReadJSON(os.Stdin)
+		jsonAPI = true
+	}
 	r, err := authnCmd.Exec(os.Stdout)
 	err2.Check(err)
 
-	fmt.Println(r.Token)
+	if jsonAPI {
+		fmt.Println(r.String())
+	} else {
+		fmt.Println(r.Token)
+	}
 }
 
 type cmdMode int

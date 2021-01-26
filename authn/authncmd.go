@@ -24,10 +24,10 @@ import (
 type Cmd struct {
 	SubCmd   string `json:"sub_cmd"`
 	UserName string `json:"user_name"`
-	Url      string `json:"url"`
-	AAGUID   string `json:"aaguid"`
-	Key      string `json:"key"`
-	Counter  uint64 `json:"counter"`
+	Url      string `json:"url,omitempty"`
+	AAGUID   string `json:"aaguid,omitempty"`
+	Key      string `json:"key,omitempty"`
+	Counter  uint64 `json:"counter,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -73,6 +73,24 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	err2.Check(err)
 
 	return *result, nil
+}
+
+func (ac Cmd) TryReadJSON(r io.Reader) Cmd {
+	var newCmd Cmd
+	err2.Check(json.NewDecoder(os.Stdin).Decode(&newCmd))
+	if newCmd.AAGUID == "" {
+		newCmd.AAGUID = ac.AAGUID
+	}
+	if newCmd.Url == "" {
+		newCmd.Url = ac.Url
+	}
+	if newCmd.Key == "" {
+		newCmd.Key = ac.Key
+	}
+	if newCmd.Counter == 0 {
+		newCmd.Counter = ac.Counter
+	}
+	return newCmd
 }
 
 type cmdMode int
