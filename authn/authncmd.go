@@ -77,7 +77,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 
 func (ac Cmd) TryReadJSON(r io.Reader) Cmd {
 	var newCmd Cmd
-	err2.Check(json.NewDecoder(os.Stdin).Decode(&newCmd))
+	err2.Check(json.NewDecoder(r).Decode(&newCmd))
 	if newCmd.AAGUID == "" {
 		newCmd.AAGUID = ac.AAGUID
 	}
