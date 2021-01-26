@@ -14,13 +14,15 @@ import (
 func main() {
 	defer err2.CatchTrace(func(err error) {
 		glog.Warningln(err)
+		os.Exit(1)
 	})
 	err2.Check(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
 	r, err := authnCmd.Exec(os.Stdout)
 	err2.Check(err)
-	fmt.Println("JWT:\n", r.Token)
+
+	fmt.Println(r.Token)
 }
 
 type cmdMode int

@@ -46,7 +46,8 @@ func (ac *Cmd) Validate() (err error) {
 }
 
 type Result struct {
-	Token string `json:"token"`
+	SubCmd string `json:"sub_cmd,omitempty"`
+	Token  string `json:"token"`
 }
 
 func (r Result) String() string {
@@ -119,7 +120,7 @@ func registerUser() (result *Result, err error) {
 	defer r2.Close()
 
 	b := err2.Bytes.Try(ioutil.ReadAll(r2))
-	return &Result{Token: string(b)}, nil
+	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
 
 func loginUser() (_ *Result, err error) {
@@ -136,6 +137,7 @@ func loginUser() (_ *Result, err error) {
 	var result Result
 	err2.Check(json.NewDecoder(r2).Decode(&result))
 
+	result.SubCmd = "login"
 	return &result, nil
 }
 
