@@ -4,11 +4,13 @@ import (
 	"encoding/binary"
 
 	"github.com/duo-labs/webauthn/protocol"
-	"github.com/fxamacker/cbor"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
 )
 
+// AttestationObject is WebAuthn way to present Attestations:
+// https://www.w3.org/TR/webauthn/#sctn-attestation
+// https://www.w3.org/TR/webauthn/#attestation-object
 type AttestationObject struct {
 	// The byteform version of the authenticator data, used in part for signature validation
 	RawAuthData []byte `json:"authData"`
@@ -18,45 +20,47 @@ type AttestationObject struct {
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
 }
 
+// TryMarshalData is MarshalData convenience wrapper
 func TryMarshalData(data *protocol.AuthenticatorData) []byte {
 	b, err := MarshalData(data)
 	err2.Check(err)
 	return b
 }
 
-func MarshalData(data *protocol.AuthenticatorData) (json []byte, err error) {
+// MarshalData marshals authenticator data to byte format specified in:
+// https://www.w3.org/TR/webauthn/#sctn-authenticator-data
+func MarshalData(ad *protocol.AuthenticatorData) (out []byte, err error) {
 	defer err2.Annotate("marshal authenticator data", &err)
 
-	assert.Len(data.RPIDHash, 32, "wrong data length")
+	assert.D.EqualInt(len(ad.RPIDHash), 32, "wrong RPIDHash length")
 
-	json = make([]byte, 32+1+4, 37+lenAttestedCredentialData(data)+10)
-	copy(json, data.RPIDHash)
-	json[32] = byte(data.Flags)
-	binary.BigEndian.PutUint32(json[33:], data.Counter)
+	out = make([]byte, 32+1+4, 37+lenAttestedCredentialData(ad)+10)
+	copy(out, ad.RPIDHash)
+	out[32] = byte(ad.Flags)
+	binary.BigEndian.PutUint32(out[33:], ad.Counter)
 
-	if data.Flags.HasAttestedCredentialData() {
-		json = marshalAttestedCredentialData(json, data)
+	if ad.Flags.HasAttestedCredentialData() {
+		out = marshalAttestedCredentialData(out, ad)
 	}
-	return json, nil
+	return out, nil
 }
 
-func marshalAttestedCredentialData(json []byte, data *protocol.AuthenticatorData) []byte {
-	assert.Lenf(data.AttData.AAGUID, 16, "wrong AAGUID len(%d)", len(data.AttData.AAGUID))
-	assert.NotEmpty(data.AttData.CredentialID, "empty credential id")
-	assert.NotEmpty(data.AttData.CredentialPublicKey, "empty credential public key")
+func marshalAttestedCredentialData(outData []byte, data *protocol.AuthenticatorData) []byte {
+	assert.D.EqualInt(len(data.AttData.AAGUID), 16, "wrong AAGUID length")
+	assert.D.NotEmpty(data.AttData.CredentialID, "empty credential id")
+	assert.D.NotEmpty(data.AttData.CredentialPublicKey, "empty credential public key")
 
-	json = append(json, data.AttData.AAGUID[:]...)
+	outData = append(outData, data.AttData.AAGUID[:]...)
 
 	idLength := uint16(len(data.AttData.CredentialID))
-	json = json[:55]
-	binary.BigEndian.PutUint16(json[53:], idLength)
+	outData = outData[:55]
+	binary.BigEndian.PutUint16(outData[53:], idLength)
 
-	json = append(json, data.AttData.CredentialID[:]...)
+	outData = append(outData, data.AttData.CredentialID[:]...)
 
-	//json = append(json, marshalCredentialPublicKey(data.AttData.CredentialPublicKey)[:]...)
-	json = append(json, data.AttData.CredentialPublicKey[:]...)
+	outData = append(outData, data.AttData.CredentialPublicKey[:]...)
 
-	return json
+	return outData
 }
 
 func lenAttestedCredentialData(data *protocol.AuthenticatorData) int {
@@ -64,11 +68,4 @@ func lenAttestedCredentialData(data *protocol.AuthenticatorData) int {
 		len(data.AttData.CredentialID) +
 		len(data.AttData.CredentialPublicKey)
 	return l
-}
-
-func marshalCredentialPublicKey(keyBytes []byte) []byte {
-	var m interface{}
-	cbor.Unmarshal(keyBytes, &m)
-	rawBytes, _ := cbor.Marshal(m)
-	return rawBytes
 }
