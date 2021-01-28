@@ -181,6 +181,7 @@ func TestLogin(t *testing.T) {
 
 func TestParseAssertionResponse(t *testing.T) {
 	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
+	assert.NoError(t, err)
 
 	ad, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse))
 	assert.NoError(t, err)
@@ -212,7 +213,7 @@ func TestParseAssertionResponse(t *testing.T) {
 		Y:     big.NewInt(0).SetBytes(k.YCoord),
 	}
 
-	valid = cose.Verify(pubkey, sigData, ad.Response.Signature)
+	valid = cose.VerifyHashSig(pubkey, sigData, ad.Response.Signature)
 	assert.NoError(t, err)
 	assert.True(t, valid)
 

@@ -34,13 +34,6 @@ func main() {
 	}
 }
 
-type cmdMode int
-
-const (
-	register cmdMode = iota + 1
-	login
-)
-
 var (
 	loggingFlags string
 

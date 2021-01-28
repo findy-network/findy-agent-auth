@@ -115,7 +115,7 @@ func (k *Key) Sign(data []byte) (s []byte, err error) {
 	defer err2.Annotate("sign", &err)
 
 	hash := crypto.SHA256.New()
-	hash.Write(data)
+	err2.Empty.Try(hash.Write(data))
 
 	h := hash.Sum(nil)
 	sig := err2.Bytes.Try(ecdsa.SignASN1(rand.Reader, k.privKey, h))
@@ -125,7 +125,7 @@ func (k *Key) Sign(data []byte) (s []byte, err error) {
 
 func (k *Key) Verify(data, sig []byte) (ok bool) {
 	hash := crypto.SHA256.New()
-	hash.Write(data)
+	err2.Empty.Try(hash.Write(data))
 
 	pubKey := &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
@@ -152,6 +152,7 @@ func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 	return nil
 }
 
+// ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is encrypted with
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	defer err2.Annotate("parse secret private", &err)
 
@@ -159,9 +160,11 @@ func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	return pk, nil
 }
 
-func Verify(key *ecdsa.PublicKey, data, sig []byte) bool {
+// VerifyHashSig verifies signature of data's hash with ecdsa public key. The
+// function is currently used only for testing our signatures are right.
+func VerifyHashSig(key *ecdsa.PublicKey, data, sig []byte) bool {
 	h := crypto.SHA256.New()
-	h.Write(data)
+	err2.Empty.Try(h.Write(data))
 	return ecdsa.VerifyASN1(key, h.Sum(nil), sig)
 }
 
