@@ -31,16 +31,15 @@ type Cmd struct {
 }
 
 func (ac *Cmd) Validate() (err error) {
-	assert.ProductionMode = true
 	defer err2.Return(&err)
 
-	assert.NotEmpty(ac.SubCmd, "sub command needed")
-	assert.Truef(ac.SubCmd == "register" || ac.SubCmd == "login",
+	assert.P.NotEmpty(ac.SubCmd, "sub command needed")
+	assert.P.Truef(ac.SubCmd == "register" || ac.SubCmd == "login",
 		"wrong sub command: %s: want: register|login", ac.SubCmd)
-	assert.NotEmpty(ac.UserName, "user name needed")
-	assert.NotEmpty(ac.Url, "connection url cannot be empty")
-	assert.NotEmpty(ac.AAGUID, "authenticator ID needed")
-	assert.NotEmpty(ac.Key, "master key needed")
+	assert.P.NotEmpty(ac.UserName, "user name needed")
+	assert.P.NotEmpty(ac.Url, "connection url cannot be empty")
+	assert.P.NotEmpty(ac.AAGUID, "authenticator ID needed")
+	assert.P.NotEmpty(ac.Key, "master key needed")
 
 	return nil
 }

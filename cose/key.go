@@ -63,14 +63,14 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	err2.Check(cbor.Unmarshal(keyBytes, &pk))
 	switch webauthncose.COSEKeyType(pk.KeyType) {
 	case webauthncose.OctetKey:
-		assert.NoImplementation()
+		assert.P.NoImplementation()
 	case webauthncose.EllipticKey:
 		var e webauthncose.EC2PublicKeyData
 		err2.Check(cbor.Unmarshal(keyBytes, &e))
 		e.PublicKeyData = pk
 		return e, nil
 	case webauthncose.RSAKey:
-		assert.NoImplementation()
+		assert.P.NoImplementation()
 	default:
 		return nil, webauthncose.ErrUnsupportedKey
 	}
