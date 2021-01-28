@@ -167,7 +167,6 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", urlStr)
 	request.Header.Add("Accept", "*/*")
-	request.Header.Add("Cookie", "kviwkdmc83en9csd893j2d298jd8u2c3jd283jcdn2cwc937jd97823jc73h2d67g9d236ch2")
 
 	response := err2.Response.Try(c.Do(request))
 
@@ -182,12 +181,13 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 
 func setupClient() (client *http.Client) {
 	options := cookiejar.Options{
+		// All users of cookiejar should import "golang.org/x/net/publicsuffix"
 		PublicSuffixList: publicsuffix.List,
 	}
 
-	jar, _ := cookiejar.New(&options)
+	jar, err := cookiejar.New(&options)
+	err2.Check(err) // better panic than not handle att all
 
-	// Create new http client with predefined options
 	client = &http.Client{
 		Jar:     jar,
 		Timeout: time.Minute * 10,
