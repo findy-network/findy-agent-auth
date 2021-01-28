@@ -12,7 +12,7 @@ import (
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/findy-network/findy-grpc/acator/authenticator"
 	"github.com/findy-network/findy-grpc/acator/cose"
-	"github.com/fxamacker/cbor"
+	"github.com/fxamacker/cbor/v2"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"

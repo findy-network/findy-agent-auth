@@ -11,7 +11,7 @@ import (
 
 	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	crpt "github.com/findy-network/findy-grpc/crypto"
-	"github.com/fxamacker/cbor"
+	"github.com/fxamacker/cbor/v2"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
 )
