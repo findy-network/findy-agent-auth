@@ -53,7 +53,7 @@ func init() {
 }
 
 func main() {
-	defer CatchTrace(func(err error) {
+	defer CatchTrace(func(_ error) {
 		glog.Warningln("")
 	})
 	Check(startServerCmd.Parse(os.Args[1:]))
