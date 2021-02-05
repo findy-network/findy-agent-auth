@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/duo-labs/webauthn.io/session"
 	"github.com/duo-labs/webauthn/protocol"
@@ -23,15 +24,20 @@ import (
 const defaultPort = 8080
 
 var (
-	loggingFlags string
-	port         int
-	agencyAddr   string
-	agencyPort   int
-	rpID         string
-	rpOrigin     string
-	jwtSecret    string
-	webAuthn     *webauthn.WebAuthn
-	sessionStore *session.Store
+	loggingFlags   string
+	port           int
+	agencyAddr     string
+	agencyPort     int
+	rpID           string
+	rpOrigin       string
+	jwtSecret      string
+	webAuthn       *webauthn.WebAuthn
+	sessionStore   *session.Store
+	enclaveFile    = ""
+	enclaveBackup  = ""
+	enclaveKey     = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
+	backupInterval = 24 // hours
+	findyAdmin     = "findy-root"
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
@@ -50,6 +56,11 @@ func init() {
 	startServerCmd.StringVar(&rpID, "domain", "localhost", "the site domain name")
 	startServerCmd.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
 	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
+	startServerCmd.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
+	startServerCmd.StringVar(&enclaveBackup, "sec-backup-file", enclaveBackup, "secure enclave DB backup base file name")
+	startServerCmd.StringVar(&enclaveKey, "sec-key", enclaveKey, "sec-enc master key, SHA-256, 32-byte hex coded")
+	startServerCmd.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
+	startServerCmd.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
 }
 
 func main() {
@@ -66,7 +77,7 @@ func main() {
 
 	glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
 
-	Check(enclave.InitSealedBox("fido-enclave.bolt"))
+	Check(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
 	enclave.Init(agencyAddr, agencyPort)
 
 	if jwtSecret != "" {
@@ -101,11 +112,17 @@ func main() {
 		Debug: true,
 	})
 
+	backupTickerDone := enclave.BackupTicker(time.Duration(backupInterval) * time.Hour)
+
 	serverAddress := fmt.Sprintf(":%d", port)
 	if glog.V(1) {
 		glog.Infoln("starting server at", serverAddress)
-		glog.Infoln(http.ListenAndServe(serverAddress, hCors.Handler(r)))
 	}
+	err = http.ListenAndServe(serverAddress, hCors.Handler(r))
+	if err != nil {
+		glog.Infoln("listen error:", err)
+	}
+	backupTickerDone <- struct{}{}
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +214,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	// Add needed data to User
 	user.AddCredential(*credential)
-	Check(user.AllocateCloudAgent())
+	Check(user.AllocateCloudAgent(findyAdmin))
 	// Persist that data
 	Check(enclave.PutUser(user))
 
