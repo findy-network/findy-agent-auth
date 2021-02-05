@@ -59,7 +59,7 @@ func InitSealedBox(filename, backupName, key string) (err error) {
 func WipeSealedBox() {
 	err := db.Wipe()
 	if err != nil {
-		println(err.Error())
+		glog.Error(err.Error())
 	}
 }
 
