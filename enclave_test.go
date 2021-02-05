@@ -1,10 +1,11 @@
 package enclave
 
 import (
+	"flag"
 	"os"
 	"testing"
 
-	"github.com/findy-network/findy-grpc/crypto/db"
+	"github.com/lainio/err2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,6 +15,9 @@ const emailAddress = "test@email.com"
 const emailNotCreated = "not@exists.email"
 
 func TestMain(m *testing.M) {
+	err2.Check(flag.Set("logtostderr", "true"))
+	err2.Check(flag.Set("v", "3"))
+
 	setUp()
 	code := m.Run()
 	tearDown()
@@ -22,11 +26,10 @@ func TestMain(m *testing.M) {
 
 func setUp() {
 	_ = os.RemoveAll(dbFilename)
-	_ = InitSealedBox(dbFilename)
+	_ = InitSealedBox(dbFilename, "", "")
 }
 
 func tearDown() {
-	db.Close()
 	WipeSealedBox()
 }
 

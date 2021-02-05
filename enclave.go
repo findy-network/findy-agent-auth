@@ -14,7 +14,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"os"
+	"time"
 
 	"github.com/findy-network/findy-grpc/crypto"
 	"github.com/findy-network/findy-grpc/crypto/db"
@@ -28,33 +28,43 @@ var (
 	buckets           = [][]byte{{01, 01}}
 	sealedBoxFilename string
 
-	// todo: key must be set from production environment, SHA-256, 32 bytes
+	// Key must be set from production environment, SHA-256, 32 bytes
 	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	theCipher *crypto.Cipher
 )
 
 // InitSealedBox initialize enclave's sealed box. This must be called once
 // during the app life cycle.
-func InitSealedBox(filename string) (err error) {
-	k, _ := hex.DecodeString(hexKey)
+func InitSealedBox(filename, backupName, key string) (err error) {
+	if key == "" {
+		key = hexKey
+	}
+	k, _ := hex.DecodeString(key)
 	theCipher = crypto.NewCipher(k)
 	glog.V(1).Infoln("init enclave", filename)
 	sealedBoxFilename = filename
-	return db.Open(filename, buckets)
+	if backupName == "" {
+		backupName = "backup-" + sealedBoxFilename
+	}
+	return db.Init(db.Cfg{
+		Filename:   sealedBoxFilename,
+		BackupName: backupName,
+		Buckets:    buckets,
+	})
 }
 
 // WipeSealedBox closes and destroys the enclave permanently. This version only
 // removes the sealed box file. In the future we might add sector wiping
 // functionality.
 func WipeSealedBox() {
-	if db.DB != nil {
-		db.Close()
-	}
-
-	err := os.RemoveAll(sealedBoxFilename)
+	err := db.Wipe()
 	if err != nil {
 		println(err.Error())
 	}
+}
+
+func BackupTicker(interval time.Duration) (done chan<- struct{}) {
+	return db.BackupTicker(interval)
 }
 
 // PutUser saves the user to database.
