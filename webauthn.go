@@ -33,7 +33,7 @@ var (
 	jwtSecret      string
 	webAuthn       *webauthn.WebAuthn
 	sessionStore   *session.Store
-	enclaveFile    = ""
+	enclaveFile    = "fido-enclave.bolt"
 	enclaveBackup  = ""
 	enclaveKey     = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	backupInterval = 24 // hours
