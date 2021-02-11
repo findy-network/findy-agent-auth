@@ -20,9 +20,9 @@ import (
 
 var baseCfg *rpc.ClientCfg
 
-func Init(addr string, port int) {
-	glog.V(3).Infoln("addr:", addr, "port:", port)
-	baseCfg = client.BuildClientConnBase("./cert", addr, port, nil)
+func Init(certPath, addr string, port int) {
+	glog.V(3).Infoln("certPath:", certPath, "addr:", addr, "port:", port)
+	baseCfg = client.BuildClientConnBase(certPath, addr, port, nil)
 }
 
 // User represents the user model
