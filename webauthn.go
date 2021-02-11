@@ -38,6 +38,7 @@ var (
 	enclaveKey     = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	backupInterval = 24 // hours
 	findyAdmin     = "findy-root"
+	certPath       = "./cert"
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
@@ -61,6 +62,7 @@ func init() {
 	startServerCmd.StringVar(&enclaveKey, "sec-key", enclaveKey, "sec-enc master key, SHA-256, 32-byte hex coded")
 	startServerCmd.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
 	startServerCmd.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
+	startServerCmd.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
 }
 
 func main() {
@@ -78,7 +80,7 @@ func main() {
 	glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
 
 	Check(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
-	enclave.Init(agencyAddr, agencyPort)
+	enclave.Init(certPath, agencyAddr, agencyPort)
 
 	if jwtSecret != "" {
 		jwt.SetJWTSecret(jwtSecret)
