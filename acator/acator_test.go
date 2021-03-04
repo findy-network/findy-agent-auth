@@ -13,8 +13,8 @@ import (
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/protocol/webauthncose"
-	"github.com/findy-network/findy-grpc/acator/authenticator"
-	"github.com/findy-network/findy-grpc/acator/cose"
+	"github.com/findy-network/findy-agent-auth/acator/authenticator"
+	"github.com/findy-network/findy-agent-auth/acator/cose"
 	"github.com/stretchr/testify/assert"
 )
 

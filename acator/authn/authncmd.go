@@ -12,8 +12,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/findy-network/findy-grpc/acator"
-	"github.com/findy-network/findy-grpc/acator/cose"
+	"github.com/findy-network/findy-agent-auth/acator"
+	"github.com/findy-network/findy-agent-auth/acator/cose"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"

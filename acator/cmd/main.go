@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/findy-network/findy-grpc/acator/authn"
+	"github.com/findy-network/findy-agent-auth/acator/authn"
 	"github.com/findy-network/findy-grpc/utils"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"

@@ -10,8 +10,8 @@ import (
 	"net/url"
 
 	"github.com/duo-labs/webauthn/protocol"
-	"github.com/findy-network/findy-grpc/acator/authenticator"
-	"github.com/findy-network/findy-grpc/acator/cose"
+	"github.com/findy-network/findy-agent-auth/acator/authenticator"
+	"github.com/findy-network/findy-agent-auth/acator/cose"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
