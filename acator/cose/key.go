@@ -10,7 +10,7 @@ import (
 	"math/big"
 
 	"github.com/duo-labs/webauthn/protocol/webauthncose"
-	crpt "github.com/findy-network/findy-grpc/crypto"
+	crpt "github.com/findy-network/findy-common-go/crypto"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"

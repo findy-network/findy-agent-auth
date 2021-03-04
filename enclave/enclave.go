@@ -16,8 +16,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/findy-network/findy-grpc/crypto"
-	"github.com/findy-network/findy-grpc/crypto/db"
+	"github.com/findy-network/findy-common-go/crypto"
+	"github.com/findy-network/findy-common-go/crypto/db"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 )

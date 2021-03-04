@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine3.12
+FROM golang:1.16-alpine3.13
 
 ARG HTTPS_PREFIX
 
@@ -17,7 +17,7 @@ COPY . ./
 
 RUN go build -o /go/bin/findy-agent-auth
 
-FROM alpine:3.12
+FROM alpine:3.13
 
 COPY --from=0 /go/bin/findy-agent-auth /findy-agent-auth
 
