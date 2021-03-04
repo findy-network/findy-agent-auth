@@ -12,7 +12,7 @@ import (
 	"github.com/duo-labs/webauthn.io/session"
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
-	"github.com/findy-network/findy-grpc/enclave"
+	"github.com/findy-network/findy-agent-auth/enclave"
 	"github.com/findy-network/findy-grpc/jwt"
 	"github.com/findy-network/findy-grpc/utils"
 	"github.com/golang/glog"
