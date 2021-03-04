@@ -21,7 +21,7 @@ if [ -z "$(git status --porcelain)" ]; then
   git pull origin dev
 
   VERSION=v$VERSION_NBR
-  go mod tidy
+  go mod tidy -e # TODO: resolve GRPC version issues
   go test ./...
 
   git commit -a -m "Releasing version $VERSION."
