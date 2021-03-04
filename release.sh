@@ -24,7 +24,9 @@ if [ -z "$(git status --porcelain)" ]; then
   go mod tidy -e # TODO: resolve GRPC version issues
   go test ./...
 
+  set +e
   git commit -a -m "Releasing version $VERSION."
+  set -e
   git tag -a $VERSION -m "Version $VERSION"
   git push origin dev --tags
 
