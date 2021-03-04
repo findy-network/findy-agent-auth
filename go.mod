@@ -6,8 +6,8 @@ require (
 	github.com/duo-labs/webauthn v0.0.0-20200714211715-1daaee874e43
 	github.com/duo-labs/webauthn.io v0.0.0-20200929144140-c031a3e0f95d
 	github.com/findy-network/findy-agent-api v0.0.0-20210203142917-ee7d471ffd4b
-	github.com/findy-network/findy-grpc v0.1.1-0.20210211153806-808c6e0b6a92
-	github.com/findy-network/findy-wrapper-go v0.0.0-20201026120712-dc9ac6619595
+	github.com/findy-network/findy-common-go v0.1.2-0.20210304145749-94f700a63abf
+	github.com/findy-network/findy-wrapper-go v0.0.0-20210302063517-bb98c7f07ea4
 	github.com/fxamacker/cbor/v2 v2.2.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/uuid v1.2.0
