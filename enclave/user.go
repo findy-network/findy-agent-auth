@@ -125,6 +125,12 @@ func (u *User) AllocateCloudAgent(adminID string) (err error) {
 
 	glog.V(1).Infoln("starting cloud agent allocation for", u.Name)
 
+	if adminID == u.Name {
+		u.DID = adminID
+		glog.V(1).Infoln("=== admin login used ===")
+		return nil
+	}
+
 	conn := client.TryOpen(adminID, baseCfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
