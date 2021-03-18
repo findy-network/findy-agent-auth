@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/findy-network/findy-common-go/utils"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"github.com/lainio/err2"
 	. "github.com/lainio/err2"
 	"github.com/rs/cors"
 )
@@ -25,7 +28,7 @@ const defaultPort = 8080
 
 var (
 	loggingFlags   string
-	port           int
+	port           int = defaultPort
 	agencyAddr     string
 	agencyPort     int
 	rpID           string
@@ -39,6 +42,7 @@ var (
 	backupInterval = 24 // hours
 	findyAdmin     = "findy-root"
 	certPath       = "./cert"
+	isHTTPS        = true
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
@@ -72,12 +76,16 @@ func main() {
 	Check(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
-	if port != defaultPort && rpOrigin == defaultOrigin {
-		fmt.Println("Port mismatch origin:", rpOrigin, "port:", port, "")
-		return
-	}
+	u := err2.URL.Try(url.Parse(rpOrigin))
+	isHTTPS = u.Scheme == "https"
 
-	glog.V(3).Infoln("port:", port, "logging:", loggingFlags)
+	glog.V(3).Infoln(
+		"\nlogging:", loggingFlags,
+		"\norigin host:", u.Host,
+		"\nlisten port:", port,
+		"\norigin port:", u.Port(),
+		"\nHTTPS ==", isHTTPS,
+	)
 
 	Check(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
 	enclave.Init(certPath, agencyAddr, agencyPort)
@@ -120,7 +128,16 @@ func main() {
 	if glog.V(1) {
 		glog.Infoln("starting server at", serverAddress)
 	}
-	err = http.ListenAndServe(serverAddress, hCors.Handler(r))
+	if isHTTPS {
+		certFile := filepath.Join(certPath, "server.crt")
+		keyFile := filepath.Join(certPath, "server.key")
+		glog.V(3).Infoln("starting TLS server with:\n",
+			certFile, "\n", keyFile)
+		err = http.ListenAndServeTLS(serverAddress, certFile, keyFile,
+			hCors.Handler(r))
+	} else {
+		err = http.ListenAndServe(serverAddress, hCors.Handler(r))
+	}
 	if err != nil {
 		glog.Infoln("listen error:", err)
 	}
