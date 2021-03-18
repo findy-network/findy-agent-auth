@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -186,11 +187,16 @@ func setupClient() (client *http.Client) {
 	}
 
 	jar, err := cookiejar.New(&options)
-	err2.Check(err) // better panic than not handle att all
+	err2.Check(err) // better panic than not handle at all
 
+	// allow self generated TLS certificate TODO check this later
+	tx := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	client = &http.Client{
-		Jar:     jar,
-		Timeout: time.Minute * 10,
+		Jar:       jar,
+		Timeout:   time.Minute * 10,
+		Transport: tx,
 	}
 	return
 }
