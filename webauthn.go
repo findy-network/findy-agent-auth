@@ -19,7 +19,6 @@ import (
 	"github.com/findy-network/findy-common-go/utils"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	"github.com/lainio/err2"
 	. "github.com/lainio/err2"
 	"github.com/rs/cors"
 )
@@ -76,7 +75,7 @@ func main() {
 	Check(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
-	u := err2.URL.Try(url.Parse(rpOrigin))
+	u := URL.Try(url.Parse(rpOrigin))
 	isHTTPS = u.Scheme == "https"
 
 	glog.V(3).Infoln(
