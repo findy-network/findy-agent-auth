@@ -31,7 +31,11 @@ test_cov:
 
 check: check_fmt vet shadow
 
+dclean:
+	-docker rmi findy-agent-auth
+
 dbuild:
+	@[ "${HTTPS_PREFIX}" ] || ( echo "ERROR: HTTPS_PREFIX <{githubUser}:{githubToken}@> is not set"; exit 1 )
 	docker build \
 		--build-arg HTTPS_PREFIX=$(HTTPS_PREFIX) \
 		-t findy-agent-auth \
