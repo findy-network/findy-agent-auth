@@ -41,7 +41,8 @@ var (
 	backupInterval = 24 // hours
 	findyAdmin     = "findy-root"
 	certPath       = "./cert"
-	isHTTPS        = true
+	isHTTPS        = false
+	testUI         = false
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
@@ -66,6 +67,8 @@ func init() {
 	startServerCmd.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
 	startServerCmd.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
 	startServerCmd.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
+	startServerCmd.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
+	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI")
 }
 
 func main() {
@@ -76,7 +79,6 @@ func main() {
 	utils.ParseLoggingArgs(loggingFlags)
 
 	u := URL.Try(url.Parse(rpOrigin))
-	isHTTPS = u.Scheme == "https"
 
 	glog.V(3).Infoln(
 		"\nlogging:", loggingFlags,
@@ -111,7 +113,13 @@ func main() {
 	r.HandleFunc("/login/begin/{username}", BeginLogin).Methods("GET")
 	r.HandleFunc("/login/finish/{username}", FinishLogin).Methods("POST")
 
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
+	if testUI {
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
+	} else {
+		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte("OK"))
+		})
+	}
 
 	// TODO: figure out CORS policy
 	hCors := cors.New(cors.Options{
