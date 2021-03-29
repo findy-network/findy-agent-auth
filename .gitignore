@@ -21,3 +21,6 @@
 
 # Environment variables
 .envrc
+
+# Temp files for docker build
+.docker

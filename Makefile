@@ -1,3 +1,5 @@
+S3_TOOL_ASSET_PATH := https://$(HTTPS_PREFIX)api.github.com/repos/findy-network/findy-common-go/releases/assets/34026533
+
 
 build:
 	go build ./...
@@ -36,10 +38,12 @@ dclean:
 
 dbuild:
 	@[ "${HTTPS_PREFIX}" ] || ( echo "ERROR: HTTPS_PREFIX <{githubUser}:{githubToken}@> is not set"; exit 1 )
+	mkdir -p .docker
+	curl -L -H "Accept:application/octet-stream" "$(S3_TOOL_ASSET_PATH)" > .docker/s3-copy
 	docker build \
 		--build-arg HTTPS_PREFIX=$(HTTPS_PREFIX) \
 		-t findy-agent-auth \
 		.
 
 drun:
-	docker run -it --rm findy-agent-auth
+	docker run -it --rm -p 8888:8888 findy-agent-auth
