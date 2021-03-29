@@ -117,7 +117,7 @@ func main() {
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
 	} else {
 		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("OK"))
+			_, _ = w.Write([]byte("OK"))
 		})
 	}
 
