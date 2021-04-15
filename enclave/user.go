@@ -36,7 +36,7 @@ type User struct {
 }
 
 func (u User) JWT() string {
-	return jwt.BuildJWT(u.DID)
+	return jwt.BuildJWTWithLabel(u.DID, u.DisplayName)
 }
 
 func (u User) Key() []byte {
