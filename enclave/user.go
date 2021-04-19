@@ -16,6 +16,7 @@ import (
 	"github.com/findy-network/findy-wrapper-go/dto"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/assert"
 )
 
 var baseCfg *rpc.ClientCfg
@@ -125,9 +126,17 @@ func (u *User) AllocateCloudAgent(adminID string) (err error) {
 
 	glog.V(1).Infoln("starting cloud agent allocation for", u.Name)
 
+	// admin login?
 	if adminID == u.Name {
 		u.DID = adminID
 		glog.V(1).Infoln("=== admin login used ===")
+		return nil
+	}
+
+	// cloud agent already allocated?
+	if u.DID != "" {
+		assert.P.True(len(u.Credentials) > 1, "programming error")
+		glog.V(1).Infoln("=== cloud agent already allocated")
 		return nil
 	}
 
