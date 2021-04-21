@@ -161,7 +161,8 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	username, ok := vars["username"]
 	glog.V(1).Infoln("begin registration", username)
 	if !ok {
-		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"), http.StatusBadRequest)
+		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"),
+			http.StatusBadRequest)
 		return
 	}
 
@@ -176,6 +177,10 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		glog.V(2).Infoln("adding new user:", displayName)
 		user = enclave.NewUser(username, displayName)
 		Check(enclave.PutUser(user))
+	} else if !jwt.IsValidUser(user.DID, r.Header["Authorization"]) {
+		glog.Warningln("new ator, invalid JWT", user.DID, displayName)
+		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
+		return
 	}
 
 	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
