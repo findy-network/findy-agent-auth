@@ -18,9 +18,11 @@
 # Build tool specifics
 .idea
 .vscode
+*.vim
 
 # Environment variables
 .envrc
 
 # Temp files for docker build
 .docker
+
