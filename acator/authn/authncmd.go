@@ -29,6 +29,7 @@ type Cmd struct {
 	AAGUID   string `json:"aaguid,omitempty"`
 	Key      string `json:"key,omitempty"`
 	Counter  uint64 `json:"counter,omitempty"`
+	Token    string `json:"token,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -68,6 +69,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	originURL := err2.URL.Try(url.Parse(urlStr))
 	acator.Origin = *originURL
+	jwtToken = ac.Token
 
 	result, err := execute[cmd]()
 	err2.Check(err)
@@ -103,8 +105,9 @@ const (
 type cmdFunc func() (*Result, error)
 
 var (
-	name   string
-	urlStr string
+	name     string
+	urlStr   string
+	jwtToken string
 
 	c = setupClient()
 
@@ -168,6 +171,10 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", urlStr)
 	request.Header.Add("Accept", "*/*")
+	// if we want to register a new authenticator, we must send valid JWT
+	if jwtToken != "" {
+		request.Header.Add("Authorization", "Bearer "+jwtToken)
+	}
 
 	response := err2.Response.Try(c.Do(request))
 
