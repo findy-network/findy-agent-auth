@@ -161,7 +161,8 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	username, ok := vars["username"]
 	glog.V(1).Infoln("begin registration", username)
 	if !ok {
-		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"), http.StatusBadRequest)
+		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"),
+			http.StatusBadRequest)
 		return
 	}
 
@@ -171,17 +172,16 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	user, exists, err := enclave.GetUser(username)
 	Check(err)
 
-	// TODO: add functionality for registering new device
-	if exists {
-		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"), http.StatusBadRequest)
+	displayName := strings.Split(username, "@")[0]
+	if !exists {
+		glog.V(2).Infoln("adding new user:", displayName)
+		user = enclave.NewUser(username, displayName)
+		Check(enclave.PutUser(user))
+	} else if !jwt.IsValidUser(user.DID, r.Header["Authorization"]) {
+		glog.Warningln("new ator, invalid JWT", user.DID, displayName)
+		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
 		return
 	}
-
-	// user doesn't exist, create new user
-	displayName := strings.Split(username, "@")[0]
-	glog.V(2).Infoln("adding new user:", displayName)
-	user = enclave.NewUser(username, displayName)
-	Check(enclave.PutUser(user))
 
 	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
 		credCreationOpts.CredentialExcludeList = user.CredentialExcludeList()
