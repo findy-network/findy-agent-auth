@@ -9,11 +9,11 @@ import (
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
-	"github.com/findy-network/findy-agent-api/grpc/ops"
 	"github.com/findy-network/findy-common-go/agency/client"
+	"github.com/findy-network/findy-common-go/dto"
+	ops "github.com/findy-network/findy-common-go/grpc/ops/v1"
 	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/rpc"
-	"github.com/findy-network/findy-wrapper-go/dto"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
@@ -143,7 +143,7 @@ func (u *User) AllocateCloudAgent(adminID string) (err error) {
 	conn := client.TryOpen(adminID, baseCfg)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	agencyClient := ops.NewAgencyClient(conn)
+	agencyClient := ops.NewAgencyServiceClient(conn)
 	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
 		Email: u.Name,
 	})

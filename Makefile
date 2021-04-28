@@ -21,11 +21,11 @@ repl_all: repl_api repl_comm
 
 modules: modules_comm modules_api
 
-modules_comm:
+modules_comm: drop_comm
 	@echo Syncing modules: findy-common-api/$(COMM_BRANCH)
 	go get github.com/findy-network/findy-common-go@$(COMM_BRANCH)
 
-modules_api: 
+modules_api: drop_api
 	@echo Syncing modules: findy-agent-api/$(API_BRANCH)
 	go get github.com/findy-network/findy-agent-api@$(API_BRANCH)
 
