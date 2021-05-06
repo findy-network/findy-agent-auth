@@ -3,6 +3,9 @@ S3_TOOL_ASSET_PATH := https://$(HTTPS_PREFIX)api.github.com/repos/findy-network/
 API_BRANCH=$(shell ./branch.sh ../findy-agent-api/)
 COMM_BRANCH=$(shell ./branch.sh ../findy-common-go/)
 
+scan:
+	@./scan.sh
+
 drop_comm:
 	go mod edit -dropreplace github.com/findy-network/findy-common-go
 
