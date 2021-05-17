@@ -4,7 +4,7 @@ API_BRANCH=$(shell ./branch.sh ../findy-agent-api/)
 COMM_BRANCH=$(shell ./branch.sh ../findy-common-go/)
 
 scan:
-	@./scan.sh
+	@./scan.sh $(ARGS)
 
 drop_comm:
 	go mod edit -dropreplace github.com/findy-network/findy-common-go
