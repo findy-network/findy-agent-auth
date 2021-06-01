@@ -41,6 +41,7 @@ var (
 	backupInterval = 24 // hours
 	findyAdmin     = "findy-root"
 	certPath       = "./cert"
+	allowCors      = false
 	isHTTPS        = false
 	testUI         = false
 
@@ -67,6 +68,7 @@ func init() {
 	startServerCmd.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
 	startServerCmd.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
 	startServerCmd.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
+	startServerCmd.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
 	startServerCmd.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
 	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI")
 }
@@ -97,10 +99,9 @@ func main() {
 
 	var err error
 	webAuthn, err = webauthn.New(&webauthn.Config{
-		RPDisplayName: "OP Lab Corp.", // Display Name for your site
+		RPDisplayName: "Findy Agency", // Display Name for your site
 		RPID:          rpID,           // Generally the domain name for your site
 		RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
-		// RPIcon: "https://duo.com/logo.png", // Optional icon URL for your site
 	})
 	Check(err)
 	sessionStore, err = session.NewStore()
@@ -114,20 +115,22 @@ func main() {
 	r.HandleFunc("/login/finish/{username}", FinishLogin).Methods("POST")
 
 	if testUI {
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
 	} else {
 		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("OK"))
 		})
 	}
 
-	// TODO: figure out CORS policy
-	hCors := cors.New(cors.Options{
-		AllowedOrigins:   []string{rpOrigin},
-		AllowCredentials: true,
-		// Enable Debugging for testing, consider disabling in production
-		Debug: true,
-	})
+	var handler http.Handler = r
+	if allowCors {
+		hCors := cors.New(cors.Options{
+			AllowedOrigins:   []string{rpOrigin},
+			AllowCredentials: true,
+			Debug:            true,
+		})
+		handler = hCors.Handler(r)
+	}
 
 	backupTickerDone := enclave.BackupTicker(time.Duration(backupInterval) * time.Hour)
 
@@ -138,12 +141,10 @@ func main() {
 	if isHTTPS {
 		certFile := filepath.Join(certPath, "server.crt")
 		keyFile := filepath.Join(certPath, "server.key")
-		glog.V(3).Infoln("starting TLS server with:\n",
-			certFile, "\n", keyFile)
-		err = http.ListenAndServeTLS(serverAddress, certFile, keyFile,
-			hCors.Handler(r))
+		glog.V(3).Infoln("starting TLS server with:\n", certFile, "\n", keyFile)
+		err = http.ListenAndServeTLS(serverAddress, certFile, keyFile, handler)
 	} else {
-		err = http.ListenAndServe(serverAddress, hCors.Handler(r))
+		err = http.ListenAndServe(serverAddress, handler)
 	}
 	if err != nil {
 		glog.Infoln("listen error:", err)

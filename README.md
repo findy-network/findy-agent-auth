@@ -1,6 +1,8 @@
 # findy-agent-auth
 
-Authentication services for Findy agency
+Authentication services for Findy agency.
+
+
 
 Includes WebAuthn sample server. That will work as a reference implementation how to allocate `findy-agent` cloud agents from fido2 compatible web wallets.
 
