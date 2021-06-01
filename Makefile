@@ -1,36 +1,25 @@
 S3_TOOL_ASSET_PATH := https://$(HTTPS_PREFIX)api.github.com/repos/findy-network/findy-common-go/releases/assets/34026533
 
-API_BRANCH=$(shell ./branch.sh ../findy-agent-api/)
-COMM_BRANCH=$(shell ./branch.sh ../findy-common-go/)
+COMM_BRANCH=$(shell ./scripts/branch.sh ../findy-common-go/)
 
 scan:
-	@./scan.sh $(ARGS)
+	@./scripts/scan.sh $(ARGS)
 
 drop_comm:
 	go mod edit -dropreplace github.com/findy-network/findy-common-go
 
-drop_api:
-	go mod edit -dropreplace github.com/findy-network/findy-agent-api
-
-drop_all: drop_api drop_comm
+drop_all: drop_comm
 
 repl_comm:
 	go mod edit -replace github.com/findy-network/findy-common-go=../findy-common-go
 
-repl_api:
-	go mod edit -replace github.com/findy-network/findy-agent-api=../findy-agent-api
+repl_all: repl_comm
 
-repl_all: repl_api repl_comm
-
-modules: modules_comm modules_api
+modules: modules_comm
 
 modules_comm: drop_comm
-	@echo Syncing modules: findy-common-api/$(COMM_BRANCH)
+	@echo Syncing modules: findy-common-go/$(COMM_BRANCH)
 	go get github.com/findy-network/findy-common-go@$(COMM_BRANCH)
-
-modules_api: drop_api
-	@echo Syncing modules: findy-agent-api/$(API_BRANCH)
-	go get github.com/findy-network/findy-agent-api@$(API_BRANCH)
 
 build:
 	go build ./...

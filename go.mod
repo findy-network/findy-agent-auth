@@ -13,5 +13,6 @@ require (
 	github.com/lainio/err2 v0.6.1
 	github.com/rs/cors v1.7.0
 	github.com/stretchr/testify v1.7.0
+	github.com/uw-labs/lichen v0.1.4 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 )
