@@ -1,24 +1,33 @@
 # findy-agent-auth
 
-Authentication services for Findy agency
+Authentication services for Findy agency.
 
-Includes WebAuthn sample server. That will work as a reference implementation how to allocate `findy-agent` cloud agents from fido2 compatible web wallets.
+## Server
 
-A current version of the WebAuthn server can be started from package root:
+This project provides FIDO2/WebAuthn authentication service for findy agency clients. The service implements the WebAuthn protocol providing means to securely
+* initiate user registration,
+* finish user registration,
+* initiate authentication and
+* finish authentication.
 
-```shell script
-$ go run .
+The authentication service can be utilized for example by any web app running in [a compatible browser](https://caniuse.com/?search=webauthn).
+
+During a successful registration the user is onboarded to [findy core agency](https://github.com/findy-network/findy-agent) and an Aries compatible cloud agent is allocated for the user. After registration, user can generate a token for findy agency with this authentication service. This token is required by [agency API](https://github.com/findy-network/findy-agent-api).
+
+### Usage
+
+```sh
+$ go run . \
+    --port 8088 \                       # port for this service
+    --origin http://localhost:3000 \    # origin for browser requests
+    --allowCors true \                  # use CORS headers
+    --agency localhost \                # core agency GRPC server address
+    --gport 50051 \                     # core agency GRPC server port
+    --cert-path /path/to/agency/cert \  # path to agency GRPC cert
+    --jwt-secret agency-jwt-secret \    # agency JWT secret
+    --admin agency-admin-id             # agency admin ID
 ```
 
-## Publishing new version
+## Client
 
-Release script will tag the current version and push the tag to remote. This will trigger e2e-tests in CI automatically and if they succeed, the tag is merged to master.
-
-Release script assumes it is triggered from dev branch. It takes one parameter, the next working version. E.g. if current working version is 0.1.0, following will release version 0.1.0 and update working version to 0.2.0.
-
-```bash
-git checkout dev
-./release 0.2.0
-```
-
-Implement e2e test to release workflow according to your project needs.
+This project provides also library for authenticating headless clients. Headless authenticator is needed when implementing (organisational) services needing cloud agents. Check [agency CLI](https://github.com/findy-network/findy-agent-cli) for reference implementation.

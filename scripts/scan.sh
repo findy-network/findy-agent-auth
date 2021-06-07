@@ -8,5 +8,4 @@ tmpfile=$(mktemp /tmp/findy-scan.XXXXXX)
 go build -o "$tmpfile"
 
 # subscript does the scanning and cleanup
-./lichen.sh "$tmpfile" "$@"
-
+./scripts/lichen.sh "$tmpfile" "$@"
