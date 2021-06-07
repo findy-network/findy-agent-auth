@@ -11,8 +11,10 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lainio/err2 v0.6.1
+	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/stretchr/testify v1.7.0
-	github.com/uw-labs/lichen v0.1.4 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
