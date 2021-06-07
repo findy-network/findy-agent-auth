@@ -17,13 +17,9 @@ COPY . ./
 
 RUN go build -o /go/bin/findy-agent-auth
 
-FROM alpine:3.13
+FROM  ghcr.io/findy-network/findy-base:alpine-3.13
 
 COPY --from=0 /go/bin/findy-agent-auth /findy-agent-auth
-
-COPY .docker/s3-copy /s3-copy
-
-RUN chmod a+x /s3-copy
 
 # override when running
 ENV FAA_PORT "8888"
