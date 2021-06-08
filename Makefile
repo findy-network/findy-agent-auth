@@ -55,11 +55,7 @@ dclean:
 	-docker rmi findy-agent-auth
 
 dbuild:
-	@[ "${HTTPS_PREFIX}" ] || ( echo "ERROR: HTTPS_PREFIX <{githubUser}:{githubToken}@> is not set"; exit 1 )
-	docker build \
-		--build-arg HTTPS_PREFIX=$(HTTPS_PREFIX) \
-		-t findy-agent-auth \
-		.
+	docker build -t findy-agent-auth .
 
 drun:
 	docker run -it --rm -p 8888:8888 findy-agent-auth

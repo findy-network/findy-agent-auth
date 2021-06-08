@@ -1,13 +1,5 @@
 FROM golang:1.16-alpine3.13
 
-ARG HTTPS_PREFIX
-
-ENV GOPRIVATE "github.com/findy-network"
-
-RUN apk update && \
-    apk add git && \
-    git config --global url."https://"${HTTPS_PREFIX}"github.com/".insteadOf "https://github.com/"
-
 WORKDIR /work
 
 COPY go.* ./
