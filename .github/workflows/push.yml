@@ -1,19 +1,8 @@
-name: release
+name: push-test
 on:  
-  push:
-    tags:
-      - '*'
+  push
 jobs:
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-      - name: test
-        run: echo "implement e2e tests"
-
   push:
-    needs: e2e
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -39,17 +28,3 @@ jobs:
           docker tag $IMAGE_NAME $IMAGE_ID:latest
           docker push -a $IMAGE_ID
           docker logout
-
-  merge:
-    needs: push
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-        with:
-          ref: master
-      - name: merge
-        run:  |
-          git fetch --tags origin
-          git merge $GITHUB_REF
-          git push origin master
