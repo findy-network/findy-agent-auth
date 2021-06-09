@@ -11,6 +11,8 @@ RUN go build -o /go/bin/findy-agent-auth
 
 FROM  ghcr.io/findy-network/findy-base:alpine-3.13
 
+LABEL org.opencontainers.image.source https://github.com/findy-network/findy-agent-auth
+
 COPY --from=0 /go/bin/findy-agent-auth /findy-agent-auth
 
 # override when running
@@ -22,8 +24,9 @@ ENV FAA_DOMAIN "localhost"
 ENV FAA_ORIGIN "http://localhost:8888"
 ENV FAA_JWT_VERIFICATION_KEY "mySuperSecretKeyLol"
 ENV FAA_SEC_KEY "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
+ENV FAA_LOG_LEVEL "3"
 
-RUN echo '/s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' > /start.sh && \
+RUN echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' > /start.sh && \
     echo '/findy-agent-auth \
     --port $FAA_PORT \
     --agency $FAA_AGENCY_ADDR \
@@ -34,7 +37,7 @@ RUN echo '/s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' > /start.sh && \
     --sec-file "/data/fido-enclave.bolt" \
     --sec-key $FAA_SEC_KEY \
     --cert-path /grpc \
-    --logging "-logtostderr=true -v=3" \
+    --logging "-logtostderr=true -v=$FAA_LOG_LEVEL" \
     --jwt-secret $FAA_JWT_VERIFICATION_KEY' >> /start.sh && chmod a+x /start.sh
 
 
