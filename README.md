@@ -1,5 +1,7 @@
 # findy-agent-auth
 
+[![test](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml/badge.svg)](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml)
+
 Authentication services for Findy agency.
 
 ## Server

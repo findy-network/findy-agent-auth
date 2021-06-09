@@ -1,8 +1,15 @@
 name: test
 on: push
-env:
-  GOPRIVATE: "github.com/findy-network/*"
 jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.37
   test:
     runs-on: ubuntu-latest
     steps:
