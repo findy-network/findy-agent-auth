@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/duo-labs/webauthn v0.0.0-20200714211715-1daaee874e43
 	github.com/duo-labs/webauthn.io v0.0.0-20200929144140-c031a3e0f95d
-	github.com/findy-network/findy-common-go v0.1.7-0.20210527125553-4a46a2db405d
+	github.com/findy-network/findy-common-go v0.1.14
 	github.com/fxamacker/cbor/v2 v2.2.0
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/uuid v1.2.0
