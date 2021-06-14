@@ -26,6 +26,7 @@ ENV FAA_JWT_VERIFICATION_KEY "mySuperSecretKeyLol"
 ENV FAA_SEC_KEY "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 ENV FAA_LOG_LEVEL "3"
 ENV FAA_ENABLE_CORS "false"
+ENV FAA_LOCAL_TLS "false"
 
 RUN echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' > /start.sh && \
     echo '/findy-agent-auth \
@@ -40,6 +41,7 @@ RUN echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAG
     --cert-path /grpc \
     --logging "-logtostderr=true -v=$FAA_LOG_LEVEL" \
     --cors $FAA_ENABLE_CORS \
+    --local-tls $FAA_LOCAL_TLS \
     --jwt-secret $FAA_JWT_VERIFICATION_KEY' >> /start.sh && chmod a+x /start.sh
 
 
