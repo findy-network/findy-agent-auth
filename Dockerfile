@@ -40,8 +40,8 @@ RUN echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAG
     --sec-key $FAA_SEC_KEY \
     --cert-path /grpc \
     --logging "-logtostderr=true -v=$FAA_LOG_LEVEL" \
-    --cors $FAA_ENABLE_CORS \
-    --local-tls $FAA_LOCAL_TLS \
+    --cors=$FAA_ENABLE_CORS \
+    --local-tls=$FAA_LOCAL_TLS \
     --jwt-secret $FAA_JWT_VERIFICATION_KEY' >> /start.sh && chmod a+x /start.sh
 
 
