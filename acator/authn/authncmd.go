@@ -30,6 +30,7 @@ type Cmd struct {
 	Key      string `json:"key,omitempty"`
 	Counter  uint64 `json:"counter,omitempty"`
 	Token    string `json:"token,omitempty"`
+	Origin   string `json:"origin,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -67,8 +68,14 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	acator.Counter = uint32(ac.Counter)
 	name = ac.UserName
 	urlStr = ac.Url
-	originURL := err2.URL.Try(url.Parse(urlStr))
-	acator.Origin = *originURL
+	if ac.Origin != "" {
+		originURL := err2.URL.Try(url.Parse(ac.Origin))
+		acator.Origin = *originURL
+	} else {
+		originURL := err2.URL.Try(url.Parse(urlStr))
+		acator.Origin = *originURL
+	}
+	origin = ac.Origin
 	jwtToken = ac.Token
 
 	result, err := execute[cmd]()
@@ -107,6 +114,7 @@ type cmdFunc func() (*Result, error)
 var (
 	name     string
 	urlStr   string
+	origin   string
 	jwtToken string
 
 	c = setupClient()
@@ -169,7 +177,7 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	echoReqToStdout(request)
 
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Origin", urlStr)
+	request.Header.Set("Origin", origin)
 	request.Header.Add("Accept", "*/*")
 	// if we want to register a new authenticator, we must send valid JWT
 	if jwtToken != "" {
