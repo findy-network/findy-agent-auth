@@ -69,13 +69,14 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	name = ac.UserName
 	urlStr = ac.Url
 	if ac.Origin != "" {
+		origin = ac.Origin
 		originURL := err2.URL.Try(url.Parse(ac.Origin))
 		acator.Origin = *originURL
 	} else {
+		origin = ac.Url
 		originURL := err2.URL.Try(url.Parse(urlStr))
 		acator.Origin = *originURL
 	}
-	origin = ac.Origin
 	jwtToken = ac.Token
 
 	result, err := execute[cmd]()
