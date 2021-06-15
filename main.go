@@ -139,6 +139,7 @@ func main() {
 		glog.Infoln("starting server at", serverAddress)
 	}
 	if isHTTPS {
+		certPath = filepath.Join(certPath, "server")
 		certFile := filepath.Join(certPath, "server.crt")
 		keyFile := filepath.Join(certPath, "server.key")
 		glog.V(3).Infoln("starting TLS server with:\n", certFile, "\n", keyFile)

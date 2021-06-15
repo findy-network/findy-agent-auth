@@ -1,5 +1,8 @@
 COMM_BRANCH=$(shell ./scripts/branch.sh ../findy-common-go/)
 
+acli:
+	go build -o $(GOPATH)/bin/acli
+
 scan:
 	@./scripts/scan.sh $(ARGS)
 
