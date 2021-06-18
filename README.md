@@ -22,7 +22,7 @@ During a successful registration the user is onboarded to [findy core agency](ht
 $ go run . \
     --port 8088 \                       # port for this service
     --origin http://localhost:3000 \    # origin for browser requests
-    --cors true \                       # use CORS headers
+    --cors=true \                       # use CORS headers
     --agency localhost \                # core agency GRPC server address
     --gport 50051 \                     # core agency GRPC server port
     --cert-path /path/to/agency/cert \  # path to agency GRPC cert
