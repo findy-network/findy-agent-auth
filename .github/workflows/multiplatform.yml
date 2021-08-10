@@ -1,19 +1,10 @@
-name: release
+name: push-image
 on:  
   push:
-    tags:
-      - '*'
+    branches:
+      - multi-platform # TODO: move to release workflow
 jobs:
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-      - name: test
-        run: echo "implement e2e tests"
-
   push-image:
-    needs: e2e
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -44,20 +35,6 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/findy-agent-auth:${{ env.version }}
-            ghcr.io/${{ github.repository_owner }}/findy-agent-auth:latest
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/findy-agent-auth:latest
           cache-to: type=inline
 
-  merge:
-    needs: push
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-        with:
-          ref: master
-      - name: merge
-        run:  |
-          git fetch --tags origin
-          git merge $GITHUB_REF
-          git push origin master
