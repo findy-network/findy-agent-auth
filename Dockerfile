@@ -28,7 +28,8 @@ ENV FAA_LOG_LEVEL "3"
 ENV FAA_ENABLE_CORS "false"
 ENV FAA_LOCAL_TLS "false"
 
-RUN echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' > /start.sh && \
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' >> /start.sh && \
     echo '/findy-agent-auth \
     --port $FAA_PORT \
     --agency $FAA_AGENCY_ADDR \
