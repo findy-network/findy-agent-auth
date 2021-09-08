@@ -24,6 +24,7 @@ import (
 )
 
 const defaultPort = 8080
+const defaultTimeoutSecs = 30
 
 var (
 	loggingFlags   string
@@ -44,6 +45,7 @@ var (
 	allowCors      = false
 	isHTTPS        = false
 	testUI         = false
+	timeoutSecs    = defaultTimeoutSecs
 
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
@@ -71,6 +73,7 @@ func init() {
 	startServerCmd.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
 	startServerCmd.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
 	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI")
+	startServerCmd.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
 }
 
 func main() {
@@ -242,7 +245,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	// Add needed data to User
 	user.AddCredential(*credential)
-	Check(user.AllocateCloudAgent(findyAdmin))
+	Check(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second))
 	// Persist that data
 	Check(enclave.PutUser(user))
 

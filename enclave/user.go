@@ -121,7 +121,7 @@ func (u User) CredentialExcludeList() []protocol.CredentialDescriptor {
 // AllocateCloudAgent allocates new cloud agent from the agency. adminID is part
 // of the security for the current agency ecosystem. It must match what's
 // configured to server side i.e. agency.
-func (u *User) AllocateCloudAgent(adminID string) (err error) {
+func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err error) {
 	defer err2.Return(&err)
 
 	glog.V(1).Infoln("starting cloud agent allocation for", u.Name)
@@ -141,7 +141,7 @@ func (u *User) AllocateCloudAgent(adminID string) (err error) {
 	}
 
 	conn := client.TryOpen(adminID, baseCfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	agencyClient := ops.NewAgencyServiceClient(conn)
 	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
