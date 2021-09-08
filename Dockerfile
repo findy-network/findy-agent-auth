@@ -27,6 +27,7 @@ ENV FAA_SEC_KEY "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336
 ENV FAA_LOG_LEVEL "3"
 ENV FAA_ENABLE_CORS "false"
 ENV FAA_LOCAL_TLS "false"
+ENV FAA_TIMEOUT_SECS "30"
 
 RUN echo '#!/bin/sh' > /start.sh && \
     echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' >> /start.sh && \
@@ -43,7 +44,8 @@ RUN echo '#!/bin/sh' > /start.sh && \
     --logging "-logtostderr=true -v=$FAA_LOG_LEVEL" \
     --cors=$FAA_ENABLE_CORS \
     --local-tls=$FAA_LOCAL_TLS \
-    --jwt-secret $FAA_JWT_VERIFICATION_KEY' >> /start.sh && chmod a+x /start.sh
+    --jwt-secret $FAA_JWT_VERIFICATION_KEY \
+    --timeout $FAA_TIMEOUT_SECS' >> /start.sh && chmod a+x /start.sh
 
 
 ENTRYPOINT ["/bin/sh", "-c", "/start.sh"]
