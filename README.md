@@ -1,16 +1,17 @@
 # findy-agent-auth
 
-[![test](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml/badge.svg)](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml)
+[![test](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml)
 
 Authentication services for Findy agency.
 
 ## Server
 
 This project provides FIDO2/WebAuthn authentication service for findy agency clients. The service implements the WebAuthn protocol providing means to securely
-* initiate user registration,
-* finish user registration,
-* initiate authentication and
-* finish authentication.
+
+- initiate user registration,
+- finish user registration,
+- initiate authentication and
+- finish authentication.
 
 The authentication service can be utilized for example by any web app running in [a compatible browser](https://caniuse.com/?search=webauthn).
 
