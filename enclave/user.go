@@ -28,10 +28,11 @@ func Init(certPath, addr string, port int) {
 
 // User represents the user model
 type User struct {
-	Id          uint64
-	Name        string // full email address
-	DisplayName string // shortened version of the Name
-	DID         string
+	Id            uint64
+	Name          string // full email address
+	PublicDIDSeed string // seed for the public DID
+	DisplayName   string // shortened version of the Name
+	DID           string
 	//JWT         string // remove this from here and make a method
 	Credentials []webauthn.Credential
 }
@@ -55,12 +56,13 @@ func NewUserFromData(d []byte) *User {
 }
 
 // NewUser creates and returns a new User
-func NewUser(name string, displayName string) *User {
+func NewUser(name, displayName, seed string) *User {
 
 	user := &User{}
 	user.Id = randomUint64()
 	user.Name = name
 	user.DisplayName = displayName
+	user.PublicDIDSeed = seed
 	// user.credentials = []webauthn.Credential{}
 
 	return user
@@ -145,7 +147,8 @@ func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err er
 	defer cancel()
 	agencyClient := ops.NewAgencyServiceClient(conn)
 	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
-		Email: u.Name,
+		Email:         u.Name,
+		PublicDIDSeed: u.PublicDIDSeed,
 	})
 	err2.Check(err)
 	glog.V(1).Infoln("result:", result.GetOk(), result.GetResult().CADID)

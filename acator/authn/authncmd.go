@@ -23,14 +23,15 @@ import (
 )
 
 type Cmd struct {
-	SubCmd   string `json:"sub_cmd"`
-	UserName string `json:"user_name"`
-	Url      string `json:"url,omitempty"`
-	AAGUID   string `json:"aaguid,omitempty"`
-	Key      string `json:"key,omitempty"`
-	Counter  uint64 `json:"counter,omitempty"`
-	Token    string `json:"token,omitempty"`
-	Origin   string `json:"origin,omitempty"`
+	SubCmd        string `json:"sub_cmd"`
+	UserName      string `json:"user_name"`
+	PublicDIDSeed string `json:"public_did_seed"`
+	Url           string `json:"url,omitempty"`
+	AAGUID        string `json:"aaguid,omitempty"`
+	Key           string `json:"key,omitempty"`
+	Counter       uint64 `json:"counter,omitempty"`
+	Token         string `json:"token,omitempty"`
+	Origin        string `json:"origin,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -67,6 +68,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
 	name = ac.UserName
+	seed = ac.PublicDIDSeed
 	urlStr = ac.Url
 	if ac.Origin != "" {
 		origin = ac.Origin
@@ -114,6 +116,7 @@ type cmdFunc func() (*Result, error)
 
 var (
 	name     string
+	seed     string
 	urlStr   string
 	origin   string
 	jwtToken string
@@ -141,7 +144,7 @@ func empty() (*Result, error) {
 func registerUser() (result *Result, err error) {
 	defer err2.Annotate("register user", &err)
 
-	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name, nil)
+	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
 	defer r.Close()
 
 	js := err2.R.Try(acator.Register(r))

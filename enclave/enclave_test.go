@@ -34,7 +34,7 @@ func tearDown() {
 }
 
 func TestNewUser(t *testing.T) {
-	u := NewUser(emailAddress, emailAddress)
+	u := NewUser(emailAddress, emailAddress, "")
 	err := PutUser(u)
 	assert.NoError(t, err)
 
