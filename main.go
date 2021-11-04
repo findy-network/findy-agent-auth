@@ -180,7 +180,14 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	displayName := strings.Split(username, "@")[0]
 	if !exists {
 		glog.V(2).Infoln("adding new user:", displayName)
-		user = enclave.NewUser(username, displayName)
+
+		urlParams := r.URL.Query()
+		seed := urlParams.Get("seed")
+		if seed == "" {
+			glog.V(5).Infoln("no seed supplied")
+		}
+
+		user = enclave.NewUser(username, displayName, seed)
 		Check(enclave.PutUser(user))
 	} else if !jwt.IsValidUser(user.DID, r.Header["Authorization"]) {
 		glog.Warningln("new ator, invalid JWT", user.DID, displayName)
