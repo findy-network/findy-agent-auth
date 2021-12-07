@@ -33,10 +33,11 @@ func Init(certPath, addr, adminID string, port int) {
 
 // User represents the user model
 type User struct {
-	Id          uint64
-	Name        string // full email address
-	DisplayName string // shortened version of the Name
-	DID         string
+	Id            uint64
+	Name          string // full email address
+	PublicDIDSeed string // seed for the public DID
+	DisplayName   string // shortened version of the Name
+	DID           string
 	//JWT         string // remove this from here and make a method
 	Credentials []webauthn.Credential
 }
@@ -60,12 +61,13 @@ func NewUserFromData(d []byte) *User {
 }
 
 // NewUser creates and returns a new User
-func NewUser(name string, displayName string) *User {
+func NewUser(name, displayName, seed string) *User {
 
 	user := &User{}
 	user.Id = randomUint64()
 	user.Name = name
 	user.DisplayName = displayName
+	user.PublicDIDSeed = seed
 	// user.credentials = []webauthn.Credential{}
 
 	return user
@@ -126,7 +128,7 @@ func (u User) CredentialExcludeList() []protocol.CredentialDescriptor {
 // AllocateCloudAgent allocates new cloud agent from the agency. adminID is part
 // of the security for the current agency ecosystem. It must match what's
 // configured to server side i.e. agency.
-func (u *User) AllocateCloudAgent(adminID string) (err error) {
+func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err error) {
 	defer err2.Return(&err)
 
 	glog.V(1).Infoln("starting cloud agent allocation for", u.Name)
@@ -145,11 +147,12 @@ func (u *User) AllocateCloudAgent(adminID string) (err error) {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	agencyClient := ops.NewAgencyServiceClient(conn)
 	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
-		Email: u.Name,
+		Email:         u.Name,
+		PublicDIDSeed: u.PublicDIDSeed,
 	})
 	err2.Check(err)
 	glog.V(1).Infoln("result:", result.GetOk(), result.GetResult().CADID)
