@@ -19,11 +19,16 @@ import (
 	"github.com/lainio/err2/assert"
 )
 
-var baseCfg *rpc.ClientCfg
+var (
+	baseCfg *rpc.ClientCfg
+	conn    client.Conn
+)
 
-func Init(certPath, addr string, port int) {
+func Init(certPath, addr, adminID string, port int) {
 	glog.V(3).Infoln("certPath:", certPath, "addr:", addr, "port:", port)
+
 	baseCfg = client.BuildClientConnBase(certPath, addr, port, nil)
+	conn = client.TryOpen(adminID, baseCfg)
 }
 
 // User represents the user model
@@ -140,8 +145,7 @@ func (u *User) AllocateCloudAgent(adminID string) (err error) {
 		return nil
 	}
 
-	conn := client.TryOpen(adminID, baseCfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 	agencyClient := ops.NewAgencyServiceClient(conn)
 	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
