@@ -94,7 +94,7 @@ func main() {
 	)
 
 	Check(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
-	enclave.Init(certPath, agencyAddr, findyAdmin, agencyPort)
+	enclave.Init(certPath, agencyAddr, agencyPort)
 
 	if jwtSecret != "" {
 		jwt.SetJWTSecret(jwtSecret)
