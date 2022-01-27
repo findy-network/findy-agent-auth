@@ -19,7 +19,11 @@ jobs:
           go-version: 1.16.x
       - name: checkout
         uses: actions/checkout@v2
-      - name: test
-        run: go test ./...
+      - name: test and measure coverage
+        run: make test_cov_out
+      - name: upload coverage
+        uses: codecov/codecov-action@v2
+        with:
+          files: ./coverage.txt
       - name: scan
         run: make scan
