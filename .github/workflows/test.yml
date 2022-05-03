@@ -49,7 +49,7 @@ jobs:
         run: go run . --port 8090 &
       - name: test # TODO: make more extensive test set and verify output
         run: |
-          acator_key=$(findy-agent-cli)
+          acator_key=$(findy-agent-cli new-key)
           findy-agent-cli authn register \
               -u test \
               --url http://localhost:8088 \
