@@ -36,7 +36,7 @@ jobs:
           go-version: 1.16.x
       - name: checkout
         uses: actions/checkout@v2
-      - name: setup core
+      - name: setup env
         run: |
           cd scripts/e2e
           docker-compose up -d
@@ -45,18 +45,16 @@ jobs:
           curl https://raw.githubusercontent.com/findy-network/findy-agent-cli/HEAD/install.sh > install.sh
           chmod a+x install.sh
           sudo ./install.sh -b /bin
-      - name: run app
-        run: go run . --port 8090 &
       - name: test # TODO: make more extensive test set and verify output
         run: |
           acator_key=$(findy-agent-cli new-key)
           findy-agent-cli authn register \
               -u test \
-              --url http://localhost:8090 \
-              --origin http://localhost:8090 \
+              --url http://localhost:8088 \
+              --origin http://localhost:8088 \
               --key $acator_key
           findy-agent-cli authn login \
               -u test \
-              --url http://localhost:8090 \
-              --origin http://localhost:8090 \
+              --url http://localhost:8088 \
+              --origin http://localhost:8088 \
               --key $acator_key

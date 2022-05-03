@@ -26,5 +26,6 @@
 # Temp files for docker build
 .docker
 .cert
+.data
 
 .DS_Store
