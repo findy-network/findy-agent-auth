@@ -50,7 +50,12 @@ logged_test:
 	go test -v -p 1 -failfast ./... -args -logtostderr=true -v=10
 
 test_cov_out:
-	go test -v -coverprofile=coverage.txt ./...
+	go test \
+		-coverpkg=github.com/findy-network/findy-agent-auth/... \
+		-coverprofile=coverage.txt  \
+		-covermode=atomic \
+		./...
+
 
 test_cov: test_cov_out
 	go tool cover -html=coverage.txt
