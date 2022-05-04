@@ -2,6 +2,8 @@ FROM golang:1.18-alpine3.15
 
 WORKDIR /work
 
+RUN apk update && apk add git
+
 COPY go.* ./
 RUN go mod download
 
