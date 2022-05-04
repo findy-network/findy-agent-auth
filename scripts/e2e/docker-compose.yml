@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  core:
+    image: ghcr.io/findy-network/findy-agent:latest
+    volumes:
+      - ./config/steward.exported:/steward.exported
+      - ./config/cert:/grpc
+      - .data/agent:/root
+    environment:
+      FCLI_POOL_GENESIS_TXN_FILE: ""
+      FCLI_POOL_NAME: "FINDY_FILE_LEDGER"
+      FCLI_AGENCY_POOL_NAME: "FINDY_FILE_LEDGER"
+      FCLI_AGENCY_GRPC_TLS: "true"
+      FCLI_AGENCY_GRPC_CERT_PATH: "/grpc"
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+  auth:
+    build: ../..
+    volumes:
+      - ./config/cert:/grpc
+      - .data/auth:/data
+    depends_on:
+      - core
+    environment:
+      FAA_ENABLE_CORS: "true"
+      FAA_ORIGIN: "http://localhost:8088"
+      FAA_AGENCY_ADDR: "core"
+    ports:
+      - "8088:8888"

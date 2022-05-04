@@ -93,8 +93,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 				ID:   base64.RawURLEncoding.EncodeToString(credID),
 				Type: "public-key",
 			},
-			RawID:      credID,
-			Extensions: nil,
+			RawID: credID,
 		},
 		AssertionResponse: protocol.AuthenticatorAssertionResponse{
 			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},
@@ -166,8 +165,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 				ID:   base64.RawURLEncoding.EncodeToString(secretPrivateKey),
 				Type: "public-key",
 			},
-			RawID:      secretPrivateKey,
-			Extensions: nil,
+			RawID: secretPrivateKey,
 		},
 		AttestationResponse: protocol.AuthenticatorAttestationResponse{
 			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},

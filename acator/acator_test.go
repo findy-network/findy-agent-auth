@@ -174,7 +174,7 @@ func TestLogin(t *testing.T) {
 
 	credentialBytes := pcad.Response.AuthenticatorData.AttData.CredentialPublicKey
 	err = pcad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
-		"localhost", "http://localhost:8080", false,
+		"localhost", "http://localhost:8080", "", false,
 		credentialBytes)
 	assert.NoError(t, err)
 }
@@ -222,7 +222,7 @@ func TestParseAssertionResponse(t *testing.T) {
 	assert.True(t, valid)
 
 	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
-		"localhost", "http://localhost:8080", false,
+		"localhost", "http://localhost:8080", "", false,
 		credentialBytes)
 	assert.NoError(t, err)
 
