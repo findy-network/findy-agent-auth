@@ -11,7 +11,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/lainio/err2 v0.7.0
-	github.com/rs/cors v1.7.0
+	github.com/rs/cors v1.8.2
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/net v0.0.0-20210510120150-4163338589ed
 )
