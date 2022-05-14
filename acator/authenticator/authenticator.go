@@ -5,6 +5,8 @@ import (
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
+
 	"github.com/lainio/err2/assert"
 )
 

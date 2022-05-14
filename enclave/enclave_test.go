@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/lainio/err2/try"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,8 +15,8 @@ const emailAddress = "test@email.com"
 const emailNotCreated = "not@exists.email"
 
 func TestMain(m *testing.M) {
-	try.To1(flag.Set("logtostderr", "true"))
-	try.To1(flag.Set("v", "3"))
+	try.To(flag.Set("logtostderr", "true"))
+	try.To(flag.Set("v", "3"))
 
 	setUp()
 	code := m.Run()

@@ -20,6 +20,7 @@ import (
 	"github.com/findy-network/findy-common-go/crypto/db"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
 )
 
 const user = 0
@@ -71,7 +72,7 @@ func BackupTicker(interval time.Duration) (done chan<- struct{}) {
 func PutUser(u *User) (err error) {
 	defer err2.Return(&err)
 
-	try.To1(db.AddKeyValueToBucket(buckets[user],
+	try.To(db.AddKeyValueToBucket(buckets[user],
 		&db.Data{
 			Data: u.Data(),
 			Read: encrypt,

@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/url"
 
@@ -16,6 +15,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 var (
@@ -37,7 +38,7 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 		})
 		ca := tryReadAssertion(jsonStream)
 		car := tryBuildAssertionResponse(ca)
-		try.To1(json.NewEncoder(pw).Encode(car))
+		try.To(json.NewEncoder(pw).Encode(car))
 	}()
 	return pr, nil
 }
@@ -56,9 +57,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 			break
 		}
 	}
-	if priKey == nil {
-		try.To1(fmt.Errorf("credential does not exist"))
-	}
+	assert.NotNil(priKey, "credential does not exist")
 
 	key := cose.NewFromPrivateKey(priKey)
 	RPIDHash := sha256.Sum256([]byte(ca.Response.RelyingPartyID))
@@ -118,7 +117,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 		})
 		cred := tryReadCreation(jsonStream)
 		ccr := tryBuildCreationResponse(cred)
-		try.To1(json.NewEncoder(pw).Encode(ccr))
+		try.To(json.NewEncoder(pw).Encode(ccr))
 	}()
 	return pr, nil
 
@@ -177,12 +176,12 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 
 func tryReadCreation(r io.Reader) *protocol.CredentialCreation {
 	var creation protocol.CredentialCreation
-	try.To1(json.NewDecoder(r).Decode(&creation))
+	try.To(json.NewDecoder(r).Decode(&creation))
 	return &creation
 }
 
 func tryReadAssertion(r io.Reader) *protocol.CredentialAssertion {
 	var cr protocol.CredentialAssertion
-	try.To1(json.NewDecoder(r).Decode(&cr))
+	try.To(json.NewDecoder(r).Decode(&cr))
 	return &cr
 }

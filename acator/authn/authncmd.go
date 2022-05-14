@@ -18,6 +18,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
+
 	"github.com/lainio/err2/assert"
 	"golang.org/x/net/publicsuffix"
 )
@@ -61,9 +63,9 @@ func (r Result) String() string {
 func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	defer err2.Annotate("execute authenticator", &err)
 
-	try.To1(ac.Validate())
+	try.To(ac.Validate())
 
-	try.To1(cose.SetMasterKey(ac.Key))
+	try.To(cose.SetMasterKey(ac.Key))
 	cmd := cmdModes[ac.SubCmd]
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
@@ -89,7 +91,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 
 func (ac Cmd) TryReadJSON(r io.Reader) Cmd {
 	var newCmd Cmd
-	try.To1(json.NewDecoder(r).Decode(&newCmd))
+	try.To(json.NewDecoder(r).Decode(&newCmd))
 	if newCmd.AAGUID == "" {
 		newCmd.AAGUID = ac.AAGUID
 	}
@@ -168,7 +170,7 @@ func loginUser() (_ *Result, err error) {
 	defer r2.Close()
 
 	var result Result
-	try.To1(json.NewDecoder(r2).Decode(&result))
+	try.To(json.NewDecoder(r2).Decode(&result))
 
 	result.SubCmd = "login"
 	return &result, nil
@@ -193,7 +195,7 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	c.Jar.SetCookies(URL, response.Cookies())
 
 	if response.StatusCode != http.StatusOK {
-		try.To1(fmt.Errorf("status code: %v", response.Status))
+		try.To(fmt.Errorf("status code: %v", response.Status))
 	}
 	echoRespToStdout(response)
 	return response.Body

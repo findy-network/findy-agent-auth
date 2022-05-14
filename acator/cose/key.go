@@ -14,6 +14,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 var (
@@ -51,7 +52,7 @@ func NewFromData(data []byte) (k *Key, err error) {
 	defer err2.Annotate("new key from data", &err)
 
 	k1 := Must(New())
-	pkd := err2.Try(parsePublicKey(data))[0]
+	pkd := try.To1(parsePublicKey(data))
 	k1.EC2PublicKeyData = pkd.(webauthncose.EC2PublicKeyData)
 	return k1, nil
 }
@@ -60,13 +61,13 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	defer err2.Return(&err)
 
 	pk := webauthncose.PublicKeyData{}
-	try.To1(cbor.Unmarshal(keyBytes, &pk))
+	try.To(cbor.Unmarshal(keyBytes, &pk))
 	switch webauthncose.COSEKeyType(pk.KeyType) {
 	case webauthncose.OctetKey:
 		assert.P.NoImplementation()
 	case webauthncose.EllipticKey:
 		var e webauthncose.EC2PublicKeyData
-		try.To1(cbor.Unmarshal(keyBytes, &e))
+		try.To(cbor.Unmarshal(keyBytes, &e))
 		e.PublicKeyData = pk
 		return e, nil
 	case webauthncose.RSAKey:
@@ -94,7 +95,7 @@ func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 func New() (k *Key, err error) {
 	defer err2.Annotate("new", &err)
 
-	privateKey := try(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
+	privateKey := try.To1(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
 	return NewFromPrivateKey(privateKey), nil
 }
 
@@ -105,7 +106,7 @@ func (k *Key) Marshal() ([]byte, error) {
 func (k *Key) NewPrivateKey() (err error) {
 	defer err2.Annotate("new key", &err)
 
-	privateKey := try(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
+	privateKey := try.To1(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
 	k.privKey = privateKey
 
 	return nil
@@ -142,13 +143,13 @@ func (k *Key) TryMarshalSecretPrivateKey() []byte {
 }
 
 func (k *Key) TryParseSecretPrivateKey(data []byte) {
-	try.To1(k.ParseSecretPrivateKey(data))
+	try.To(k.ParseSecretPrivateKey(data))
 }
 
 func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 	defer err2.Annotate("parse secret", &err)
 
-	k.privKey = try(ParseSecretPrivateKey(data))
+	k.privKey = try.To1(ParseSecretPrivateKey(data))
 	return nil
 }
 
@@ -156,7 +157,7 @@ func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	defer err2.Annotate("parse secret private", &err)
 
-	pk = try(x509.ParseECPrivateKey(theCipher.TryDecrypt(data)))
+	pk = try.To1(x509.ParseECPrivateKey(theCipher.TryDecrypt(data)))
 	return pk, nil
 }
 
@@ -166,9 +167,4 @@ func VerifyHashSig(key *ecdsa.PublicKey, data, sig []byte) bool {
 	h := crypto.SHA256.New()
 	try.To1(h.Write(data))
 	return ecdsa.VerifyASN1(key, h.Sum(nil), sig)
-}
-
-func try(pk *ecdsa.PrivateKey, err error) *ecdsa.PrivateKey {
-	try.To(err) // TODO:
-	return pk
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/findy-network/findy-common-go/utils"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
 )
 
 func main() {
@@ -16,7 +17,7 @@ func main() {
 		glog.Warningln(err)
 		os.Exit(1)
 	})
-	try.To1(startServerCmd.Parse(os.Args[1:]))
+	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
 	jsonAPI := false
