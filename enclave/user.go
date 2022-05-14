@@ -152,7 +152,7 @@ func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err er
 		Email:         u.Name,
 		PublicDIDSeed: u.PublicDIDSeed,
 	})
-	err2.Check(err)
+	try.To(err) // TODO:
 	glog.V(1).Infoln("result:", result.GetOk(), result.GetResult().CADID)
 	if !result.GetOk() {
 		return fmt.Errorf("cannot allocate cloud agent for %v", u.Name)

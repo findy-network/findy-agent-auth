@@ -71,7 +71,7 @@ func BackupTicker(interval time.Duration) (done chan<- struct{}) {
 func PutUser(u *User) (err error) {
 	defer err2.Return(&err)
 
-	err2.Check(db.AddKeyValueToBucket(buckets[user],
+	try.To1(db.AddKeyValueToBucket(buckets[user],
 		&db.Data{
 			Data: u.Data(),
 			Read: encrypt,
@@ -99,7 +99,7 @@ func GetUser(name string) (u *User, exist bool, err error) {
 		},
 		value,
 	)
-	err2.Check(err)
+	try.To(err) // TODO:
 	if !already {
 		return nil, already, err
 	}
@@ -121,7 +121,7 @@ func GetExistingUser(name string) (u *User, err error) {
 		},
 		value,
 	)
-	err2.Check(err)
+	try.To(err) // TODO:
 	if !already {
 		return nil, fmt.Errorf("user (%s) not exist", name)
 	}

@@ -16,7 +16,7 @@ func main() {
 		glog.Warningln(err)
 		os.Exit(1)
 	})
-	err2.Check(startServerCmd.Parse(os.Args[1:]))
+	try.To1(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
 	jsonAPI := false
@@ -25,7 +25,7 @@ func main() {
 		jsonAPI = true
 	}
 	r, err := authnCmd.Exec(os.Stdout)
-	err2.Check(err)
+	try.To(err) // TODO:
 
 	if jsonAPI {
 		fmt.Println(r.String())

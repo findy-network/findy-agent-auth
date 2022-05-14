@@ -37,7 +37,7 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 		})
 		ca := tryReadAssertion(jsonStream)
 		car := tryBuildAssertionResponse(ca)
-		err2.Check(json.NewEncoder(pw).Encode(car))
+		try.To1(json.NewEncoder(pw).Encode(car))
 	}()
 	return pr, nil
 }
@@ -45,7 +45,7 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
 
-	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
+	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
 
 	var priKey *ecdsa.PrivateKey
 	var credID []byte
@@ -57,7 +57,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 		}
 	}
 	if priKey == nil {
-		err2.Check(fmt.Errorf("credential does not exist"))
+		try.To1(fmt.Errorf("credential does not exist"))
 	}
 
 	key := cose.NewFromPrivateKey(priKey)
@@ -76,7 +76,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        credID,
-			CredentialPublicKey: err2.Bytes.Try(key.Marshal()),
+			CredentialPublicKey: try.To1(key.Marshal()),
 		},
 		ExtData: nil,
 	}
@@ -85,7 +85,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 	clientDataHash := sha256.Sum256(ccdByteJson)
 
 	sigData := append(authenticatorRawData, clientDataHash[:]...)
-	sig := err2.Bytes.Try(key.Sign(sigData))
+	sig := try.To1(key.Sign(sigData))
 
 	car = &protocol.CredentialAssertionResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -118,7 +118,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 		})
 		cred := tryReadCreation(jsonStream)
 		ccr := tryBuildCreationResponse(cred)
-		err2.Check(json.NewEncoder(pw).Encode(ccr))
+		try.To1(json.NewEncoder(pw).Encode(ccr))
 	}()
 	return pr, nil
 
@@ -126,7 +126,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 
 func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
-	aaGUIDBytes := err2.Bytes.Try(AAGUID.MarshalBinary())
+	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
 	newPrivKey := cose.Must(cose.New())
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
@@ -137,7 +137,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		TokenBinding: nil,
 		Hint:         "",
 	}
-	ccdByteJson := err2.Bytes.Try(json.Marshal(ccd))
+	ccdByteJson := try.To1(json.Marshal(ccd))
 
 	secretPrivateKey := newPrivKey.TryMarshalSecretPrivateKey()
 	flags := protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent
@@ -148,7 +148,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        secretPrivateKey,
-			CredentialPublicKey: err2.Bytes.Try(newPrivKey.Marshal()),
+			CredentialPublicKey: try.To1(newPrivKey.Marshal()),
 		},
 		ExtData: nil,
 	}
@@ -157,7 +157,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		Format:       "none",
 		AttStatement: nil,
 	}
-	aoByteCBOR := err2.Bytes.Try(cbor.Marshal(ao))
+	aoByteCBOR := try.To1(cbor.Marshal(ao))
 
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -177,12 +177,12 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 
 func tryReadCreation(r io.Reader) *protocol.CredentialCreation {
 	var creation protocol.CredentialCreation
-	err2.Check(json.NewDecoder(r).Decode(&creation))
+	try.To1(json.NewDecoder(r).Decode(&creation))
 	return &creation
 }
 
 func tryReadAssertion(r io.Reader) *protocol.CredentialAssertion {
 	var cr protocol.CredentialAssertion
-	err2.Check(json.NewDecoder(r).Decode(&cr))
+	try.To1(json.NewDecoder(r).Decode(&cr))
 	return &cr
 }
