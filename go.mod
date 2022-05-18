@@ -10,7 +10,7 @@ require (
 	github.com/golang/glog v1.0.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
-	github.com/lainio/err2 v0.8.5
+	github.com/lainio/err2 v0.8.6
 	github.com/rs/cors v1.8.2
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/net v0.0.0-20220513224357-95641704303c

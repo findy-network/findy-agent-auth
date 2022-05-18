@@ -72,7 +72,7 @@ func NewUser(name, displayName, seed string) *User {
 
 func randomUint64() uint64 {
 	buf := make([]byte, 8)
-	err2.Try(rand.Read(buf))
+	try.To1(rand.Read(buf))
 	return binary.LittleEndian.Uint64(buf)
 }
 
