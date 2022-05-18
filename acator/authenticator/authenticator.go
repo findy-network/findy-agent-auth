@@ -5,6 +5,8 @@ import (
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
+
 	"github.com/lainio/err2/assert"
 )
 
@@ -22,9 +24,7 @@ type AttestationObject struct {
 
 // TryMarshalData is MarshalData convenience wrapper
 func TryMarshalData(data *protocol.AuthenticatorData) []byte {
-	b, err := MarshalData(data)
-	err2.Check(err)
-	return b
+	return try.To1(MarshalData(data))
 }
 
 // MarshalData marshals authenticator data to byte format specified in:

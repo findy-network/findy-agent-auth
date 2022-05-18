@@ -16,6 +16,8 @@ import (
 	"github.com/findy-network/findy-common-go/rpc"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
+
 	"github.com/lainio/err2/assert"
 )
 
@@ -70,7 +72,7 @@ func NewUser(name, displayName, seed string) *User {
 
 func randomUint64() uint64 {
 	buf := make([]byte, 8)
-	err2.Try(rand.Read(buf))
+	try.To1(rand.Read(buf))
 	return binary.LittleEndian.Uint64(buf)
 }
 
@@ -148,11 +150,10 @@ func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err er
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	agencyClient := ops.NewAgencyServiceClient(conn)
-	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
+	result := try.To1(agencyClient.Onboard(ctx, &ops.Onboarding{
 		Email:         u.Name,
 		PublicDIDSeed: u.PublicDIDSeed,
-	})
-	err2.Check(err)
+	}))
 	glog.V(1).Infoln("result:", result.GetOk(), result.GetResult().CADID)
 	if !result.GetOk() {
 		return fmt.Errorf("cannot allocate cloud agent for %v", u.Name)

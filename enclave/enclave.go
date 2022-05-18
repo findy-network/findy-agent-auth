@@ -20,6 +20,7 @@ import (
 	"github.com/findy-network/findy-common-go/crypto/db"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
 )
 
 const user = 0
@@ -71,7 +72,7 @@ func BackupTicker(interval time.Duration) (done chan<- struct{}) {
 func PutUser(u *User) (err error) {
 	defer err2.Return(&err)
 
-	err2.Check(db.AddKeyValueToBucket(buckets[user],
+	try.To(db.AddKeyValueToBucket(buckets[user],
 		&db.Data{
 			Data: u.Data(),
 			Read: encrypt,
@@ -92,14 +93,13 @@ func GetUser(name string) (u *User, exist bool, err error) {
 	value := &db.Data{
 		Write: decrypt,
 	}
-	already, err := db.GetKeyValueFromBucket(buckets[user],
+	already := try.To1(db.GetKeyValueFromBucket(buckets[user],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
 		},
 		value,
-	)
-	err2.Check(err)
+	))
 	if !already {
 		return nil, already, err
 	}
@@ -114,14 +114,13 @@ func GetExistingUser(name string) (u *User, err error) {
 	value := &db.Data{
 		Write: decrypt,
 	}
-	already, err := db.GetKeyValueFromBucket(buckets[user],
+	already := try.To1(db.GetKeyValueFromBucket(buckets[user],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
 		},
 		value,
-	)
-	err2.Check(err)
+	))
 	if !already {
 		return nil, fmt.Errorf("user (%s) not exist", name)
 	}

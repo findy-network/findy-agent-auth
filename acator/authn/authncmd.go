@@ -18,6 +18,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
+
 	"github.com/lainio/err2/assert"
 	"golang.org/x/net/publicsuffix"
 )
@@ -61,9 +63,9 @@ func (r Result) String() string {
 func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	defer err2.Annotate("execute authenticator", &err)
 
-	err2.Check(ac.Validate())
+	try.To(ac.Validate())
 
-	err2.Check(cose.SetMasterKey(ac.Key))
+	try.To(cose.SetMasterKey(ac.Key))
 	cmd := cmdModes[ac.SubCmd]
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
@@ -72,24 +74,21 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	if ac.Origin != "" {
 		origin = ac.Origin
-		originURL := err2.URL.Try(url.Parse(ac.Origin))
+		originURL := try.To1(url.Parse(ac.Origin))
 		acator.Origin = *originURL
 	} else {
 		origin = ac.Url
-		originURL := err2.URL.Try(url.Parse(urlStr))
+		originURL := try.To1(url.Parse(urlStr))
 		acator.Origin = *originURL
 	}
 	jwtToken = ac.Token
 
-	result, err := execute[cmd]()
-	err2.Check(err)
-
-	return *result, nil
+	return *try.To1(execute[cmd]()), nil
 }
 
 func (ac Cmd) TryReadJSON(r io.Reader) Cmd {
 	var newCmd Cmd
-	err2.Check(json.NewDecoder(r).Decode(&newCmd))
+	try.To(json.NewDecoder(r).Decode(&newCmd))
 	if newCmd.AAGUID == "" {
 		newCmd.AAGUID = ac.AAGUID
 	}
@@ -147,12 +146,12 @@ func registerUser() (result *Result, err error) {
 	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
 	defer r.Close()
 
-	js := err2.R.Try(acator.Register(r))
+	js := try.To1(acator.Register(r))
 
 	r2 := tryHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
 	defer r2.Close()
 
-	b := err2.Bytes.Try(ioutil.ReadAll(r2))
+	b := try.To1(ioutil.ReadAll(r2))
 	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
 
@@ -162,20 +161,20 @@ func loginUser() (_ *Result, err error) {
 	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
 	defer r.Close()
 
-	js := err2.R.Try(acator.Login(r))
+	js := try.To1(acator.Login(r))
 
 	r2 := tryHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
 	defer r2.Close()
 
 	var result Result
-	err2.Check(json.NewDecoder(r2).Decode(&result))
+	try.To(json.NewDecoder(r2).Decode(&result))
 
 	result.SubCmd = "login"
 	return &result, nil
 }
 
 func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
-	URL := err2.URL.Try(url.Parse(addr))
+	URL := try.To1(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
 	echoReqToStdout(request)
@@ -188,12 +187,12 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 		request.Header.Add("Authorization", "Bearer "+jwtToken)
 	}
 
-	response := err2.Response.Try(c.Do(request))
+	response := try.To1(c.Do(request))
 
 	c.Jar.SetCookies(URL, response.Cookies())
 
 	if response.StatusCode != http.StatusOK {
-		err2.Check(fmt.Errorf("status code: %v", response.Status))
+		try.To(fmt.Errorf("status code: %v", response.Status))
 	}
 	echoRespToStdout(response)
 	return response.Body
@@ -205,8 +204,7 @@ func setupClient() (client *http.Client) {
 		PublicSuffixList: publicsuffix.List,
 	}
 
-	jar, err := cookiejar.New(&options)
-	err2.Check(err) // better panic than not handle at all
+	jar := try.To1(cookiejar.New(&options))
 
 	// allow self generated TLS certificate TODO check this later
 	tx := &http.Transport{

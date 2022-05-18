@@ -9,6 +9,7 @@ import (
 	"github.com/findy-network/findy-common-go/utils"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/try"
 )
 
 func main() {
@@ -16,7 +17,7 @@ func main() {
 		glog.Warningln(err)
 		os.Exit(1)
 	})
-	err2.Check(startServerCmd.Parse(os.Args[1:]))
+	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
 	jsonAPI := false
@@ -24,8 +25,7 @@ func main() {
 		authnCmd = authnCmd.TryReadJSON(os.Stdin)
 		jsonAPI = true
 	}
-	r, err := authnCmd.Exec(os.Stdout)
-	err2.Check(err)
+	r := try.To1(authnCmd.Exec(os.Stdout))
 
 	if jsonAPI {
 		fmt.Println(r.String())
