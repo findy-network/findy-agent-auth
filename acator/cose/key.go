@@ -44,7 +44,7 @@ type Key struct {
 }
 
 func Must(k *Key, err error) *Key {
-	try.To(err) // TODO:
+	try.To(err)
 	return k
 }
 

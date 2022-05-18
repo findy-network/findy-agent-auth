@@ -150,11 +150,10 @@ func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err er
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	agencyClient := ops.NewAgencyServiceClient(conn)
-	result, err := agencyClient.Onboard(ctx, &ops.Onboarding{
+	result := try.To1(agencyClient.Onboard(ctx, &ops.Onboarding{
 		Email:         u.Name,
 		PublicDIDSeed: u.PublicDIDSeed,
-	})
-	try.To(err) // TODO:
+	}))
 	glog.V(1).Infoln("result:", result.GetOk(), result.GetResult().CADID)
 	if !result.GetOk() {
 		return fmt.Errorf("cannot allocate cloud agent for %v", u.Name)

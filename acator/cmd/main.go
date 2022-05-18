@@ -25,8 +25,7 @@ func main() {
 		authnCmd = authnCmd.TryReadJSON(os.Stdin)
 		jsonAPI = true
 	}
-	r, err := authnCmd.Exec(os.Stdout)
-	try.To(err) // TODO:
+	r := try.To1(authnCmd.Exec(os.Stdout))
 
 	if jsonAPI {
 		fmt.Println(r.String())

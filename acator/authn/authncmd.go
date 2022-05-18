@@ -83,10 +83,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	}
 	jwtToken = ac.Token
 
-	result, err := execute[cmd]()
-	try.To(err) // TODO:
-
-	return *result, nil
+	return *try.To1(execute[cmd]()), nil
 }
 
 func (ac Cmd) TryReadJSON(r io.Reader) Cmd {
@@ -207,8 +204,7 @@ func setupClient() (client *http.Client) {
 		PublicSuffixList: publicsuffix.List,
 	}
 
-	jar, err := cookiejar.New(&options)
-	try.To(err) // TODO: // better panic than not handle at all
+	jar := try.To1(cookiejar.New(&options))
 
 	// allow self generated TLS certificate TODO check this later
 	tx := &http.Transport{

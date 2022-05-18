@@ -24,9 +24,7 @@ type AttestationObject struct {
 
 // TryMarshalData is MarshalData convenience wrapper
 func TryMarshalData(data *protocol.AuthenticatorData) []byte {
-	b, err := MarshalData(data)
-	try.To(err) // TODO:
-	return b
+	return try.To1(MarshalData(data))
 }
 
 // MarshalData marshals authenticator data to byte format specified in:

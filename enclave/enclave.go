@@ -93,14 +93,13 @@ func GetUser(name string) (u *User, exist bool, err error) {
 	value := &db.Data{
 		Write: decrypt,
 	}
-	already, err := db.GetKeyValueFromBucket(buckets[user],
+	already := try.To1(db.GetKeyValueFromBucket(buckets[user],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
 		},
 		value,
-	)
-	try.To(err) // TODO:
+	))
 	if !already {
 		return nil, already, err
 	}
@@ -115,14 +114,13 @@ func GetExistingUser(name string) (u *User, err error) {
 	value := &db.Data{
 		Write: decrypt,
 	}
-	already, err := db.GetKeyValueFromBucket(buckets[user],
+	already := try.To1(db.GetKeyValueFromBucket(buckets[user],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
 		},
 		value,
-	)
-	try.To(err) // TODO:
+	))
 	if !already {
 		return nil, fmt.Errorf("user (%s) not exist", name)
 	}
