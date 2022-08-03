@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/findy-network/findy-agent-auth/user"
 	"github.com/findy-network/findy-common-go/crypto"
 	"github.com/findy-network/findy-common-go/crypto/db"
 	"github.com/golang/glog"
@@ -23,7 +24,7 @@ import (
 	"github.com/lainio/err2/try"
 )
 
-const user = 0
+const userByte = 0
 
 var (
 	buckets           = [][]byte{{01, 01}}
@@ -69,10 +70,10 @@ func BackupTicker(interval time.Duration) (done chan<- struct{}) {
 }
 
 // PutUser saves the user to database.
-func PutUser(u *User) (err error) {
+func PutUser(u *user.User) (err error) {
 	defer err2.Return(&err)
 
-	try.To(db.AddKeyValueToBucket(buckets[user],
+	try.To(db.AddKeyValueToBucket(buckets[userByte],
 		&db.Data{
 			Data: u.Data(),
 			Read: encrypt,
@@ -87,13 +88,13 @@ func PutUser(u *User) (err error) {
 }
 
 // GetUser returns user by name if exists in enclave
-func GetUser(name string) (u *User, exist bool, err error) {
+func GetUser(name string) (u *user.User, exist bool, err error) {
 	defer err2.Return(&err)
 
 	value := &db.Data{
 		Write: decrypt,
 	}
-	already := try.To1(db.GetKeyValueFromBucket(buckets[user],
+	already := try.To1(db.GetKeyValueFromBucket(buckets[userByte],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
@@ -104,17 +105,17 @@ func GetUser(name string) (u *User, exist bool, err error) {
 		return nil, already, err
 	}
 
-	return NewUserFromData(value.Data), already, err
+	return user.NewUserFromData(value.Data), already, err
 }
 
 // GetUserMust returns user by name if exists in enclave
-func GetExistingUser(name string) (u *User, err error) {
+func GetExistingUser(name string) (u *user.User, err error) {
 	defer err2.Return(&err)
 
 	value := &db.Data{
 		Write: decrypt,
 	}
-	already := try.To1(db.GetKeyValueFromBucket(buckets[user],
+	already := try.To1(db.GetKeyValueFromBucket(buckets[userByte],
 		&db.Data{
 			Data: []byte(name),
 			Read: hash,
@@ -125,7 +126,7 @@ func GetExistingUser(name string) (u *User, err error) {
 		return nil, fmt.Errorf("user (%s) not exist", name)
 	}
 
-	return NewUserFromData(value.Data), err
+	return user.NewUserFromData(value.Data), err
 }
 
 // all of the following has same signature. They also panic on error

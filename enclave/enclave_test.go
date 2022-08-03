@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/findy-network/findy-agent-auth/user"
 	"github.com/lainio/err2/try"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,7 +35,7 @@ func tearDown() {
 }
 
 func TestNewUser(t *testing.T) {
-	u := NewUser(emailAddress, emailAddress, "")
+	u := user.NewUser(emailAddress, emailAddress, "")
 	err := PutUser(u)
 	assert.NoError(t, err)
 
