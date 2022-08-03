@@ -33,6 +33,7 @@ var (
 	port           int = defaultPort
 	agencyAddr     string
 	agencyPort     int
+	agencyInsecure bool
 	rpID           string
 	rpOrigin       string
 	jwtSecret      string
@@ -63,6 +64,7 @@ func init() {
 	startServerCmd.IntVar(&port, "port", defaultPort, "server port")
 	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
+	startServerCmd.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
 	startServerCmd.StringVar(&rpID, "domain", "localhost", "the site domain name")
 	startServerCmd.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
 	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
@@ -96,7 +98,7 @@ func main() {
 	)
 
 	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
-	enclave.Init(certPath, agencyAddr, agencyPort)
+	enclave.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
 
 	if jwtSecret != "" {
 		jwt.SetJWTSecret(jwtSecret)

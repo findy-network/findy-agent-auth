@@ -21,6 +21,7 @@ COPY --from=0 /go/bin/findy-agent-auth /findy-agent-auth
 ENV FAA_PORT "8888"
 ENV FAA_AGENCY_ADDR "localhost"
 ENV FAA_AGENCY_PORT "50051"
+ENV FAA_AGENCY_INSECURE "false"
 ENV FAA_AGENCY_ADMIN_ID "findy-root"
 ENV FAA_DOMAIN "localhost"
 ENV FAA_ORIGIN "http://localhost:8888"
@@ -35,20 +36,21 @@ ENV FAA_CERT_PATH "/grpc"
 RUN echo '#!/bin/sh' > /start.sh && \
     echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' >> /start.sh && \
     echo '/findy-agent-auth \
-    --port "$FAA_PORT" \
-    --agency "$FAA_AGENCY_ADDR" \
-    --gport "$FAA_AGENCY_PORT" \
-    --admin "$FAA_AGENCY_ADMIN_ID" \
-    --domain "$FAA_DOMAIN" \
-    --origin "$FAA_ORIGIN" \
-    --sec-file "/data/fido-enclave.bolt" \
-    --sec-key "$FAA_SEC_KEY" \
-    --cert-path "$FAA_CERT_PATH" \
-    --logging "-logtostderr=true -v=$FAA_LOG_LEVEL" \
+    --port="$FAA_PORT" \
+    --agency="$FAA_AGENCY_ADDR" \
+    --agency-insecure="$FAA_AGENCY_INSECURE" \
+    --gport="$FAA_AGENCY_PORT" \
+    --admin="$FAA_AGENCY_ADMIN_ID" \
+    --domain="$FAA_DOMAIN" \
+    --origin="$FAA_ORIGIN" \
+    --sec-file="/data/fido-enclave.bolt" \
+    --sec-key="$FAA_SEC_KEY" \
+    --cert-path="$FAA_CERT_PATH" \
+    --logging="-logtostderr=true -v=$FAA_LOG_LEVEL" \
     --cors="$FAA_ENABLE_CORS" \
     --local-tls="$FAA_LOCAL_TLS" \
-    --jwt-secret "$FAA_JWT_VERIFICATION_KEY" \
-    --timeout "$FAA_TIMEOUT_SECS"' >> /start.sh && chmod a+x /start.sh
+    --jwt-secret="$FAA_JWT_VERIFICATION_KEY" \
+    --timeout="$FAA_TIMEOUT_SECS"' >> /start.sh && chmod a+x /start.sh
 
 
 ENTRYPOINT ["/bin/sh", "-c", "/start.sh"]

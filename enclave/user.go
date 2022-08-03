@@ -23,9 +23,19 @@ import (
 
 var baseCfg *rpc.ClientCfg
 
-func Init(certPath, addr string, port int) {
-	glog.V(3).Infoln("certPath:", certPath, "addr:", addr, "port:", port)
-	baseCfg = client.BuildClientConnBase(certPath, addr, port, nil)
+func Init(certPath, addr string, port int, insecure bool) {
+	glog.V(3).Infoln(
+		"certPath:", certPath,
+		"addr:", addr,
+		"port:", port,
+		"insecure:", insecure,
+	)
+	if insecure && certPath == "" {
+		glog.Warning("Establishing insecure connection to agency")
+		baseCfg = client.BuildInsecureClientConnBase(addr, port, nil)
+	} else {
+		baseCfg = client.BuildClientConnBase(certPath, addr, port, nil)
+	}
 }
 
 // User represents the user model
