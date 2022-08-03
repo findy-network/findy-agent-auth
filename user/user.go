@@ -1,4 +1,4 @@
-package enclave
+package user
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/try"
+	"google.golang.org/grpc"
 
 	"github.com/lainio/err2/assert"
 )
@@ -24,6 +25,10 @@ import (
 var baseCfg *rpc.ClientCfg
 
 func Init(certPath, addr string, port int, insecure bool) {
+	InitWithOpts(certPath, addr, port, insecure, nil)
+}
+
+func InitWithOpts(certPath, addr string, port int, insecure bool, opts []grpc.DialOption) {
 	glog.V(3).Infoln(
 		"certPath:", certPath,
 		"addr:", addr,
@@ -32,9 +37,9 @@ func Init(certPath, addr string, port int, insecure bool) {
 	)
 	if insecure && certPath == "" {
 		glog.Warning("Establishing insecure connection to agency")
-		baseCfg = client.BuildInsecureClientConnBase(addr, port, nil)
+		baseCfg = client.BuildInsecureClientConnBase(addr, port, opts)
 	} else {
-		baseCfg = client.BuildClientConnBase(certPath, addr, port, nil)
+		baseCfg = client.BuildClientConnBase(certPath, addr, port, opts)
 	}
 }
 

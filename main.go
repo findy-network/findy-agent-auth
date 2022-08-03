@@ -15,6 +15,7 @@ import (
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/findy-network/findy-agent-auth/enclave"
+	"github.com/findy-network/findy-agent-auth/user"
 	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/utils"
 	"github.com/golang/glog"
@@ -98,7 +99,7 @@ func main() {
 	)
 
 	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
-	enclave.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
+	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
 
 	if jwtSecret != "" {
 		jwt.SetJWTSecret(jwtSecret)
@@ -176,7 +177,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	// get user
-	user, exists := try.To2(enclave.GetUser(username))
+	userData, exists := try.To2(enclave.GetUser(username))
 
 	displayName := strings.Split(username, "@")[0]
 	if !exists {
@@ -188,16 +189,16 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 			glog.V(5).Infoln("no seed supplied")
 		}
 
-		user = enclave.NewUser(username, displayName, seed)
-		try.To(enclave.PutUser(user))
-	} else if !jwt.IsValidUser(user.DID, r.Header["Authorization"]) {
-		glog.Warningln("new ator, invalid JWT", user.DID, displayName)
+		userData = user.NewUser(username, displayName, seed)
+		try.To(enclave.PutUser(userData))
+	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
+		glog.Warningln("new ator, invalid JWT", userData.DID, displayName)
 		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
 		return
 	}
 
 	registerOptions := func(credCreationOpts *protocol.PublicKeyCredentialCreationOptions) {
-		credCreationOpts.CredentialExcludeList = user.CredentialExcludeList()
+		credCreationOpts.CredentialExcludeList = userData.CredentialExcludeList()
 		glog.V(1).Infoln("credexcl:", len(credCreationOpts.CredentialExcludeList))
 	}
 
@@ -208,7 +209,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(1).Infoln("begin registration to webAuthn")
 	options, sessionData := try.To2(webAuthn.BeginRegistration(
-		user,
+		userData,
 		registerOptions,
 	))
 	glog.V(1).Infof("sessionData: %v", sessionData)
