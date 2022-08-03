@@ -88,6 +88,7 @@ func TestMain(m *testing.M) {
 }
 
 func setUp() {
+	user.InitWithOpts("", "localhost", 50052, true, dialOpts)
 }
 
 func tearDown() {
@@ -95,8 +96,6 @@ func tearDown() {
 }
 
 func TestOnboardInsecure(t *testing.T) {
-	user.InitWithOpts("", "localhost", 50052, true, dialOpts)
-
 	u := user.NewUser("username", "displayName", "seed")
 
 	err := u.AllocateCloudAgent("findy-root", 3*time.Second)
