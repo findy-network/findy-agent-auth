@@ -10,10 +10,11 @@ require (
 	github.com/golang/glog v1.0.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
-	github.com/lainio/err2 v0.8.7
+	github.com/lainio/err2 v0.8.8
 	github.com/rs/cors v1.8.2
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/net v0.0.0-20220513224357-95641704303c
+	google.golang.org/grpc v1.48.0
 )
 
 require (
@@ -114,7 +115,6 @@ require (
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3 // indirect
-	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
