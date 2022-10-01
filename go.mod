@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499
 	github.com/duo-labs/webauthn.io v0.0.0-20200929144140-c031a3e0f95d
-	github.com/findy-network/findy-common-go v0.1.42
+	github.com/findy-network/findy-common-go v0.1.43
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/golang/glog v1.0.0
 	github.com/google/uuid v1.3.0
@@ -14,7 +14,7 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/net v0.0.0-20220513224357-95641704303c
-	google.golang.org/grpc v1.48.0
+	google.golang.org/grpc v1.49.0
 )
 
 require (
