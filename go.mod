@@ -14,7 +14,7 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/net v0.0.0-20220513224357-95641704303c
-	google.golang.org/grpc v1.48.0
+	google.golang.org/grpc v1.49.0
 )
 
 require (
