@@ -61,7 +61,7 @@ func (r Result) String() string {
 }
 
 func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
-	defer err2.Annotate("execute authenticator", &err)
+	defer err2.Returnf(&err, "execute authenticator")
 
 	try.To(ac.Validate())
 
@@ -141,7 +141,7 @@ func empty() (*Result, error) {
 }
 
 func registerUser() (result *Result, err error) {
-	defer err2.Annotate("register user", &err)
+	defer err2.Returnf(&err, "register user")
 
 	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
 	defer r.Close()
@@ -156,7 +156,7 @@ func registerUser() (result *Result, err error) {
 }
 
 func loginUser() (_ *Result, err error) {
-	defer err2.Annotate("login user", &err)
+	defer err2.Returnf(&err, "login user")
 
 	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
 	defer r.Close()
