@@ -1,3 +1,4 @@
+// Package authn implements WebAuthn Cmd to Register and Login.
 package authn
 
 import (
@@ -6,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -151,7 +151,7 @@ func registerUser() (result *Result, err error) {
 	r2 := tryHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
 	defer r2.Close()
 
-	b := try.To1(ioutil.ReadAll(r2))
+	b := try.To1(io.ReadAll(r2))
 	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
 
