@@ -322,6 +322,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 // from: https://github.com/duo-labs/webauthn.io/blob/3f03b482d21476f6b9fb82b2bf1458ff61a61d41/server/response.go#L15
 func jsonResponse(w http.ResponseWriter, d interface{}, c int) {
 	defer err2.Catch(func(err error) {
+		glog.Errorf("json response error: %s", err)
 		http.Error(w, "Error creating JSON response", http.StatusInternalServerError)
 	})
 

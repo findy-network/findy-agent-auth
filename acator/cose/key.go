@@ -32,7 +32,7 @@ func init() {
 }
 
 func SetMasterKey(hexKey string) (err error) {
-	defer err2.Annotate("set master key", &err)
+	defer err2.Returnf(&err, "set master key")
 	k := try.To1(hex.DecodeString(hexKey))
 	theCipher = crpt.NewCipher(k)
 	return nil
@@ -49,7 +49,7 @@ func Must(k *Key, err error) *Key {
 }
 
 func NewFromData(data []byte) (k *Key, err error) {
-	defer err2.Annotate("new key from data", &err)
+	defer err2.Returnf(&err, "new key from data")
 
 	k1 := Must(New())
 	pkd := try.To1(parsePublicKey(data))
@@ -93,7 +93,7 @@ func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 }
 
 func New() (k *Key, err error) {
-	defer err2.Annotate("new", &err)
+	defer err2.Returnf(&err, "new")
 
 	privateKey := try.To1(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
 	return NewFromPrivateKey(privateKey), nil
@@ -104,7 +104,7 @@ func (k *Key) Marshal() ([]byte, error) {
 }
 
 func (k *Key) NewPrivateKey() (err error) {
-	defer err2.Annotate("new key", &err)
+	defer err2.Returnf(&err, "new key")
 
 	privateKey := try.To1(ecdsa.GenerateKey(elliptic.P256(), rand.Reader))
 	k.privKey = privateKey
@@ -113,7 +113,7 @@ func (k *Key) NewPrivateKey() (err error) {
 }
 
 func (k *Key) Sign(data []byte) (s []byte, err error) {
-	defer err2.Annotate("sign", &err)
+	defer err2.Returnf(&err, "sign")
 
 	hash := crypto.SHA256.New()
 	try.To1(hash.Write(data))
@@ -147,7 +147,7 @@ func (k *Key) TryParseSecretPrivateKey(data []byte) {
 }
 
 func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
-	defer err2.Annotate("parse secret", &err)
+	defer err2.Returnf(&err, "parse secret")
 
 	k.privKey = try.To1(ParseSecretPrivateKey(data))
 	return nil
@@ -155,7 +155,7 @@ func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 
 // ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is encrypted with
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
-	defer err2.Annotate("parse secret private", &err)
+	defer err2.Returnf(&err, "parse secret private")
 
 	pk = try.To1(x509.ParseECPrivateKey(theCipher.TryDecrypt(data)))
 	return pk, nil

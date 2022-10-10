@@ -1,3 +1,4 @@
+// Package authn implements WebAuthn Cmd to Register and Login.
 package authn
 
 import (
@@ -6,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -61,7 +61,7 @@ func (r Result) String() string {
 }
 
 func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
-	defer err2.Annotate("execute authenticator", &err)
+	defer err2.Returnf(&err, "execute authenticator")
 
 	try.To(ac.Validate())
 
@@ -141,7 +141,7 @@ func empty() (*Result, error) {
 }
 
 func registerUser() (result *Result, err error) {
-	defer err2.Annotate("register user", &err)
+	defer err2.Returnf(&err, "register user")
 
 	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
 	defer r.Close()
@@ -151,12 +151,12 @@ func registerUser() (result *Result, err error) {
 	r2 := tryHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
 	defer r2.Close()
 
-	b := try.To1(ioutil.ReadAll(r2))
+	b := try.To1(io.ReadAll(r2))
 	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
 
 func loginUser() (_ *Result, err error) {
-	defer err2.Annotate("login user", &err)
+	defer err2.Returnf(&err, "login user")
 
 	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
 	defer r.Close()
