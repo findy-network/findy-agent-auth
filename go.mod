@@ -12,7 +12,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/lainio/err2 v0.8.8
 	github.com/rs/cors v1.8.2
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	golang.org/x/net v0.0.0-20220513224357-95641704303c
 	google.golang.org/grpc v1.50.1
 )
