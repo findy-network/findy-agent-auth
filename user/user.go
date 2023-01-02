@@ -141,7 +141,7 @@ func (u User) CredentialExcludeList() []protocol.CredentialDescriptor {
 // of the security for the current agency ecosystem. It must match what's
 // configured to server side i.e. agency.
 func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err error) {
-	defer err2.Return(&err)
+	defer err2.Handle(&err)
 
 	glog.V(1).Infoln("starting cloud agent allocation for", u.Name)
 
