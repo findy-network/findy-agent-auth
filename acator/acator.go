@@ -28,7 +28,7 @@ var (
 // Login reads CredentialAssertion JSON from the input stream and same time
 // process it and outputs CredentialAssertionResponse JSON to output stream.
 func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
-	defer err2.Returnf(&err, "login")
+	defer err2.Handle(&err, "login")
 	pr, pw := io.Pipe()
 
 	go func() {
@@ -106,7 +106,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 // Register reads CredentialCreation JSON from the input stream and same time
 // process it and outputs CredentialCreationResponse JSON to output stream.
 func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
-	defer err2.Returnf(&err, "register")
+	defer err2.Handle(&err, "register")
 
 	pr, pw := io.Pipe()
 
