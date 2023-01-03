@@ -37,7 +37,7 @@ type Cmd struct {
 }
 
 func (ac *Cmd) Validate() (err error) {
-	defer err2.Return(&err)
+	defer err2.Handle(&err)
 
 	assert.P.NotEmpty(ac.SubCmd, "sub command needed")
 	assert.P.Truef(ac.SubCmd == "register" || ac.SubCmd == "login",
@@ -61,7 +61,7 @@ func (r Result) String() string {
 }
 
 func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
-	defer err2.Returnf(&err, "execute authenticator")
+	defer err2.Handle(&err, "execute authenticator")
 
 	try.To(ac.Validate())
 
@@ -141,7 +141,7 @@ func empty() (*Result, error) {
 }
 
 func registerUser() (result *Result, err error) {
-	defer err2.Returnf(&err, "register user")
+	defer err2.Handle(&err, "register user")
 
 	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
 	defer r.Close()
@@ -156,7 +156,7 @@ func registerUser() (result *Result, err error) {
 }
 
 func loginUser() (_ *Result, err error) {
-	defer err2.Returnf(&err, "login user")
+	defer err2.Handle(&err, "login user")
 
 	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
 	defer r.Close()

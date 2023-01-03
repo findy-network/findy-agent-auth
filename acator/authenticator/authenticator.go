@@ -30,7 +30,7 @@ func TryMarshalData(data *protocol.AuthenticatorData) []byte {
 // MarshalData marshals authenticator data to byte format specified in:
 // https://www.w3.org/TR/webauthn/#sctn-authenticator-data
 func MarshalData(ad *protocol.AuthenticatorData) (out []byte, err error) {
-	defer err2.Returnf(&err, "marshal authenticator data")
+	defer err2.Handle(&err, "marshal authenticator data")
 
 	assert.D.EqualInt(len(ad.RPIDHash), 32, "wrong RPIDHash length")
 

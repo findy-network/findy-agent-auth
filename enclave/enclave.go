@@ -71,7 +71,7 @@ func BackupTicker(interval time.Duration) (done chan<- struct{}) {
 
 // PutUser saves the user to database.
 func PutUser(u *user.User) (err error) {
-	defer err2.Return(&err)
+	defer err2.Handle(&err)
 
 	try.To(db.AddKeyValueToBucket(buckets[userByte],
 		&db.Data{
@@ -89,7 +89,7 @@ func PutUser(u *user.User) (err error) {
 
 // GetUser returns user by name if exists in enclave
 func GetUser(name string) (u *user.User, exist bool, err error) {
-	defer err2.Return(&err)
+	defer err2.Handle(&err)
 
 	value := &db.Data{
 		Write: decrypt,
@@ -110,7 +110,7 @@ func GetUser(name string) (u *user.User, exist bool, err error) {
 
 // GetUserMust returns user by name if exists in enclave
 func GetExistingUser(name string) (u *user.User, err error) {
-	defer err2.Return(&err)
+	defer err2.Handle(&err)
 
 	value := &db.Data{
 		Write: decrypt,
