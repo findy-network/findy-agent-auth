@@ -15,8 +15,8 @@ import (
 	"github.com/findy-network/findy-common-go/rpc"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/assert"
 	"github.com/lainio/err2/try"
-	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -96,9 +96,11 @@ func tearDown() {
 }
 
 func TestOnboardInsecure(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	u := user.NewUser("username", "displayName", "seed")
 
 	err := u.AllocateCloudAgent("findy-root", 3*time.Second)
 
-	assert.NoError(t, err)
+	assert.NoError(err)
 }

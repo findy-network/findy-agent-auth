@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/findy-network/findy-agent-auth/user"
+	"github.com/lainio/err2/assert"
 	"github.com/lainio/err2/try"
-	"github.com/stretchr/testify/assert"
 )
 
 const dbFilename = "fido-enclave.bolt"
@@ -35,30 +35,36 @@ func tearDown() {
 }
 
 func TestNewUser(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	u := user.NewUser(emailAddress, emailAddress, "")
 	err := PutUser(u)
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	err = PutUser(u)
-	assert.NoError(t, err)
+	assert.NoError(err)
 }
 
 func TestGetUser(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	u, found, err := GetUser(emailAddress)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.NotNil(t, u)
+	assert.NoError(err)
+	assert.That(found)
+	assert.INotNil(u)
 
 	_, found, err = GetUser(emailNotCreated)
-	assert.NoError(t, err)
-	assert.False(t, found)
+	assert.NoError(err)
+	assert.ThatNot(found)
 }
 
 func TestGetExistingUser(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	u, err := GetExistingUser(emailAddress)
-	assert.NoError(t, err)
-	assert.NotNil(t, u)
+	assert.NoError(err)
+	assert.INotNil(u)
 
 	_, err = GetExistingUser(emailNotCreated)
-	assert.Error(t, err)
+	assert.Error(err)
 }

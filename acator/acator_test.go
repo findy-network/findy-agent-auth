@@ -15,7 +15,7 @@ import (
 	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	"github.com/findy-network/findy-agent-auth/acator/authenticator"
 	"github.com/findy-network/findy-agent-auth/acator/cose"
-	"github.com/stretchr/testify/assert"
+	"github.com/lainio/err2/assert"
 )
 
 // Credential creation/Register
@@ -139,52 +139,58 @@ var authenticatorAssertionResponse = `{
 `
 
 func TestRegister(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	originURL, _ := url.Parse("http://localhost:8080")
 	Origin = *originURL
 
 	r := strings.NewReader(challengeJSON)
 	js, err := Register(r)
-	assert.NoError(t, err)
-	assert.NotNil(t, js)
+	assert.NoError(err)
+	assert.INotNil(js)
 
 	ccd, err := protocol.ParseCredentialCreationResponseBody(js)
-	assert.NoError(t, err)
-	assert.NotNil(t, ccd)
+	assert.NoError(err)
+	assert.INotNil(ccd)
 }
 
 func TestLogin(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	originURL, _ := url.Parse("http://localhost:8080")
 	Origin = *originURL
 
 	credID := "QABRwuCGuynqf0lf35FK-CG-PY_WXai1oCzIZdIbY4S-81SMwZg1hD_V75cWyPwrGmFS4NpVegzMg8c-XnIBYPvmsl0hmkoxMCPDe7tKgV0kcSBC2Fy-BN8B22Ftt78CrZQUbYMJruutTWEp818XaVH9KDlRuV4s9k0G-T23lMUjqJHzUn-gfMbuP1uuVILV6rQu6kw"
 	data, err := base64.RawURLEncoding.DecodeString(credID)
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	newStr := base64.StdEncoding.EncodeToString(data)
-	assert.NoError(t, err)
+	assert.NoError(err)
 	credID = newStr
 	credReq := fmt.Sprintf(credentialRequestOptionsFmt, credID)
 	car, err := Login(strings.NewReader(credReq))
-	assert.NoError(t, err)
-	assert.NotNil(t, car)
+	assert.NoError(err)
+	assert.INotNil(car)
 
 	pcad, err := protocol.ParseCredentialRequestResponseBody(car)
-	assert.NoError(t, err)
-	assert.NotNil(t, pcad)
+	assert.NoError(err)
+	assert.INotNil(pcad)
 
 	credentialBytes := pcad.Response.AuthenticatorData.AttData.CredentialPublicKey
 	err = pcad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
 		"localhost", "http://localhost:8080", "", false,
 		credentialBytes)
-	assert.NoError(t, err)
+	assert.NoError(err)
 }
 
 func TestParseAssertionResponse(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	ad, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse))
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	// Step 15. Let hash be the result of computing a hash over the cData using SHA-256.
 	clientDataHash := sha256.Sum256(ad.Raw.AssertionResponse.ClientDataJSON)
@@ -197,16 +203,16 @@ func TestParseAssertionResponse(t *testing.T) {
 	credentialBytes := ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey
 
 	coseKey, err := cose.NewFromData(credentialBytes)
-	assert.NoError(t, err)
+	assert.NoError(err)
 	valid := coseKey.Verify(sigData, ad.Response.Signature)
-	assert.True(t, valid)
+	assert.That(valid)
 	keyData, _ := coseKey.Marshal()
-	assert.Len(t, credentialBytes, len(keyData))
+	assert.SLen(credentialBytes, len(keyData))
 
 	key, err := webauthncose.ParsePublicKey(keyData)
-	assert.NoError(t, err)
+	assert.NoError(err)
 	k, ok := key.(webauthncose.EC2PublicKeyData)
-	assert.True(t, ok)
+	assert.That(ok)
 	pubkey := &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
 		X:     big.NewInt(0).SetBytes(k.XCoord),
@@ -214,29 +220,31 @@ func TestParseAssertionResponse(t *testing.T) {
 	}
 
 	valid = cose.VerifyHashSig(pubkey, sigData, ad.Response.Signature)
-	assert.NoError(t, err)
-	assert.True(t, valid)
+	assert.NoError(err)
+	assert.That(valid)
 
 	valid, err = webauthncose.VerifySignature(key, sigData, ad.Response.Signature)
-	assert.NoError(t, err)
-	assert.True(t, valid)
+	assert.NoError(err)
+	assert.That(valid)
 
 	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
 		"localhost", "http://localhost:8080", "", false,
 		credentialBytes)
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	authenticatorJSON, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
-	assert.NoError(t, err)
-	assert.Equal(t, authenticatorJSON, []uint8(ad.Raw.AssertionResponse.AuthenticatorData))
+	assert.NoError(err)
+	assert.DeepEqual(authenticatorJSON, []uint8(ad.Raw.AssertionResponse.AuthenticatorData))
 }
 
 func TestParseResponse(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
-	assert.NoError(t, err)
-	assert.NotNil(t, ccd)
+	assert.NoError(err)
+	assert.INotNil(ccd)
 
 	js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
-	assert.NoError(t, err)
-	assert.Len(t, js, len(ccd.Response.AttestationObject.RawAuthData))
+	assert.NoError(err)
+	assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
 }

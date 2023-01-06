@@ -3,10 +3,12 @@ package cose
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/lainio/err2/assert"
 )
 
 func TestKey_SignAndVerify(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	type args struct {
 		hash []byte
 	}
@@ -19,6 +21,8 @@ func TestKey_SignAndVerify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			assert.PushTester(t)
+			defer assert.PopTester()
 			k, err := New()
 			if err != nil {
 				t.Errorf("New() error = %v", err)
@@ -38,8 +42,10 @@ func TestKey_SignAndVerify(t *testing.T) {
 }
 
 func TestKey_TryMarshalSecretPrivateKey(t *testing.T) {
+	assert.PushTester(t)
+	defer assert.PopTester()
 	k, err := New()
-	assert.NoError(t, err)
+	assert.NoError(err)
 
 	d := k.TryMarshalSecretPrivateKey()
 
