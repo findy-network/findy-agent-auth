@@ -126,7 +126,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
 	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
-	newPrivKey := cose.Must(cose.New())
+	newPrivKey := try.To1(cose.New())
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
 	ccd := protocol.CollectedClientData{
