@@ -65,7 +65,8 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 
 	try.To(ac.Validate())
 
-	try.To(cose.SetMasterKey(ac.Key))
+	try.To(cose.SetMasterKey(ac.Key)) // TODO: not need when enclave in use
+
 	cmd := cmdModes[ac.SubCmd]
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
