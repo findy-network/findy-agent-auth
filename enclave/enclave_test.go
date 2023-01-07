@@ -51,7 +51,7 @@ func TestGetUser(t *testing.T) {
 	u, found, err := GetUser(emailAddress)
 	assert.NoError(err)
 	assert.That(found)
-	assert.INotNil(u)
+	assert.NotNil(u)
 
 	_, found, err = GetUser(emailNotCreated)
 	assert.NoError(err)
@@ -63,7 +63,7 @@ func TestGetExistingUser(t *testing.T) {
 	defer assert.PopTester()
 	u, err := GetExistingUser(emailAddress)
 	assert.NoError(err)
-	assert.INotNil(u)
+	assert.NotNil(u)
 
 	_, err = GetExistingUser(emailNotCreated)
 	assert.Error(err)

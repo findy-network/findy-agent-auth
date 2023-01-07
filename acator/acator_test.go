@@ -151,7 +151,7 @@ func TestRegister(t *testing.T) {
 
 	ccd, err := protocol.ParseCredentialCreationResponseBody(js)
 	assert.NoError(err)
-	assert.INotNil(ccd)
+	assert.NotNil(ccd)
 }
 
 func TestLogin(t *testing.T) {
@@ -174,7 +174,7 @@ func TestLogin(t *testing.T) {
 
 	pcad, err := protocol.ParseCredentialRequestResponseBody(car)
 	assert.NoError(err)
-	assert.INotNil(pcad)
+	assert.NotNil(pcad)
 
 	credentialBytes := pcad.Response.AuthenticatorData.AttData.CredentialPublicKey
 	err = pcad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
@@ -242,7 +242,7 @@ func TestParseResponse(t *testing.T) {
 	defer assert.PopTester()
 	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
 	assert.NoError(err)
-	assert.INotNil(ccd)
+	assert.NotNil(ccd)
 
 	js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
 	assert.NoError(err)
