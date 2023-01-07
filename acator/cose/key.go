@@ -31,6 +31,8 @@ func init() {
 	theCipher = crpt.NewCipher(k)
 }
 
+// SetMasterKey set the master secret for this crypter. Need to be called before
+// acator can be used. See AuthnCmd for more info.
 func SetMasterKey(hexKey string) (err error) {
 	defer err2.Handle(&err, "set master key")
 	k := try.To1(hex.DecodeString(hexKey))
@@ -75,6 +77,7 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 
 // NewFromPrivateKey returns instance of our cose.Key where given priKey is in
 // ecdsa fmt. This is called from acator!
+// TODO: not needed in enclave mode. we use only handle.
 func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 	return &Key{
 		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
@@ -97,7 +100,8 @@ func New() (k *Key, err error) {
 	return NewFromPrivateKey(privateKey), nil
 }
 
-// Marshal returns CBOR marshalled public key data.
+// Marshal returns CBOR marshaled public key data.
+// TODO: this is OK for new enclave acator.
 func (k *Key) Marshal() ([]byte, error) {
 	return cbor.Marshal(k.EC2PublicKeyData)
 }
@@ -139,6 +143,8 @@ func (k *Key) Verify(data, sig []byte) (ok bool) {
 
 // TryMarshalSecretPrivateKey marhalls our private key and encrypts it with the
 // master key. Called from acator!
+// TODO: cannot stay in enclave mode. we will hide privKey. and master key is
+// entered outside and only once.
 func (k *Key) TryMarshalSecretPrivateKey() []byte {
 	x509Encoded := try.To1(x509.MarshalECPrivateKey(k.privKey))
 	return theCipher.TryEncrypt(x509Encoded)
@@ -150,7 +156,7 @@ func (k *Key) TryParseSecretPrivateKey(data []byte) {
 
 // ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is
 // encrypted with our master key. If it isn't or data is corrupted function
-// returns error. Called from acator! 
+// returns error. Called from acator!
 func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 	defer err2.Handle(&err, "parse secret")
 
@@ -160,7 +166,9 @@ func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 
 // ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is
 // encrypted with our master key. If it isn't or data is corrupted function
-// returns error. Called from acator! 
+// returns error. Called from acator!
+// TODO: design error if we are using enclave aproach: we should return bool
+// that this is valid handle (credID) nothing else.
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	defer err2.Handle(&err, "parse secret private")
 
