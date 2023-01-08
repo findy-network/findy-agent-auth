@@ -19,6 +19,7 @@
 .idea
 .vscode
 *.vim
+go.work*
 
 # Environment variables
 .envrc
