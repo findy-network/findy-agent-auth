@@ -1,7 +1,6 @@
 package acator
 
 import (
-	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -10,7 +9,7 @@ import (
 
 	"github.com/duo-labs/webauthn/protocol"
 	"github.com/findy-network/findy-agent-auth/acator/authenticator"
-	"github.com/findy-network/findy-agent-auth/acator/cose"
+	"github.com/findy-network/findy-agent-auth/acator/enclave"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
@@ -48,18 +47,20 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 
 	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
 
-	var priKey *ecdsa.PrivateKey // TODO: bool
-	var credID []byte
+	var (
+		found     bool
+		keyHandle enclave.KeyHandle
+		credID    []byte
+	)
 	for _, credential := range ca.Response.AllowedCredentials {
-		if pk, err := cose.ParseSecretPrivateKey(credential.CredentialID); err == nil {
+		if found, keyHandle = enclave.Store.IsKeyHandle(credential.CredentialID); found {
 			credID = credential.CredentialID
-			priKey = pk // TODO: switch to bool, and used only credID as Handle
 			break
 		}
 	}
-	assert.NotNil(priKey, "credential does not exist") // TODO: bool
+	assert.That(found)
+	assert.INotNil(keyHandle)
 
-	key := cose.NewFromPrivateKey(priKey)
 	RPIDHash := sha256.Sum256([]byte(ca.Response.RelyingPartyID))
 	ccd := protocol.CollectedClientData{
 		Type:      protocol.AssertCeremony,
@@ -75,7 +76,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        credID,
-			CredentialPublicKey: try.To1(key.Marshal()), // TODO: handle.CBORPubKey
+			CredentialPublicKey: try.To1(keyHandle.CBORPublicKey()),
 		},
 		ExtData: nil,
 	}
@@ -84,7 +85,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 	clientDataHash := sha256.Sum256(ccdByteJson)
 
 	sigData := append(authenticatorRawData, clientDataHash[:]...)
-	sig := try.To1(key.Sign(sigData)) // TODO: handle.Sign()
+	sig := try.To1(keyHandle.Sign(sigData))
 
 	car = &protocol.CredentialAssertionResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -126,7 +127,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
 	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
-	newPrivKey := try.To1(cose.New()) // TODO: enclave.NewHandle()
+	keyHandle := try.To1(enclave.Store.NewKeyHandle())
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
 	ccd := protocol.CollectedClientData{
@@ -138,7 +139,6 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	}
 	ccdByteJson := try.To1(json.Marshal(ccd))
 
-	secretPrivateKey := newPrivKey.TryMarshalSecretPrivateKey() // TODO: handle.ID()
 	flags := protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
@@ -146,8 +146,8 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		Counter:  Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
-			CredentialID:        secretPrivateKey,
-			CredentialPublicKey: try.To1(newPrivKey.Marshal()), // TODO: handle.CBORPubKey
+			CredentialID:        keyHandle.ID(),
+			CredentialPublicKey: try.To1(keyHandle.CBORPublicKey()),
 		},
 		ExtData: nil,
 	}
@@ -161,10 +161,10 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
 			Credential: protocol.Credential{
-				ID:   base64.RawURLEncoding.EncodeToString(secretPrivateKey),
+				ID:   base64.RawURLEncoding.EncodeToString(keyHandle.ID()),
 				Type: "public-key",
 			},
-			RawID: secretPrivateKey,
+			RawID: keyHandle.ID(),
 		},
 		AttestationResponse: protocol.AuthenticatorAttestationResponse{
 			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},
