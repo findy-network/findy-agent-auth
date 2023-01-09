@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	// TODO: key must be set from production environment, SHA-256, 32 bytes
-	//  We have SetMasterKey() for this now which is called from AuthnCmd
+	// hexKey is for tests only
 	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	theCipher *crpt.Cipher
 )
@@ -45,6 +44,7 @@ type Key struct {
 	privKey *ecdsa.PrivateKey
 }
 
+// NewFromData used in testing.
 func NewFromData(data []byte) (k *Key, err error) {
 	defer err2.Handle(&err, "new key from data")
 
@@ -61,13 +61,14 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	try.To(cbor.Unmarshal(keyBytes, &pk))
 	switch webauthncose.COSEKeyType(pk.KeyType) {
 	case webauthncose.OctetKey:
-		assert.P.NoImplementation()
+		assert.NotImplemented()
 	case webauthncose.EllipticKey:
 		var e webauthncose.EC2PublicKeyData
 		try.To(cbor.Unmarshal(keyBytes, &e))
 		e.PublicKeyData = pk
 		return e, nil
 	case webauthncose.RSAKey:
+		assert.NotImplemented()
 		assert.P.NoImplementation()
 	default:
 		return nil, webauthncose.ErrUnsupportedKey
@@ -76,8 +77,7 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 }
 
 // NewFromPrivateKey returns instance of our cose.Key where given priKey is in
-// ecdsa fmt. This is called from acator!
-// TODO: not needed in enclave mode. we use only handle.
+// ecdsa fmt.
 func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 	return &Key{
 		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
@@ -92,7 +92,7 @@ func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 		privKey: priKey}
 }
 
-// New creates a new key. TODO: it's used from acator
+// New creates a new key.
 func New() (k *Key, err error) {
 	defer err2.Handle(&err, "new")
 
@@ -101,7 +101,6 @@ func New() (k *Key, err error) {
 }
 
 // Marshal returns CBOR marshaled public key data.
-// TODO: this is OK for new enclave acator.
 func (k *Key) Marshal() ([]byte, error) {
 	return cbor.Marshal(k.EC2PublicKeyData)
 }
@@ -142,14 +141,13 @@ func (k *Key) Verify(data, sig []byte) (ok bool) {
 }
 
 // TryMarshalSecretPrivateKey marhalls our private key and encrypts it with the
-// master key. Called from acator!
-// TODO: cannot stay in enclave mode. we will hide privKey. and master key is
-// entered outside and only once.
+// master key.
 func (k *Key) TryMarshalSecretPrivateKey() []byte {
 	x509Encoded := try.To1(x509.MarshalECPrivateKey(k.privKey))
 	return theCipher.TryEncrypt(x509Encoded)
 }
 
+// TryParseSecretPrivateKey used from tests
 func (k *Key) TryParseSecretPrivateKey(data []byte) {
 	try.To(k.ParseSecretPrivateKey(data))
 }
@@ -166,9 +164,7 @@ func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 
 // ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is
 // encrypted with our master key. If it isn't or data is corrupted function
-// returns error. Called from acator!
-// TODO: design error if we are using enclave aproach: we should return bool
-// that this is valid handle (credID) nothing else.
+// returns error.
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	defer err2.Handle(&err, "parse secret private")
 
