@@ -75,7 +75,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        credID,
-			CredentialPublicKey: try.To1(key.Marshal()), // TODO: handle
+			CredentialPublicKey: try.To1(key.Marshal()), // TODO: handle.CBORPubKey
 		},
 		ExtData: nil,
 	}
@@ -84,7 +84,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 	clientDataHash := sha256.Sum256(ccdByteJson)
 
 	sigData := append(authenticatorRawData, clientDataHash[:]...)
-	sig := try.To1(key.Sign(sigData)) // TODO: handle
+	sig := try.To1(key.Sign(sigData)) // TODO: handle.Sign()
 
 	car = &protocol.CredentialAssertionResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -126,7 +126,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
 	origin := protocol.FullyQualifiedOrigin(&Origin)
 	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
-	newPrivKey := try.To1(cose.New()) // TODO: we need new handle.
+	newPrivKey := try.To1(cose.New()) // TODO: enclave.NewHandle()
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
 	ccd := protocol.CollectedClientData{
@@ -138,7 +138,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	}
 	ccdByteJson := try.To1(json.Marshal(ccd))
 
-	secretPrivateKey := newPrivKey.TryMarshalSecretPrivateKey()
+	secretPrivateKey := newPrivKey.TryMarshalSecretPrivateKey() // TODO: handle.ID()
 	flags := protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
@@ -147,7 +147,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        secretPrivateKey,
-			CredentialPublicKey: try.To1(newPrivKey.Marshal()), // TODO: handle
+			CredentialPublicKey: try.To1(newPrivKey.Marshal()), // TODO: handle.CBORPubKey
 		},
 		ExtData: nil,
 	}
