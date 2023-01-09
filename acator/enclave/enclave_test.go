@@ -11,13 +11,12 @@ func TestEnclave_NewKeyHandle(t *testing.T) {
 		key string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
+		name   string
+		fields fields
 	}{
 		{"simple",
 			fields{"15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"},
-			false},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -28,9 +27,6 @@ func TestEnclave_NewKeyHandle(t *testing.T) {
 			assert.NotNil(e)
 
 			got, err := e.NewKeyHandle()
-			if tt.wantErr {
-				return
-			}
 			assert.NoError(err)
 			assert.INotNil(got)
 
@@ -71,6 +67,50 @@ func TestNew(t *testing.T) {
 			if tt.wantPtr {
 				assert.NotNil(e)
 			}
+		})
+	}
+}
+
+func Test_myHandle_Sign(t *testing.T) {
+	type fields struct {
+		key string
+	}
+	type args struct {
+		d []byte
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{"simple",
+			fields{"15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"},
+			args{[]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.PushTester(t)
+			defer assert.PopTester()
+
+			e := New(tt.fields.key)
+			assert.NotNil(e)
+
+			h, err := e.NewKeyHandle()
+			assert.NoError(err)
+			assert.INotNil(h)
+
+			sig, err := h.Sign(tt.args.d)
+			assert.NoError(err)
+
+			id := h.ID()
+			assert.SNotNil(id)
+
+			ok, nkh := e.IsKeyHandle(id)
+			assert.That(ok)
+			assert.INotNil(nkh)
+
+			assert.That(nkh.Verify(tt.args.d, sig))
 		})
 	}
 }
