@@ -34,21 +34,23 @@ type myHandle struct {
 	privKey *ecdsa.PrivateKey
 }
 
+// ID returns ENCRYPTED presentation of X509 encoded byte slice whole key, which
+// means that private key. That means that the whole key pair can be restored
+// into this same Enclave (master key is used for the encryption).
 func (h *myHandle) ID() []byte {
 	x509Encoded := try.To1(x509.MarshalECPrivateKey(h.privKey))
 	return h.Cipher.TryEncrypt(x509Encoded)
 }
 
-func (h *myHandle) IsKeyHandle(id []byte) bool {
-	return false
-}
-
+// CBORPublicKey returns CBOR marshaled byte slice presentation of the public
+// key or error.
 func (h *myHandle) CBORPublicKey() (_ []byte, err error) {
 	return cbor.Marshal(h.EC2PublicKeyData)
 }
 
+// Sign function signs then given byte slice and returns the signature or error.
 func (h *myHandle) Sign(d []byte) (_ []byte, err error) {
-	defer err2.Handle(&err, "sign")
+	defer err2.Handle(&err)
 
 	hash := crypto.SHA256.New()
 	try.To1(hash.Write(d))
@@ -59,6 +61,7 @@ func (h *myHandle) Sign(d []byte) (_ []byte, err error) {
 	return sig, nil
 }
 
+// Verify verifies the given data and signature.
 func (h *myHandle) Verify(data, sig []byte) (ok bool) {
 	hash := crypto.SHA256.New()
 	try.To1(hash.Write(data))
@@ -71,6 +74,10 @@ func (h *myHandle) Verify(data, sig []byte) (ok bool) {
 
 	return ecdsa.VerifyASN1(pubKey, hash.Sum(nil), sig)
 }
+
+// NewKeyHandle creates a new key handle for the Enclave. The Enclave is
+// stateless, which means that only the master key is needed. The master key is
+// stored to every key handle to maintain statelessness.
 func (e Enclave) NewKeyHandle() (_ KeyHandle, err error) {
 	// new random bytes for EC NewPrivateKey()
 	defer err2.Handle(&err)
@@ -80,6 +87,8 @@ func (e Enclave) NewKeyHandle() (_ KeyHandle, err error) {
 	return h, nil
 }
 
+// IsKeyHandle tells if given byte slice really is key handle from the current
+// Enclave.
 func (e Enclave) IsKeyHandle(credID []byte) (ok bool, kh KeyHandle) {
 	defer err2.Catch(func(err error) {
 		glog.Errorln("is key handle:", err)
@@ -91,7 +100,7 @@ func (e Enclave) IsKeyHandle(credID []byte) (ok bool, kh KeyHandle) {
 }
 
 var (
-	Store *Enclave
+	Store *Enclave // Store is the default secure enclave created by pkg init.
 )
 
 func init() {
@@ -99,10 +108,12 @@ func init() {
 	Store = New(hexKey)
 }
 
+// Enclave is secure enclave.
 type Enclave struct {
 	crpt.Cipher
 }
 
+// New creates a new Enclave.
 func New(hexKey string) *Enclave {
 	k, err := hex.DecodeString(hexKey)
 	assert.NoError(err)
