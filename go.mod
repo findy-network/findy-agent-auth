@@ -12,7 +12,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/lainio/err2 v0.8.13
 	github.com/rs/cors v1.8.2
-	github.com/stretchr/testify v1.8.1
 	golang.org/x/net v0.0.0-20220513224357-95641704303c
 	google.golang.org/grpc v1.50.1
 )
@@ -87,6 +86,7 @@ require (
 	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/teserakt-io/golang-ed25519 v0.0.0-20210104091850-3888c087a4c8 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
 	github.com/transparency-dev/merkle v0.0.1 // indirect

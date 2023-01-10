@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	// todo: key must be set from production environment, SHA-256, 32 bytes
-	//  We have SetMasterKey() for this now which is called from AuthnCmd
+	// hexKey is for tests only
 	hexKey    = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	theCipher *crpt.Cipher
 )
@@ -31,6 +30,8 @@ func init() {
 	theCipher = crpt.NewCipher(k)
 }
 
+// SetMasterKey set the master secret for this crypter. Need to be called before
+// acator can be used. See AuthnCmd for more info.
 func SetMasterKey(hexKey string) (err error) {
 	defer err2.Handle(&err, "set master key")
 	k := try.To1(hex.DecodeString(hexKey))
@@ -43,15 +44,11 @@ type Key struct {
 	privKey *ecdsa.PrivateKey
 }
 
-func Must(k *Key, err error) *Key {
-	try.To(err)
-	return k
-}
-
+// NewFromData used in testing.
 func NewFromData(data []byte) (k *Key, err error) {
 	defer err2.Handle(&err, "new key from data")
 
-	k1 := Must(New())
+	k1 := try.To1(New())
 	pkd := try.To1(parsePublicKey(data))
 	k1.EC2PublicKeyData = pkd.(webauthncose.EC2PublicKeyData)
 	return k1, nil
@@ -64,13 +61,14 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	try.To(cbor.Unmarshal(keyBytes, &pk))
 	switch webauthncose.COSEKeyType(pk.KeyType) {
 	case webauthncose.OctetKey:
-		assert.P.NoImplementation()
+		assert.NotImplemented()
 	case webauthncose.EllipticKey:
 		var e webauthncose.EC2PublicKeyData
 		try.To(cbor.Unmarshal(keyBytes, &e))
 		e.PublicKeyData = pk
 		return e, nil
 	case webauthncose.RSAKey:
+		assert.NotImplemented()
 		assert.P.NoImplementation()
 	default:
 		return nil, webauthncose.ErrUnsupportedKey
@@ -78,6 +76,8 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	return nil, nil
 }
 
+// NewFromPrivateKey returns instance of our cose.Key where given priKey is in
+// ecdsa fmt.
 func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 	return &Key{
 		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
@@ -92,6 +92,7 @@ func NewFromPrivateKey(priKey *ecdsa.PrivateKey) *Key {
 		privKey: priKey}
 }
 
+// New creates a new key.
 func New() (k *Key, err error) {
 	defer err2.Handle(&err, "new")
 
@@ -99,6 +100,7 @@ func New() (k *Key, err error) {
 	return NewFromPrivateKey(privateKey), nil
 }
 
+// Marshal returns CBOR marshaled public key data.
 func (k *Key) Marshal() ([]byte, error) {
 	return cbor.Marshal(k.EC2PublicKeyData)
 }
@@ -112,6 +114,7 @@ func (k *Key) NewPrivateKey() (err error) {
 	return nil
 }
 
+// Sign signs the data. Called from acator!
 func (k *Key) Sign(data []byte) (s []byte, err error) {
 	defer err2.Handle(&err, "sign")
 
@@ -137,15 +140,21 @@ func (k *Key) Verify(data, sig []byte) (ok bool) {
 	return ecdsa.VerifyASN1(pubKey, hash.Sum(nil), sig)
 }
 
+// TryMarshalSecretPrivateKey marhalls our private key and encrypts it with the
+// master key.
 func (k *Key) TryMarshalSecretPrivateKey() []byte {
 	x509Encoded := try.To1(x509.MarshalECPrivateKey(k.privKey))
 	return theCipher.TryEncrypt(x509Encoded)
 }
 
+// TryParseSecretPrivateKey used from tests
 func (k *Key) TryParseSecretPrivateKey(data []byte) {
 	try.To(k.ParseSecretPrivateKey(data))
 }
 
+// ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is
+// encrypted with our master key. If it isn't or data is corrupted function
+// returns error. Called from acator!
 func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 	defer err2.Handle(&err, "parse secret")
 
@@ -153,7 +162,9 @@ func (k *Key) ParseSecretPrivateKey(data []byte) (err error) {
 	return nil
 }
 
-// ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is encrypted with
+// ParseSecretPrivateKey parses ecdsa priv key from encrypted data. Data is
+// encrypted with our master key. If it isn't or data is corrupted function
+// returns error.
 func ParseSecretPrivateKey(data []byte) (pk *ecdsa.PrivateKey, err error) {
 	defer err2.Handle(&err, "parse secret private")
 

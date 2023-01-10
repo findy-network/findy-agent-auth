@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/findy-network/findy-agent-auth/acator"
-	"github.com/findy-network/findy-agent-auth/acator/cose"
+	"github.com/findy-network/findy-agent-auth/acator/enclave"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
@@ -65,7 +65,8 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 
 	try.To(ac.Validate())
 
-	try.To(cose.SetMasterKey(ac.Key))
+	enclave.Store = enclave.New(ac.Key)
+
 	cmd := cmdModes[ac.SubCmd]
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
