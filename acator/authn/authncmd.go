@@ -34,18 +34,22 @@ type Cmd struct {
 	Counter       uint64 `json:"counter,omitempty"`
 	Token         string `json:"token,omitempty"`
 	Origin        string `json:"origin,omitempty"`
+
+	SecEnclave enclave.Acquirer `json:"-"`
 }
 
 func (ac *Cmd) Validate() (err error) {
 	defer err2.Handle(&err)
 
-	assert.P.NotEmpty(ac.SubCmd, "sub command needed")
-	assert.P.Truef(ac.SubCmd == "register" || ac.SubCmd == "login",
+	assert.NotEmpty(ac.SubCmd, "sub command needed")
+	assert.That(ac.SubCmd == "register" || ac.SubCmd == "login",
 		"wrong sub command: %s: want: register|login", ac.SubCmd)
-	assert.P.NotEmpty(ac.UserName, "user name needed")
-	assert.P.NotEmpty(ac.Url, "connection url cannot be empty")
-	assert.P.NotEmpty(ac.AAGUID, "authenticator ID needed")
-	assert.P.NotEmpty(ac.Key, "master key needed")
+	assert.NotEmpty(ac.UserName, "user name needed")
+	assert.NotEmpty(ac.Url, "connection url cannot be empty")
+	assert.NotEmpty(ac.AAGUID, "authenticator ID needed")
+	if ac.Key == "" {
+		assert.INotNil(ac.SecEnclave, "secure enclave is needed")
+	}
 
 	return nil
 }
@@ -65,7 +69,14 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 
 	try.To(ac.Validate())
 
-	enclave.Store = enclave.New(ac.Key)
+	if ac.SecEnclave != nil {
+		glog.V(3).Infoln("using external secure enclave")
+		enclave.Store = ac.SecEnclave
+	} else {
+		glog.V(5).Infoln("using master key, no secure enclave")
+		assert.NotEmpty(ac.Key) // just make sure
+		enclave.Store = enclave.New(ac.Key)
+	}
 
 	cmd := cmdModes[ac.SubCmd]
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
