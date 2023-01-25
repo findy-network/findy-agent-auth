@@ -1,7 +1,7 @@
 #!/bin/bash
 
-enclaveFile="mem-enclave.bolt" 
-rm -v "$enclaveFile"
+# MEMORY_ prefix is a memory db, not saved to file
+enclaveFile="MEMORY_enclave.bolt" 
 
 go run .. \
 	$@ \
