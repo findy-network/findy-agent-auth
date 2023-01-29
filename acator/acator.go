@@ -32,7 +32,7 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 
 	go func() {
 		defer pw.Close()
-		defer err2.CatchTrace(func(err error) {
+		defer err2.Catch(func(err error) {
 			glog.Error(err)
 		})
 		ca := tryReadAssertion(jsonStream)
@@ -113,7 +113,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 
 	go func() {
 		defer pw.Close()
-		defer err2.CatchTrace(func(err error) {
+		defer err2.Catch(func(err error) {
 			glog.Error(err)
 		})
 		cred := tryReadCreation(jsonStream)

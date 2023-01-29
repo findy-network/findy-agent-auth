@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	defer err2.CatchTrace(func(err error) {
+	err2.SetPanicTracer(os.Stderr)
+	defer err2.Catch(func(err error) {
 		glog.Warningln(err)
 		os.Exit(1)
 	})
