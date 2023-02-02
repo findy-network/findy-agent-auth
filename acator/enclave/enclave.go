@@ -100,12 +100,18 @@ func (e Enclave) IsKeyHandle(credID []byte) (ok bool, kh KeyHandle) {
 }
 
 var (
-	Store *Enclave // Store is the default secure enclave created by pkg init.
+	Store Acquirer // Store is the default secure enclave created by pkg init.
 )
 
 func init() {
 	const hexKey = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	Store = New(hexKey)
+}
+
+// Acquirer is a secure enclave interface.
+type Acquirer interface {
+	NewKeyHandle() (kh KeyHandle, err error)
+	IsKeyHandle(id []byte) (yes bool, kh KeyHandle)
 }
 
 // Enclave is secure enclave.

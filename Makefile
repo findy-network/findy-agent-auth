@@ -70,3 +70,6 @@ dbuild:
 
 drun:
 	docker run -it --rm -p 8888:8888 findy-agent-auth
+
+release:
+	gh workflow run do-release.yml

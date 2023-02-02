@@ -108,25 +108,27 @@ func GetUser(name string) (u *user.User, exist bool, err error) {
 	return user.NewUserFromData(value.Data), already, err
 }
 
-// GetUserMust returns user by name if exists in enclave
+// GetExistingUser returns user by name if exists in enclave
 func GetExistingUser(name string) (u *user.User, err error) {
 	defer err2.Handle(&err)
 
-	value := &db.Data{
-		Write: decrypt,
-	}
-	already := try.To1(db.GetKeyValueFromBucket(buckets[userByte],
-		&db.Data{
-			Data: []byte(name),
-			Read: hash,
-		},
-		value,
-	))
+	u, already := try.To2(GetUser(name))
+
 	if !already {
 		return nil, fmt.Errorf("user (%s) not exist", name)
 	}
 
-	return user.NewUserFromData(value.Data), err
+	return u, err
+}
+
+func RemoveUser(name string) (err error) {
+	defer err2.Handle(&err)
+
+	_ = try.To1(GetExistingUser(name))
+	return db.RmKeyValueFromBucket(buckets[userByte], &db.Data{
+		Data: []byte(name),
+		Read: hash,
+	})
 }
 
 // all of the following has same signature. They also panic on error
