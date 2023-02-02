@@ -10,6 +10,6 @@ findy-agent-cli authn register \
   --key $acator_key
 findy-agent-cli authn login \
   -u test \
-  --url http://localhost:8080 \
+  --url http://localhost:8088 \
   --origin http://localhost:3000 \
   --key $acator_key
