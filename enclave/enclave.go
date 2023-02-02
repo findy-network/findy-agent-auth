@@ -129,6 +129,16 @@ func GetExistingUser(name string) (u *user.User, err error) {
 	return user.NewUserFromData(value.Data), err
 }
 
+func RemoveUser(name string) (err error) {
+	defer err2.Handle(&err)
+
+	_ = try.To1(GetExistingUser(name))
+	return db.RmKeyValueFromBucket(buckets[userByte], &db.Data{
+		Data: []byte(name),
+		Read: hash,
+	})
+}
+
 // all of the following has same signature. They also panic on error
 
 // hash makes the cryptographic hash of the map key value. This prevents us to

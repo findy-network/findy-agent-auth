@@ -236,6 +236,10 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	defer err2.Handle(&err, func() {
 		glog.Errorln("error:", err)
+
+		// try to remove added user as registration failed
+		_ = enclave.RemoveUser(username)
+
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 	})
 
