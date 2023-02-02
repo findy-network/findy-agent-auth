@@ -1,30 +1,38 @@
-version: "3.9"
+version: '3.9'
 services:
+
   core:
     image: ghcr.io/findy-network/findy-agent:latest
     volumes:
-      - ./config/steward.exported:/steward.exported
-      - ./config/cert:/grpc
+      - ./cert:/grpc
       - .data/agent:/root
     environment:
-      FCLI_POOL_GENESIS_TXN_FILE: ""
-      FCLI_POOL_NAME: "FINDY_FILE_LEDGER"
-      FCLI_AGENCY_POOL_NAME: "FINDY_FILE_LEDGER"
-      FCLI_AGENCY_GRPC_TLS: "true"
-      FCLI_AGENCY_GRPC_CERT_PATH: "/grpc"
+      FCLI_POOL_GENESIS_TXN_FILE: ''
+      FCLI_POOL_NAME: 'FINDY_FILE_LEDGER'
+      FCLI_AGENCY_POOL_NAME: 'FINDY_FILE_LEDGER'
+      FCLI_AGENCY_STEWARD_DID: 'Th7MpTaRZVRYnPiabds81Y'
+      FCLI_STEWARD_SEED: '000000000000000000000000Steward1'
+      FCLI_IMPORT_WALLET_FILE: ""
+      FCLI_IMPORT_WALLET_NAME: ""
+      FCLI_AGENCY_GRPC_TLS: 'true'
+      FCLI_AGENCY_GRPC_CERT_PATH: '/grpc'
+      FCLI_AGENCY_HOST_PORT: 8088
+      FCLI_AGENCY_SERVER_PORT: 8088
+    #      FCLI_LOGGING: '-logtostderr -v=9 -vmodule=cmdHandles=10,agency*=15,agent*=15'
     ports:
-      - "8080:8080"
-      - "50051:50051"
+      - '8080:8080'
+      - '50052:50051'
+
   auth:
     build: ../..
     volumes:
-      - ./config/cert:/grpc
+      - ./cert:/grpc
       - .data/auth:/data
     depends_on:
       - core
     environment:
-      FAA_ENABLE_CORS: "true"
-      FAA_ORIGIN: "http://localhost:8088"
-      FAA_AGENCY_ADDR: "core"
+      FAA_ENABLE_CORS: 'true'
+      FAA_ORIGIN: 'http://localhost:3000'
+      FAA_AGENCY_ADDR: 'core'
     ports:
-      - "8088:8888"
+      - '8088:8888'
