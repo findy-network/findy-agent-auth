@@ -96,7 +96,18 @@ func (a *authnServer) Enter(
 			}
 			close(secEnc.OutChan)
 		})
-		try.To1(a.authnCmd.Exec(nil))
+		r := try.To1(a.authnCmd.Exec(nil))
+		secEnc.OutChan <- &pb.CmdStatus{
+			CmdID:   cmdID,
+			Type:    pb.CmdStatus_READY_OK,
+			CmdType: cmd.GetType(),
+			Info:    &pb.CmdStatus_Ok{
+				Ok: &pb.CmdStatus_OKResult{
+					JWT: r.Token,
+				},
+			},
+		}
+		close(secEnc.OutChan)
 	}()
 
 	for status := range secEnc.OutChan {
