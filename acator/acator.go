@@ -58,8 +58,8 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 			break
 		}
 	}
-	assert.That(found)
-	assert.INotNil(keyHandle)
+	assert.That(found, "authenticator not found")
+	assert.INotNil(keyHandle, "key handle cannot be nil")
 
 	RPIDHash := sha256.Sum256([]byte(ca.Response.RelyingPartyID))
 	ccd := protocol.CollectedClientData{
