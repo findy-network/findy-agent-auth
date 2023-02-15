@@ -13,10 +13,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-func New(user, addr string) (conn *grpc.ClientConn, err error) {
+func New(certPath, user, addr string) (conn *grpc.ClientConn, err error) {
 	defer err2.Handle(&err)
 
-	pki := rpc.LoadPKIWithServerName("../../../scripts/e2e/config/cert/", addr)
+	pki := rpc.LoadPKIWithServerName(certPath, addr)
 	glog.V(5).Infoln("rpcclient with user:", user)
 	conn = try.To1(rpc.ClientConn(rpc.ClientCfg{
 		PKI:  pki,

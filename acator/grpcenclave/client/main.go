@@ -21,7 +21,12 @@ import (
 var (
 	user       = flag.String("user", "findy-root", "test user name")
 	serverAddr = flag.String("addr", "localhost", "agency host gRPC address")
-	port       = flag.Int("port", 50051, "agency host gRPC port")
+	cert       = flag.String("cert", "../../../scripts/e2e/config/cert/", "TLS cert path")
+	hexKey     = flag.String("key",
+		"289239187d7c395044976416280b6a283bf65562a06b0bdc3a75a4db4adfe7c7",
+		"soft cipher master key in HEX")
+
+	port = flag.Int("port", 50053, "agency host gRPC port")
 
 	khmap = make(map[int64]enclave.KeyHandle)
 	keyID = atomic.Int64{}
@@ -41,7 +46,8 @@ func main() {
 	// we want this for glog, this is just a tester, not a real world service
 	try.To(flag.Set("logtostderr", "true"))
 
-	conn = try.To1(rpcclient.New(*user, fmt.Sprintf("%s:%d", *serverAddr, *port)))
+	conn = try.To1(rpcclient.New(*cert, *user,
+		fmt.Sprintf("%s:%d", *serverAddr, *port)))
 	defer conn.Close()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -58,8 +64,7 @@ func main() {
 		Origin:        "",
 	}))
 
-	//secEnc := enclave.Store
-	secEnc := enclave.New("289239187d7c395044976416280b6a283bf65562a06b0bdc3a75a4db4adfe7c7")
+	secEnc := enclave.New(*hexKey)
 	assert.INotNil(secEnc)
 
 loop:

@@ -121,6 +121,7 @@ type Enclave struct {
 
 // New creates a new Enclave.
 func New(hexKey string) *Enclave {
+	assert.Len(hexKey, 64)
 	k, err := hex.DecodeString(hexKey)
 	assert.NoError(err)
 

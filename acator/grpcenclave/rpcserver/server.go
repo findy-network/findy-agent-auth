@@ -17,17 +17,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Serve(port int) {
-	pki := rpc.LoadPKI("../../../scripts/e2e/config/cert/")
+func Serve(certPath string, port int) {
+	pki := rpc.LoadPKI(certPath)
 	glog.V(3).Infof("starting gRPC server with\ncrt:\t%s\nkey:\t%s\nclient:\t%s",
 		pki.Server.CertFile, pki.Server.KeyFile, pki.Client.CertFile)
 	rpc.Serve(&rpc.ServerCfg{
 		Port: port,
 		PKI:  pki,
 		Register: func(s *grpc.Server) error {
-			pb.RegisterAuthnServiceServer(s, &authnServer{
-				Root: "findy-root",
-			})
+			pb.RegisterAuthnServiceServer(s, &authnServer{})
 			glog.V(10).Infoln("GRPC registration all done")
 			return nil
 		},
@@ -38,7 +36,6 @@ type authnServer struct {
 	pb.UnimplementedAuthnServiceServer
 	atomic.Int64
 
-	Root     string // todo: do we need this?
 	authnCmd *authn.Cmd
 }
 

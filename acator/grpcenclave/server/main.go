@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	port = flag.Int("port", 50051, "agency host gRPC port")
+	cert = flag.String("cert", "../../../scripts/e2e/config/cert/", "TLS cert path")
+	port = flag.Int("port", 50053, "agency host gRPC port")
 )
 
 func main() {
@@ -19,5 +20,5 @@ func main() {
 	try.To(flag.Set("logtostderr", "true"))
 	assert.DefaultAsserter = assert.AsserterToError
 
-	rpcserver.Serve(*port)
+	rpcserver.Serve(*cert, *port)
 }
