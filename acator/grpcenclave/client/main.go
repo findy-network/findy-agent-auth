@@ -36,8 +36,14 @@ var (
 	cancel context.CancelFunc
 )
 
+// This is just for testing and development. The main problem to use automatic
+// unit testing is that we need FIDO2 server running and our version needs
+// agency running as well.
+
+//nolint:funlen,gocyclo
 func main() {
 	err2.SetPanicTracer(os.Stderr)
+	assert.SetDefaultAsserter(assert.AsserterToError)
 	defer err2.Catch(func(err error) {
 		glog.Error(err)
 	})
@@ -77,17 +83,32 @@ loop:
 			switch status.GetSecType() {
 			case pb.SecretMsg_NEW_HANDLE:
 				id := keyID.Add(1)
-				khmap[id] = try.To1(secEnc.NewKeyHandle())
-				smsg := &pb.SecretMsg{
-					CmdID: status.CmdID,
-					Type:  status.SecType,
-					Info: &pb.SecretMsg_Handle_{
-						Handle: &pb.SecretMsg_Handle{
-							ID: id,
+				kh, err := secEnc.NewKeyHandle()
+				var smsg *pb.SecretMsg
+				if err != nil {
+					smsg = &pb.SecretMsg{
+						CmdID: status.CmdID,
+						Type:  pb.SecretMsg_ERROR,
+						Info: &pb.SecretMsg_Err{
+							Err: &pb.SecretMsg_Error{
+								Info: "cannot create error handle",
+							},
 						},
-					},
+					}
+				} else {
+					khmap[id] = kh
+					smsg = &pb.SecretMsg{
+						CmdID: status.CmdID,
+						Type:  status.SecType,
+						Info: &pb.SecretMsg_Handle_{
+							Handle: &pb.SecretMsg_Handle{
+								ID: id,
+							},
+						},
+					}
+
 				}
-				rpcclient.DoEnterSecret(conn, smsg)
+				try.To1(rpcclient.DoEnterSecret(conn, smsg))
 			case pb.SecretMsg_IS_KEY_HANDLE:
 				ok, kh := secEnc.IsKeyHandle(status.GetEnclave().CredID)
 				var (
@@ -125,7 +146,7 @@ loop:
 						},
 					}
 				}
-				rpcclient.DoEnterSecret(conn, smsg)
+				try.To1(rpcclient.DoEnterSecret(conn, smsg))
 			case pb.SecretMsg_ID:
 				tryProcess(status,
 					func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
@@ -165,7 +186,7 @@ loop:
 						},
 					},
 				}
-				rpcclient.DoEnterSecret(conn, smsg)
+				try.To1(rpcclient.DoEnterSecret(conn, smsg))
 			}
 
 		case pb.CmdStatus_READY_OK:
@@ -199,11 +220,11 @@ func tryProcess(
 			Type:  pb.SecretMsg_ERROR,
 			Info: &pb.SecretMsg_Err{
 				Err: &pb.SecretMsg_Error{
-					Info: "not key handle",
+					Info: fmt.Sprintf("error: processing: %v", err),
 				},
 			},
 		}
-		rpcclient.DoEnterSecret(conn, smsg)
+		_, _ = rpcclient.DoEnterSecret(conn, smsg)
 	})
 
 	id := status.GetHandle().ID
@@ -231,5 +252,5 @@ func tryProcess(
 	} else {
 		err2.Throwf("key handle not found")
 	}
-	rpcclient.DoEnterSecret(conn, smsg)
+	try.To1(rpcclient.DoEnterSecret(conn, smsg))
 }
