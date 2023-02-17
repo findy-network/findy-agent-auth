@@ -16,9 +16,9 @@ var (
 func main() {
 	flag.Parse()
 
-	// whe want this for glog, this is just a tester, not a real world service
+	// we want this for glog, this is just a tester, not a real world service
 	try.To(flag.Set("logtostderr", "true"))
-	assert.DefaultAsserter = assert.AsserterToError
+	assert.SetDefaultAsserter(assert.AsserterToError)
 
 	rpcserver.Serve(*cert, *port)
 }
