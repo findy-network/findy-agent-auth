@@ -98,7 +98,7 @@ func (a *authnServer) Enter(
 			CmdID:   cmdID,
 			Type:    pb.CmdStatus_READY_OK,
 			CmdType: cmd.GetType(),
-			Info:    &pb.CmdStatus_Ok{
+			Info: &pb.CmdStatus_Ok{
 				Ok: &pb.CmdStatus_OKResult{
 					JWT: r.Token,
 				},
@@ -111,7 +111,7 @@ func (a *authnServer) Enter(
 		glog.V(1).Infoln("<== status:", status.CmdType, status.CmdID)
 		try.To(server.Send(status))
 	}
-	glog.V(1).Info("end Enter")
+	glog.V(1).Info("end Enter\n===============")
 	return nil
 }
 
