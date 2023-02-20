@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	cert = flag.String("cert", "../../../scripts/e2e/config/cert/", "TLS cert path")
+	cert = flag.String("cert", "../../../scripts/e2e/cert/", "TLS cert path")
 	port = flag.Int("port", 50053, "agency host gRPC port")
 )
 
