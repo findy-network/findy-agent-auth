@@ -48,7 +48,6 @@ linters:
   disable-all: true
   enable:
     #    - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
@@ -74,16 +73,14 @@ linters:
     - nakedret
     #    - noctx
     - nolintlint
-    - rowserrcheck
+      #- rowserrcheck # TODO: waiting generics
     #    - scopelint
     - staticcheck
-    - structcheck
     #    - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
 #    - whitespace
 # don't enable:
 # - asciicheck
