@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 )
 
 var (
+	cmd        = flag.String("cmd", "login", "FIDO2 cmd: login/register")
 	user       = flag.String("user", "findy-root", "test user name")
 	serverAddr = flag.String("addr", "localhost", "agency host gRPC address")
 	cert       = flag.String("cert", "../../../scripts/e2e/cert/", "TLS cert path")
@@ -60,8 +62,8 @@ func main() {
 	defer cancel()
 
 	statusCh := try.To1(rpcclient.DoEnter(conn, ctx, &pb.Cmd{
-		Type:          pb.Cmd_LOGIN,
-		UserName:      "hepo2",
+		Type:          pb.Cmd_Type(pb.Cmd_Type_value[strings.ToUpper(*cmd)]),
+		UserName:      *user,
 		PublicDIDSeed: "",
 		URL:           "http://localhost:8090",
 		AAGUID:        "12c85a48-4baf-47bd-b51f-f192871a1511",
