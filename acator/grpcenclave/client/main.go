@@ -90,7 +90,7 @@ loop:
 						CmdID: status.CmdID,
 						Type:  pb.SecretMsg_ERROR,
 						Info: &pb.SecretMsg_Err{
-							Err: &pb.SecretMsg_Error{
+							Err: &pb.SecretMsg_ErrorMsg{
 								Info: "cannot create error handle",
 							},
 						},
@@ -100,8 +100,8 @@ loop:
 					smsg = &pb.SecretMsg{
 						CmdID: status.CmdID,
 						Type:  status.SecType,
-						Info: &pb.SecretMsg_Handle_{
-							Handle: &pb.SecretMsg_Handle{
+						Info: &pb.SecretMsg_Handle{
+							Handle: &pb.SecretMsg_HandleMsg{
 								ID: id,
 							},
 						},
@@ -129,8 +129,8 @@ loop:
 					smsg = &pb.SecretMsg{
 						CmdID: status.CmdID,
 						Type:  status.SecType,
-						Info: &pb.SecretMsg_Handle_{
-							Handle: &pb.SecretMsg_Handle{
+						Info: &pb.SecretMsg_Handle{
+							Handle: &pb.SecretMsg_HandleMsg{
 								ID: id,
 							},
 						},
@@ -140,7 +140,7 @@ loop:
 						CmdID: status.CmdID,
 						Type:  pb.SecretMsg_ERROR,
 						Info: &pb.SecretMsg_Err{
-							Err: &pb.SecretMsg_Error{
+							Err: &pb.SecretMsg_ErrorMsg{
 								Info: "not key handle",
 							},
 						},
@@ -181,7 +181,7 @@ loop:
 					CmdID: status.CmdID,
 					Type:  pb.SecretMsg_ERROR,
 					Info: &pb.SecretMsg_Err{
-						Err: &pb.SecretMsg_Error{
+						Err: &pb.SecretMsg_ErrorMsg{
 							Info: "not key handle",
 						},
 					},
@@ -219,7 +219,7 @@ func tryProcess(
 			CmdID: status.CmdID,
 			Type:  pb.SecretMsg_ERROR,
 			Info: &pb.SecretMsg_Err{
-				Err: &pb.SecretMsg_Error{
+				Err: &pb.SecretMsg_ErrorMsg{
 					Info: fmt.Sprintf("error: processing: %v", err),
 				},
 			},
@@ -241,8 +241,8 @@ func tryProcess(
 		smsg = &pb.SecretMsg{
 			CmdID: status.CmdID,
 			Type:  status.SecType,
-			Info: &pb.SecretMsg_Handle_{
-				Handle: &pb.SecretMsg_Handle{
+			Info: &pb.SecretMsg_Handle{
+				Handle: &pb.SecretMsg_HandleMsg{
 					ID:   id,
 					Data: data,
 					Sign: sig,

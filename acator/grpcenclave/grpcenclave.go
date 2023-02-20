@@ -34,7 +34,7 @@ func (e *Enclave) NewKeyHandle() (kh se.KeyHandle, err error) {
 		CmdType: e.GetType(),
 		SecType: pb.SecretMsg_NEW_HANDLE,
 		Info: &pb.CmdStatus_Enclave{ // TODO: this could be nil
-			Enclave: &pb.SecretMsg_Enclave{
+			Enclave: &pb.SecretMsg_EnclaveMsg{
 				CredID: []byte{},
 			},
 		},
@@ -68,7 +68,7 @@ func (e *Enclave) IsKeyHandle(credID []byte) (ok bool, kh se.KeyHandle) {
 		CmdType: e.GetType(),
 		SecType: pb.SecretMsg_IS_KEY_HANDLE,
 		Info: &pb.CmdStatus_Enclave{
-			Enclave: &pb.SecretMsg_Enclave{
+			Enclave: &pb.SecretMsg_EnclaveMsg{
 				CredID: credID,
 			},
 		},
@@ -99,7 +99,7 @@ func (h *keyHandle) ID() (id []byte) {
 		CmdType: h.GetType(),
 		SecType: pb.SecretMsg_ID,
 		Info: &pb.CmdStatus_Handle{
-			Handle: &pb.SecretMsg_Handle{
+			Handle: &pb.SecretMsg_HandleMsg{
 				ID: h.handle,
 			},
 		},
@@ -126,7 +126,7 @@ func (h *keyHandle) CBORPublicKey() (pk []byte, err error) {
 		CmdType: h.GetType(),
 		SecType: pb.SecretMsg_CBOR_PUB_KEY,
 		Info: &pb.CmdStatus_Handle{
-			Handle: &pb.SecretMsg_Handle{
+			Handle: &pb.SecretMsg_HandleMsg{
 				ID: h.handle,
 			},
 		},
@@ -151,7 +151,7 @@ func (h *keyHandle) Sign(d []byte) (s []byte, err error) {
 		CmdType: h.GetType(),
 		SecType: pb.SecretMsg_SIGN,
 		Info: &pb.CmdStatus_Handle{
-			Handle: &pb.SecretMsg_Handle{
+			Handle: &pb.SecretMsg_HandleMsg{
 				ID:   h.handle,
 				Data: d,
 			},
@@ -179,7 +179,7 @@ func (h *keyHandle) Verify(data, sig []byte) (ok bool) {
 		CmdType: h.GetType(),
 		SecType: pb.SecretMsg_VERIFY,
 		Info: &pb.CmdStatus_Handle{
-			Handle: &pb.SecretMsg_Handle{
+			Handle: &pb.SecretMsg_HandleMsg{
 				ID:   h.handle,
 				Data: data,
 				Sign: sig,
