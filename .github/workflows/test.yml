@@ -5,7 +5,7 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: setup
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.20.x
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: test and measure coverage
         run: make test_cov_out
       - name: upload coverage
@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: setup env
         run: |
           cd scripts/e2e
@@ -41,16 +41,5 @@ jobs:
           curl https://raw.githubusercontent.com/findy-network/findy-agent-cli/HEAD/install.sh > install.sh
           chmod a+x install.sh
           sudo ./install.sh -b /bin
-      - name: test # TODO: make more extensive test set and verify output
-        run: |
-          acator_key=$(findy-agent-cli new-key)
-          findy-agent-cli authn register \
-              -u test \
-              --url http://localhost:8088 \
-              --origin http://localhost:8088 \
-              --key $acator_key
-          findy-agent-cli authn login \
-              -u test \
-              --url http://localhost:8088 \
-              --origin http://localhost:8088 \
-              --key $acator_key
+      - name: test
+        run: ./scripts/test.sh
