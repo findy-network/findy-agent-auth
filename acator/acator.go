@@ -32,7 +32,7 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 
 	go func() {
 		defer pw.Close()
-		defer err2.CatchTrace(func(err error) {
+		defer err2.Catch(func(err error) {
 			glog.Error(err)
 		})
 		ca := tryReadAssertion(jsonStream)
@@ -58,8 +58,8 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 			break
 		}
 	}
-	assert.That(found)
-	assert.INotNil(keyHandle)
+	assert.That(found, "authenticator not found")
+	assert.INotNil(keyHandle, "key handle cannot be nil")
 
 	RPIDHash := sha256.Sum256([]byte(ca.Response.RelyingPartyID))
 	ccd := protocol.CollectedClientData{
@@ -113,7 +113,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 
 	go func() {
 		defer pw.Close()
-		defer err2.CatchTrace(func(err error) {
+		defer err2.Catch(func(err error) {
 			glog.Error(err)
 		})
 		cred := tryReadCreation(jsonStream)

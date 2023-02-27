@@ -1,16 +1,16 @@
 module github.com/findy-network/findy-agent-auth
 
-go 1.18
+go 1.20
 
 require (
 	github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499
 	github.com/duo-labs/webauthn.io v0.0.0-20200929144140-c031a3e0f95d
-	github.com/findy-network/findy-common-go v0.2.6
+	github.com/findy-network/findy-common-go v0.2.7-0.20230220135615-2cb7199bda9f
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/golang/glog v1.0.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
-	github.com/lainio/err2 v0.8.13
+	github.com/lainio/err2 v0.8.14
 	github.com/rs/cors v1.8.3
 	golang.org/x/net v0.7.0
 	google.golang.org/grpc v1.53.0
@@ -122,6 +122,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220513210258-46612604a0f9 // indirect
+	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect

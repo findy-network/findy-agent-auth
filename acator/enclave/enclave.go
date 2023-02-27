@@ -100,7 +100,7 @@ func (e Enclave) IsKeyHandle(credID []byte) (ok bool, kh KeyHandle) {
 }
 
 var (
-	Store Acquirer // Store is the default secure enclave created by pkg init.
+	Store Secure // Store is the default secure enclave created by pkg init.
 )
 
 func init() {
@@ -108,8 +108,8 @@ func init() {
 	Store = New(hexKey)
 }
 
-// Acquirer is a secure enclave interface.
-type Acquirer interface {
+// Secure is a secure enclave interface.
+type Secure interface {
 	NewKeyHandle() (kh KeyHandle, err error)
 	IsKeyHandle(id []byte) (yes bool, kh KeyHandle)
 }
@@ -121,6 +121,7 @@ type Enclave struct {
 
 // New creates a new Enclave.
 func New(hexKey string) *Enclave {
+	assert.Len(hexKey, 64)
 	k, err := hex.DecodeString(hexKey)
 	assert.NoError(err)
 

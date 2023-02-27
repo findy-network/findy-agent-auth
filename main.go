@@ -82,7 +82,8 @@ func init() {
 }
 
 func main() {
-	defer err2.CatchTrace(func(_ error) {
+	err2.SetPanicTracer(os.Stderr)
+	defer err2.Catch(func(_ error) {
 		glog.Warningln("")
 	})
 	try.To(startServerCmd.Parse(os.Args[1:]))

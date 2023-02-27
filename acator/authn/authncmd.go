@@ -35,7 +35,7 @@ type Cmd struct {
 	Token         string `json:"token,omitempty"`
 	Origin        string `json:"origin,omitempty"`
 
-	SecEnclave enclave.Acquirer `json:"-"`
+	SecEnclave enclave.Secure `json:"-"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -70,7 +70,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	try.To(ac.Validate())
 
 	if ac.SecEnclave != nil {
-		glog.V(3).Infoln("using external secure enclave")
+		glog.V(3).Infoln("------ using callers secure enclave")
 		enclave.Store = ac.SecEnclave
 	} else {
 		glog.V(5).Infoln("using master key, no secure enclave")
