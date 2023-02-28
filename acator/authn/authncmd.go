@@ -35,6 +35,11 @@ type Cmd struct {
 	Token         string `json:"token,omitempty"`
 	Origin        string `json:"origin,omitempty"`
 
+	RegisterBegin  string `json:"register_1,omitempty"`
+	RegisterFinish string `json:"register_2,omitempty"`
+	LoginBegin     string `json:"login_1,omitempty"`
+	LoginFinish    string `json:"login_2,omitempty"`
+
 	SecEnclave enclave.Secure `json:"-"`
 }
 
@@ -49,6 +54,19 @@ func (ac *Cmd) Validate() (err error) {
 	assert.NotEmpty(ac.AAGUID, "authenticator ID needed")
 	if ac.Key == "" {
 		assert.INotNil(ac.SecEnclave, "secure enclave is needed")
+	}
+
+	if ac.RegisterBegin == "" {
+		ac.RegisterBegin = "%s/register/begin/%s?seed=%s"
+	}
+	if ac.RegisterFinish == "" {
+		ac.RegisterFinish = "%s/register/finish/%s"
+	}
+	if ac.LoginBegin == "" {
+		ac.LoginBegin = "%s/login/begin/%s"
+	}
+	if ac.LoginFinish == "" {
+		ac.LoginFinish = "%s/login/finish/%s"
 	}
 
 	return nil
@@ -79,11 +97,14 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	}
 
 	cmd := cmdModes[ac.SubCmd]
+
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
 	name = ac.UserName
 	seed = ac.PublicDIDSeed
 	urlStr = ac.Url
+	loginBegin, loginFinish, registerBegin, registerFinish =
+		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
 	if ac.Origin != "" {
 		origin = ac.Origin
 		originURL := try.To1(url.Parse(ac.Origin))
@@ -132,6 +153,9 @@ var (
 	origin   string
 	jwtToken string
 
+	// format strings to build actual endpoints
+	loginBegin, loginFinish, registerBegin, registerFinish string
+
 	c = setupClient()
 
 	cmdModes = map[string]cmdMode{
@@ -155,12 +179,12 @@ func empty() (*Result, error) {
 func registerUser() (result *Result, err error) {
 	defer err2.Handle(&err, "register user")
 
-	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
+	r := tryHTTPRequest("GET", fmt.Sprintf(registerBegin, urlStr, name, seed), nil)
 	defer r.Close()
 
 	js := try.To1(acator.Register(r))
 
-	r2 := tryHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
+	r2 := tryHTTPRequest("POST", fmt.Sprintf(registerFinish, urlStr, name), js)
 	defer r2.Close()
 
 	b := try.To1(io.ReadAll(r2))
@@ -170,12 +194,12 @@ func registerUser() (result *Result, err error) {
 func loginUser() (_ *Result, err error) {
 	defer err2.Handle(&err, "login user")
 
-	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
+	r := tryHTTPRequest("GET", fmt.Sprintf(loginBegin, urlStr, name), nil)
 	defer r.Close()
 
 	js := try.To1(acator.Login(r))
 
-	r2 := tryHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
+	r2 := tryHTTPRequest("POST", fmt.Sprintf(loginFinish, urlStr, name), js)
 	defer r2.Close()
 
 	var result Result
