@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -26,6 +27,12 @@ func main() {
 		authnCmd = authnCmd.TryReadJSON(os.Stdin)
 		jsonAPI = true
 	}
+
+	if dryRun {
+		fmt.Println(string(try.To1(json.MarshalIndent(authnCmd, "", "\t"))))
+		return
+	}
+
 	r := try.To1(authnCmd.Exec(os.Stdout))
 
 	if jsonAPI {
@@ -36,8 +43,8 @@ func main() {
 }
 
 var (
-	loggingFlags string
-
+	dryRun         bool
+	loggingFlags   string
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
 	authnCmd = authn.Cmd{
@@ -65,5 +72,8 @@ func init() {
 	startServerCmd.StringVar(&authnCmd.UserName, "name", authnCmd.UserName, "user name")
 	startServerCmd.StringVar(&authnCmd.AAGUID, "aaguid", authnCmd.AAGUID, "AAGUID")
 	startServerCmd.StringVar(&authnCmd.Key, "key", authnCmd.Key, "authenticator master key")
+	startServerCmd.StringVar(&authnCmd.Origin, "origin", authnCmd.Origin, "use if origin needs to be different than from -url")
 	startServerCmd.Uint64Var(&authnCmd.Counter, "counter", authnCmd.Counter, "Authenticator's counter, used for cloning detection")
+
+	startServerCmd.BoolVar(&dryRun, "dry-run", dryRun, "dry run, e.g. output current cmd as JSON")
 }
