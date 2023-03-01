@@ -126,7 +126,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
-	rpID = ac.RPID
+	//rpID = ac.RPID
 	if ac.Origin != "" {
 		origin = ac.Origin
 		originURL := try.To1(url.Parse(ac.Origin))
@@ -169,7 +169,7 @@ const (
 type cmdFunc func() (*Result, error)
 
 var (
-	rpID     string
+	//rpID     string
 	name     string
 	seed     string
 	urlStr   string
@@ -203,18 +203,24 @@ func registerUser() (result *Result, err error) {
 	defer err2.Handle(&err, "register user")
 
 	var plr io.Reader
-	us := fmt.Sprintf(registerBegin.Path, urlStr, name, seed)
+	beginURL := fmt.Sprintf(registerBegin.Path, urlStr, name, seed)
 	if registerBegin.Method == "POST" {
-		us = fmt.Sprintf(registerBegin.Path, urlStr)
-		pl := fmt.Sprintf(registerBegin.Payload, name, rpID)
+		beginURL = fmt.Sprintf(registerBegin.Path, urlStr)
+		glog.V(3).Infoln("us:", beginURL)
+		pl := fmt.Sprintf(registerBegin.Payload, name) //, rpID)
+		glog.V(3).Infoln("pl:", pl)
 		plr = strings.NewReader(pl)
 	}
-	r := tryHTTPRequest(registerBegin.Method, us, plr)
+	r := tryHTTPRequest(registerBegin.Method, beginURL, plr)
 	defer r.Close()
 
 	js := try.To1(acator.Register(r))
 
-	r2 := tryHTTPRequest(registerFinish.Method, fmt.Sprintf(registerFinish.Path, urlStr, name), js)
+	finishURL := fmt.Sprintf(registerFinish.Path, urlStr)
+	if registerBegin.Method == "GET" {
+		finishURL = fmt.Sprintf(registerFinish.Path, urlStr, name)
+	}
+	r2 := tryHTTPRequest(registerFinish.Method, finishURL, js)
 	defer r2.Close()
 
 	b := try.To1(io.ReadAll(r2))
@@ -228,7 +234,9 @@ func loginUser() (_ *Result, err error) {
 	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
 	if loginBegin.Method == "POST" {
 		us = fmt.Sprintf(loginBegin.Path, urlStr)
+		glog.V(3).Infoln("us:", us)
 		pl := fmt.Sprintf(loginBegin.Payload, name) //, rpID)
+		glog.V(3).Infoln("pl:", pl)
 		plr = strings.NewReader(pl)
 	}
 	r := tryHTTPRequest(loginBegin.Method, us, plr)
@@ -247,6 +255,7 @@ func loginUser() (_ *Result, err error) {
 }
 
 func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
+	glog.V(3).Infoln("===", addr)
 	URL := try.To1(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
@@ -264,10 +273,11 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 
 	c.Jar.SetCookies(URL, response.Cookies())
 
+	echoRespToStdout(response)
+
 	if response.StatusCode != http.StatusOK {
 		try.To(fmt.Errorf("status code: %v", response.Status))
 	}
-	echoRespToStdout(response)
 	return response.Body
 }
 
