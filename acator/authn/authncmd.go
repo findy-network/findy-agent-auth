@@ -228,7 +228,7 @@ func loginUser() (_ *Result, err error) {
 	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
 	if loginBegin.Method == "POST" {
 		us = fmt.Sprintf(loginBegin.Path, urlStr)
-		pl := fmt.Sprintf(loginBegin.Payload, name, rpID)
+		pl := fmt.Sprintf(loginBegin.Payload, name) //, rpID)
 		plr = strings.NewReader(pl)
 	}
 	r := tryHTTPRequest(loginBegin.Method, us, plr)
