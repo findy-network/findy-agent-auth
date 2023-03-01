@@ -14,11 +14,14 @@ import (
 )
 
 func main() {
-	err2.SetPanicTracer(os.Stderr)
-	err2.SetErrorTracer(os.Stderr)
+	if glog.V(3) {
+		err2.SetPanicTracer(os.Stderr)
+		err2.SetErrorTracer(os.Stderr)
+	}
+	// defer err2.Catch() // todo: err2 v.0.9.0+ this is enouh!!
+
 	defer err2.Catch(func(err error) {
-		glog.Warningln("err", err.Error())
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, "error:", err.Error())
 	})
 
 	try.To(startServerCmd.Parse(os.Args[1:]))
@@ -94,6 +97,7 @@ var (
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
 	startServerCmd.StringVar(&authnCmd.Url, "url", authnCmd.Url, "web authn server url")
+	startServerCmd.StringVar(&authnCmd.RPID, "rpid", authnCmd.RPID, "web authn RP ID")
 
 	startServerCmd.StringVar(&authnCmd.RegisterBegin.Path, "reg-begin", authnCmd.RegisterBegin.Path, "format string to build endpoint path")
 	startServerCmd.StringVar(&authnCmd.RegisterFinish.Path, "reg-finish", authnCmd.RegisterFinish.Path, "format string to build endpoint path")
