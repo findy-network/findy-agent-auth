@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/findy-network/findy-agent-auth/acator"
@@ -29,18 +30,25 @@ type Cmd struct {
 	UserName      string `json:"user_name"`
 	PublicDIDSeed string `json:"public_did_seed"`
 	Url           string `json:"url,omitempty"`
+	RPID          string `json:"rpid,omitempty"`
 	AAGUID        string `json:"aaguid,omitempty"`
 	Key           string `json:"key,omitempty"`
 	Counter       uint64 `json:"counter,omitempty"`
 	Token         string `json:"token,omitempty"`
 	Origin        string `json:"origin,omitempty"`
 
-	RegisterBegin  string `json:"register_1,omitempty"`
-	RegisterFinish string `json:"register_2,omitempty"`
-	LoginBegin     string `json:"login_1,omitempty"`
-	LoginFinish    string `json:"login_2,omitempty"`
+	RegisterBegin  Endpoint `json:"register_1,omitempty"`
+	RegisterFinish Endpoint `json:"register_2,omitempty"`
+	LoginBegin     Endpoint `json:"login_1,omitempty"`
+	LoginFinish    Endpoint `json:"login_2,omitempty"`
 
 	SecEnclave enclave.Secure `json:"-"`
+}
+
+type Endpoint struct {
+	Method  string `json:"method,omitempty"`
+	Path    string `json:"path,omitempty"`
+	Payload string `json:"payload,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -56,17 +64,30 @@ func (ac *Cmd) Validate() (err error) {
 		assert.INotNil(ac.SecEnclave, "secure enclave is needed")
 	}
 
-	if ac.RegisterBegin == "" {
-		ac.RegisterBegin = "%s/register/begin/%s?seed=%s"
+	if ac.RegisterBegin.Method == "" {
+		ac.RegisterBegin.Method = "GET"
 	}
-	if ac.RegisterFinish == "" {
-		ac.RegisterFinish = "%s/register/finish/%s"
+	if ac.RegisterFinish.Method == "" {
+		ac.RegisterFinish.Method = "POST"
 	}
-	if ac.LoginBegin == "" {
-		ac.LoginBegin = "%s/login/begin/%s"
+	if ac.LoginBegin.Method == "" {
+		ac.LoginBegin.Method = "GET"
 	}
-	if ac.LoginFinish == "" {
-		ac.LoginFinish = "%s/login/finish/%s"
+	if ac.LoginFinish.Method == "" {
+		ac.LoginFinish.Method = "POST"
+	}
+
+	if ac.RegisterBegin.Path == "" {
+		ac.RegisterBegin.Path = "%s/register/begin/%s?seed=%s"
+	}
+	if ac.RegisterFinish.Path == "" {
+		ac.RegisterFinish.Path = "%s/register/finish/%s"
+	}
+	if ac.LoginBegin.Path == "" {
+		ac.LoginBegin.Path = "%s/login/begin/%s"
+	}
+	if ac.LoginFinish.Path == "" {
+		ac.LoginFinish.Path = "%s/login/finish/%s"
 	}
 
 	return nil
@@ -105,6 +126,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
+	rpID = ac.RPID
 	if ac.Origin != "" {
 		origin = ac.Origin
 		originURL := try.To1(url.Parse(ac.Origin))
@@ -147,6 +169,7 @@ const (
 type cmdFunc func() (*Result, error)
 
 var (
+	rpID     string
 	name     string
 	seed     string
 	urlStr   string
@@ -154,7 +177,7 @@ var (
 	jwtToken string
 
 	// format strings to build actual endpoints
-	loginBegin, loginFinish, registerBegin, registerFinish string
+	loginBegin, loginFinish, registerBegin, registerFinish Endpoint
 
 	c = setupClient()
 
@@ -179,12 +202,19 @@ func empty() (*Result, error) {
 func registerUser() (result *Result, err error) {
 	defer err2.Handle(&err, "register user")
 
-	r := tryHTTPRequest("GET", fmt.Sprintf(registerBegin, urlStr, name, seed), nil)
+	var plr io.Reader
+	us := fmt.Sprintf(registerBegin.Path, urlStr, name, seed)
+	if registerBegin.Method == "POST" {
+		us = fmt.Sprintf(registerBegin.Path, urlStr)
+		pl := fmt.Sprintf(registerBegin.Payload, name, rpID)
+		plr = strings.NewReader(pl)
+	}
+	r := tryHTTPRequest(registerBegin.Method, us, plr)
 	defer r.Close()
 
 	js := try.To1(acator.Register(r))
 
-	r2 := tryHTTPRequest("POST", fmt.Sprintf(registerFinish, urlStr, name), js)
+	r2 := tryHTTPRequest(registerFinish.Method, fmt.Sprintf(registerFinish.Path, urlStr, name), js)
 	defer r2.Close()
 
 	b := try.To1(io.ReadAll(r2))
@@ -194,12 +224,19 @@ func registerUser() (result *Result, err error) {
 func loginUser() (_ *Result, err error) {
 	defer err2.Handle(&err, "login user")
 
-	r := tryHTTPRequest("GET", fmt.Sprintf(loginBegin, urlStr, name), nil)
+	var plr io.Reader
+	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
+	if loginBegin.Method == "POST" {
+		us = fmt.Sprintf(loginBegin.Path, urlStr)
+		pl := fmt.Sprintf(loginBegin.Payload, name, rpID)
+		plr = strings.NewReader(pl)
+	}
+	r := tryHTTPRequest(loginBegin.Method, us, plr)
 	defer r.Close()
 
 	js := try.To1(acator.Login(r))
 
-	r2 := tryHTTPRequest("POST", fmt.Sprintf(loginFinish, urlStr, name), js)
+	r2 := tryHTTPRequest(loginFinish.Method, fmt.Sprintf(loginFinish.Path, urlStr, name), js)
 	defer r2.Close()
 
 	var result Result

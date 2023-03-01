@@ -15,16 +15,24 @@ import (
 
 func main() {
 	err2.SetPanicTracer(os.Stderr)
+	err2.SetErrorTracer(os.Stderr)
 	defer err2.Catch(func(err error) {
-		glog.Warningln(err)
+		glog.Warningln("err", err.Error())
 		os.Exit(1)
 	})
+
 	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
 	jsonAPI := false
 	if startServerCmd.Arg(0) == "-" {
 		authnCmd = authnCmd.TryReadJSON(os.Stdin)
+		jsonAPI = true
+	} else if fname := startServerCmd.Arg(0); fname != "" {
+		glog.V(2).Infoln("fname:", fname)
+		f := try.To1(os.Open(fname))
+		defer f.Close()
+		authnCmd = authnCmd.TryReadJSON(f)
 		jsonAPI = true
 	}
 
@@ -48,26 +56,60 @@ var (
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
 	authnCmd = authn.Cmd{
-		SubCmd:         "login",
-		UserName:       "",
-		Url:            "http://localhost:8090",
-		RegisterBegin:  "%s/register/begin/%s?seed=%s",
-		RegisterFinish: "%s/register/finish/%s",
-		LoginBegin:     "%s/login/begin/%s",
-		LoginFinish:    "%s/login/finish/%s",
-		AAGUID:         "12c85a48-4baf-47bd-b51f-f192871a1511",
-		Key:            "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c",
-		Counter:        0,
+		SubCmd:   "login",
+		UserName: "",
+		RPID:     "",
+		Url:      "http://localhost:8090",
+
+		RegisterBegin: authn.Endpoint{
+			Method:  "GET",
+			Path:    "%s/register/begin/%s?seed=%s",
+			Payload: "",
+		},
+
+		RegisterFinish: authn.Endpoint{
+			Method:  "POST",
+			Path:    "%s/register/finish/%s",
+			Payload: "",
+		},
+
+		LoginBegin: authn.Endpoint{
+			Method:  "GET",
+			Path:    "%s/login/begin/%s",
+			Payload: "",
+		},
+
+		LoginFinish: authn.Endpoint{
+			Method:  "POST",
+			Path:    "%s/login/finish/%s",
+			Payload: "",
+		},
+
+		AAGUID:  "12c85a48-4baf-47bd-b51f-f192871a1511",
+		Key:     "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c",
+		Counter: 0,
 	}
 )
 
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
 	startServerCmd.StringVar(&authnCmd.Url, "url", authnCmd.Url, "web authn server url")
-	startServerCmd.StringVar(&authnCmd.RegisterBegin, "reg-begin", authnCmd.RegisterBegin, "format string to build endpoint")
-	startServerCmd.StringVar(&authnCmd.RegisterFinish, "reg-finish", authnCmd.RegisterFinish, "format string to build endpoint")
-	startServerCmd.StringVar(&authnCmd.LoginBegin, "log-begin", authnCmd.LoginBegin, "format string to build endpoint")
-	startServerCmd.StringVar(&authnCmd.LoginFinish, "log-finish", authnCmd.LoginFinish, "format string to build endpoint")
+
+	startServerCmd.StringVar(&authnCmd.RegisterBegin.Path, "reg-begin", authnCmd.RegisterBegin.Path, "format string to build endpoint path")
+	startServerCmd.StringVar(&authnCmd.RegisterFinish.Path, "reg-finish", authnCmd.RegisterFinish.Path, "format string to build endpoint path")
+	startServerCmd.StringVar(&authnCmd.LoginBegin.Path, "log-begin", authnCmd.LoginBegin.Path, "format string to build endpoint path")
+	startServerCmd.StringVar(&authnCmd.LoginFinish.Path, "log-finish", authnCmd.LoginFinish.Path, "format string to build endpoint path")
+
+	startServerCmd.StringVar(&authnCmd.RegisterBegin.Method, "reg-begin-met", authnCmd.RegisterBegin.Method, "format string to build endpoint method")
+	startServerCmd.StringVar(&authnCmd.RegisterFinish.Method, "reg-finish-met", authnCmd.RegisterFinish.Method, "format string to build endpoint method")
+	startServerCmd.StringVar(&authnCmd.LoginBegin.Method, "log-begin-met", authnCmd.LoginBegin.Method, "format string to build endpoint method")
+	startServerCmd.StringVar(&authnCmd.LoginFinish.Method, "log-finish-met", authnCmd.LoginFinish.Method, "format string to build endpoint method")
+
+	startServerCmd.StringVar(&authnCmd.RegisterBegin.Payload, "reg-begin-pl", authnCmd.RegisterBegin.Payload, "format string to build endpoint payload JSON template")
+	startServerCmd.StringVar(&authnCmd.RegisterFinish.Payload, "reg-finish-pl", authnCmd.RegisterFinish.Payload, "format string to build endpoint payload JSON template")
+	startServerCmd.StringVar(&authnCmd.LoginBegin.Payload, "log-begin-pl", authnCmd.LoginBegin.Payload, "format string to build endpoint payload JSON template")
+	startServerCmd.StringVar(&authnCmd.LoginFinish.Payload, "log-finish-pl", authnCmd.LoginFinish.Payload, "format string to build endpoint payload JSON template")
+
 	startServerCmd.StringVar(&authnCmd.SubCmd, "subcmd", authnCmd.SubCmd, "sub command: login|register")
 	startServerCmd.StringVar(&authnCmd.UserName, "name", authnCmd.UserName, "user name")
 	startServerCmd.StringVar(&authnCmd.AAGUID, "aaguid", authnCmd.AAGUID, "AAGUID")
