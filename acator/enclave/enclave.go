@@ -9,9 +9,9 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	crpt "github.com/findy-network/findy-common-go/crypto"
 	"github.com/fxamacker/cbor/v2"
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"

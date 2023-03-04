@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/duo-labs/webauthn.io/session"
-	"github.com/duo-labs/webauthn/protocol"
-	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/findy-network/findy-agent-auth/enclave"
+	"github.com/findy-network/findy-agent-auth/session"
 	"github.com/findy-network/findy-agent-auth/user"
 	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/utils"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/lainio/err2"
@@ -324,7 +324,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	glog.V(1).Infoln("END finish login", username)
 }
 
-// from: https://github.com/duo-labs/webauthn.io/blob/3f03b482d21476f6b9fb82b2bf1458ff61a61d41/server/response.go#L15
+// from: https://github.com/go-webauthn/webauthn.io/blob/3f03b482d21476f6b9fb82b2bf1458ff61a61d41/server/response.go#L15
 func jsonResponse(w http.ResponseWriter, d interface{}, c int) {
 	defer err2.Catch(func(err error) {
 		glog.Errorf("json response error: %s", err)

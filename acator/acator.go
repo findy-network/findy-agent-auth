@@ -8,10 +8,10 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/duo-labs/webauthn/protocol"
 	"github.com/findy-network/findy-agent-auth/acator/authenticator"
 	"github.com/findy-network/findy-agent-auth/acator/enclave"
 	"github.com/fxamacker/cbor/v2"
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/lainio/err2"
@@ -44,7 +44,7 @@ func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
 }
 
 func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
-	origin := protocol.FullyQualifiedOrigin(&Origin)
+	origin := try.To1(protocol.FullyQualifiedOrigin(Origin.String()))
 
 	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
 
@@ -134,7 +134,7 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 }
 
 func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
-	origin := protocol.FullyQualifiedOrigin(&Origin)
+	origin := try.To1(protocol.FullyQualifiedOrigin(Origin.String()))
 	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
 	keyHandle := try.To1(enclave.Store.NewKeyHandle())
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))

@@ -3,7 +3,7 @@ package authenticator
 import (
 	"encoding/binary"
 
-	"github.com/duo-labs/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/try"
 

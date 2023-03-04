@@ -9,9 +9,9 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	crpt "github.com/findy-network/findy-common-go/crypto"
 	"github.com/fxamacker/cbor/v2"
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
 	"github.com/lainio/err2/try"
@@ -59,7 +59,7 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 
 	pk := webauthncose.PublicKeyData{}
 	try.To(cbor.Unmarshal(keyBytes, &pk))
-	switch webauthncose.COSEKeyType(pk.KeyType) {
+	switch webauthncose.COSEKeyType(pk.KeyType) { //nolint
 	case webauthncose.OctetKey:
 		assert.NotImplemented()
 	case webauthncose.EllipticKey:
