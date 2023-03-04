@@ -126,6 +126,8 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
+	glog.V(13).Infof("json B: %v", registerBegin)
+	glog.V(13).Infof("json F: %v", registerFinish)
 	//rpID = ac.RPID
 	if ac.Origin != "" {
 		origin = ac.Origin
@@ -206,15 +208,24 @@ func registerUser() (result *Result, err error) {
 	beginURL := fmt.Sprintf(registerBegin.Path, urlStr, name, seed)
 	if registerBegin.Method == "POST" {
 		beginURL = fmt.Sprintf(registerBegin.Path, urlStr)
-		glog.V(3).Infoln("us:", beginURL)
+		glog.V(13).Infoln("us:", beginURL)
 		pl := fmt.Sprintf(registerBegin.Payload, name) //, rpID)
-		glog.V(3).Infoln("pl:", pl)
+		glog.V(13).Infoln("pl:", pl)
 		plr = strings.NewReader(pl)
 	}
 	r := tryHTTPRequest(registerBegin.Method, beginURL, plr)
 	defer r.Close()
 
 	js := try.To1(acator.Register(r))
+	glog.V(13).Infoln("Register called")
+	if registerFinish.Payload != "" {
+		glog.V(13).Infoln("==> finish Payload:\n", registerFinish.Payload)
+
+		resp := string(try.To1(io.ReadAll(js)))
+		fullResp := fmt.Sprintf(registerFinish.Payload, name, resp)
+		glog.V(13).Infoln("fullResp:\n", fullResp)
+		js = strings.NewReader(fullResp)
+	}
 
 	finishURL := fmt.Sprintf(registerFinish.Path, urlStr)
 	if registerBegin.Method == "GET" {
@@ -234,9 +245,9 @@ func loginUser() (_ *Result, err error) {
 	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
 	if loginBegin.Method == "POST" {
 		us = fmt.Sprintf(loginBegin.Path, urlStr)
-		glog.V(3).Infoln("us:", us)
+		glog.V(13).Infoln("us:", us)
 		pl := fmt.Sprintf(loginBegin.Payload, name) //, rpID)
-		glog.V(3).Infoln("pl:", pl)
+		glog.V(13).Infoln("pl:", pl)
 		plr = strings.NewReader(pl)
 	}
 	r := tryHTTPRequest(loginBegin.Method, us, plr)
@@ -255,7 +266,7 @@ func loginUser() (_ *Result, err error) {
 }
 
 func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
-	glog.V(3).Infoln("===", addr)
+	glog.V(13).Infoln("===", addr)
 	URL := try.To1(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
@@ -273,11 +284,16 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 
 	c.Jar.SetCookies(URL, response.Cookies())
 
+	if response.StatusCode == http.StatusBadRequest {
+		d := string(try.To1(io.ReadAll(response.Body)))
+		glog.Errorln("BAD:", d)
+		err2.Throwf("error bad: %v", d)
+	} else if response.StatusCode != http.StatusOK {
+		err2.Throwf("status code: %v", response.Status)
+	}
+
 	echoRespToStdout(response)
 
-	if response.StatusCode != http.StatusOK {
-		try.To(fmt.Errorf("status code: %v", response.Status))
-	}
 	return response.Body
 }
 
