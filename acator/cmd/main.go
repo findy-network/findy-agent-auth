@@ -22,9 +22,9 @@ func main() {
 
 	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
-	if glog.V(3) {
+	if glog.V(3) { // TODO: these need own flags
 		err2.SetPanicTracer(os.Stderr)
-		err2.SetErrorTracer(os.Stderr)
+		//err2.SetErrorTracer(os.Stderr)
 	}
 
 	jsonAPI := false
