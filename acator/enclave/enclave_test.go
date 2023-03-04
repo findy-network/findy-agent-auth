@@ -1,8 +1,11 @@
 package enclave
 
 import (
+	"crypto/ecdsa"
+	"reflect"
 	"testing"
 
+	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	"github.com/lainio/err2/assert"
 )
 
@@ -105,12 +108,48 @@ func Test_myHandle_Sign(t *testing.T) {
 
 			id := h.ID()
 			assert.SNotNil(id)
+			for i := 0; i < 10; i++ {
+				myID := h.ID()
+				assert.SLen(myID, len(id))
+				assert.DeepEqual(id, myID, "ID as different round %d:%v,%v",
+					i, myID, id)
+			}
 
 			ok, nkh := e.IsKeyHandle(id)
 			assert.That(ok)
 			assert.INotNil(nkh)
 
 			assert.That(nkh.Verify(tt.args.d, sig))
+		})
+	}
+}
+
+func Test_myHandle_ID(t *testing.T) {
+	type fields struct {
+		Enclave          Enclave
+		EC2PublicKeyData webauthncose.EC2PublicKeyData
+		privKey          *ecdsa.PrivateKey
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []byte
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.PushTester(t)
+			defer assert.PopTester()
+
+			h := &myHandle{
+				Enclave:          tt.fields.Enclave,
+				EC2PublicKeyData: tt.fields.EC2PublicKeyData,
+				privKey:          tt.fields.privKey,
+			}
+			if got := h.ID(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("myHandle.ID() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
