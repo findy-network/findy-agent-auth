@@ -138,20 +138,63 @@ var authenticatorAssertionResponse = `{
 }
 `
 
+/*
+Test_myHandle_Sign/simple|114 error| ID as different round 0:
+[181 200 6 0 39 82 176 72 235 122 209 147 250 32 132 69 119 246 237 225 102 196 193 169 226 29 227 143 127 49 133 5 242 101 154 23 180 56 92 5 152 194 108 252 66 214 212 203 25 52 244 18 144 170 172 129 163 89 11 213 3 109 139 104 8 228 106 249 175 64 245 241 151 246 238 204 239 222 20 213 213 65 60 178 219 0 89 59 92 254 27 93 107 56 198 231 160 131 104 119 44 116 53 193 123 82 55 28 167 23 123 89 243 63 1 46 1 0 29 220 245 133 245 95 178 235 146 3 69 160 138 86 250 22 28 162 150 64 156 4 182 240 114 208 223 174 75 5 77],
+[53 236 194 154 182 9 38 231 126 211 21 53 212 210 10 77 80 212 101 234 245 158 69 246 217 225 71 163 206 136 118 12 7 70 234 117 244 213 54 74 151 55 104 218 74 178 17 64 232 28 141 58 172 225 91 74 3 231 155 178 50 212 152 149 231 122 145 56 183 126 35 227 82 188 60 248 172 238 5 87 96 194 71 63 130 62 0 126 202 206 183 5 18 30 127 218 234 229 108 222 22 38 16 77 137 96 100 179 132 204 199 226 148 31 175 187 241 87 192 129 191 98
+*/
+
 func TestRegister(t *testing.T) {
-	assert.PushTester(t)
-	defer assert.PopTester()
-	originURL, _ := url.Parse("http://localhost:8080")
-	Origin = *originURL
+	type args struct {
+		registerOptions string
+		challenge       string
+		rpOrigin        string
+		rpID            string
+	}
+	tests := []struct {
+		name   string
+		args   args
+		wantOK bool
+	}{
+		{"simple",
+			args{challengeJSON, "7vH6L70QspI4ToHZ6gTJLj74jQ9jj/AzlIQkSlkZX8E=",
+				"http://localhost", "Foobar Corp."},
+			false,
+		},
+		{"from webauthn.io",
+			args{webauthnIoChallenge,
+				"7vH6L70QspI4ToHZ6gTJLj74jQ9jj/AzlIQkSlkZX8E=",
+				"https://webauthn.io", "webauthn.io"},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.PushTester(t)
+			defer assert.PopTester()
 
-	r := strings.NewReader(challengeJSON)
-	js, err := Register(r)
-	assert.NoError(err)
-	assert.INotNil(js)
+			// r := strings.NewReader(tt.args.registerOptions)
+			// var m map[string]any
+			// err := json.NewDecoder(r).Decode(&m)
+			// assert.NoError(err)
+			originURL, _ := url.Parse(tt.args.rpOrigin)
+			Origin = *originURL
+			r := strings.NewReader(tt.args.registerOptions)
+			js, err := Register(r)
+			assert.NoError(err)
+			assert.INotNil(js)
 
-	ccd, err := protocol.ParseCredentialCreationResponseBody(js)
-	assert.NoError(err)
-	assert.NotNil(ccd)
+			ccd, err := protocol.ParseCredentialCreationResponseBody(js)
+			if tt.wantOK {
+				assert.NoError(err)
+				assert.NotNil(ccd)
+				// Verify(storedChallenge string, verifyUser bool, relyingPartyID string, relyingPartyOrigin string) error
+				err := ccd.Verify(ccd.Response.CollectedClientData.Challenge,
+					false, tt.args.rpID, tt.args.rpOrigin)
+				assert.NoError(err)
+			}
+		})
+	}
 }
 
 func TestLogin(t *testing.T) {
@@ -248,3 +291,37 @@ func TestParseResponse(t *testing.T) {
 	assert.NoError(err)
 	assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
 }
+
+var _ = `{"publicKey":{"rp": {"name": "webauthn.io", "id": "webauthn.io"}, "user": {"id": "ZW1wcHU", "name": "emppu", "displayName": "emppu"}, "challenge": "wYRL_d6mbgou6Jh5ny3-UJa0yJlkXpX2CmngXVMbcPnVK0XOrBl8Q6zunD20vEMiRJ4RsCMYbX8ZbjwQ34QiAQ", "pubKeyCredParams": [{"type": "public-key", "alg": -7}], "timeout": 60000, "excludeCredentials": [], "authenticatorSelection": {"authenticatorAttachment": "cross-platform", "residentKey": "preferred", "requireResidentKey": false, "userVerification": "preferred"}, "attestation": "direct", "extensions": {"credProps": true}}}`
+
+var webauthnIoChallenge = `{
+  "publicKey": {
+    "rp": {
+      "name": "webauthn.io",
+      "id": "webauthn.io"
+    },
+    "user": {
+      "id": "nsWi6Nr9u8nAAQ==",
+      "name": "emppu",
+      "displayName": "emppu"
+    },
+    "challenge": "7vH6L70QspI4ToHZ6gTJLj74jQ9jj/AzlIQkSlkZX8E=",
+    "pubKeyCredParams": [
+      {
+        "type": "public-key",
+        "alg": -7
+      }
+    ],
+    "timeout": 60000,
+    "excludeCredentials": [],
+    "authenticatorSelection": {
+      "residentKey": "discouraged",
+      "requireResidentKey": false,
+      "userVerification": "discouraged"
+    },
+    "attestation": "direct",
+    "extensions": {
+      "credProps": true
+    }
+  }
+}`
