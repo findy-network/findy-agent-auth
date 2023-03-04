@@ -1,6 +1,7 @@
 package acator
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -104,11 +105,9 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 	return car
 }
 
-// Register reads CredentialCreation JSON from the input stream and same time
+// RegisterAsync reads CredentialCreation JSON from the input stream and same time
 // process it and outputs CredentialCreationResponse JSON to output stream.
-func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
-	defer err2.Handle(&err, "register")
-
+func RegisterAsync(jsonStream io.Reader) (outStream io.Reader, err error) {
 	pr, pw := io.Pipe()
 
 	go func() {
@@ -121,7 +120,17 @@ func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
 		try.To(json.NewEncoder(pw).Encode(ccr))
 	}()
 	return pr, nil
+}
 
+// Register reads CredentialCreation JSON from the input stream and same time
+// process it and outputs CredentialCreationResponse JSON to output stream.
+func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
+	defer err2.Handle(&err)
+
+	cred := tryReadCreation(jsonStream)
+	ccr := tryBuildCreationResponse(cred)
+	b := try.To1(json.Marshal(ccr))
+	return bytes.NewReader(b), nil
 }
 
 func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
@@ -138,7 +147,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		Hint:         "",
 	}
 	ccdByteJson := try.To1(json.Marshal(ccd))
-
+	khID := keyHandle.ID()
 	flags := protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
@@ -146,7 +155,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		Counter:  Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
-			CredentialID:        keyHandle.ID(),
+			CredentialID:        khID,
 			CredentialPublicKey: try.To1(keyHandle.CBORPublicKey()),
 		},
 		ExtData: nil,
@@ -161,16 +170,21 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
 			Credential: protocol.Credential{
-				ID:   base64.RawURLEncoding.EncodeToString(keyHandle.ID()),
+				ID:   base64.RawURLEncoding.EncodeToString(khID),
 				Type: "public-key",
 			},
-			RawID: keyHandle.ID(),
+			RawID: khID,
 		},
 		AttestationResponse: protocol.AuthenticatorAttestationResponse{
 			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},
 			AttestationObject:     aoByteCBOR,
 		},
 	}
+	assert.Equal(`"`+ccr.Credential.ID+`"`, string(try.To1(ccr.RawID.MarshalJSON())))
+
+	glog.V(13).Infof("\n%s ==\n%s", ccr.Credential.ID, string(try.To1(ccr.RawID.MarshalJSON())))
+	strCcr := string(try.To1(json.MarshalIndent(ccr, "", "\t")))
+	glog.V(13).Infoln("CCR json:\n", strCcr)
 	return ccr
 }
 
