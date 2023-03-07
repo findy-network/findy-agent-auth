@@ -1,10 +1,14 @@
 COMM_BRANCH=$(shell ./scripts/branch.sh ../findy-common-go/)
+SCAN_SCRIPT_URL="https://raw.githubusercontent.com/findy-network/setup-go-action/master/scanner/cp_scan.sh"
 
 acli:
 	go build -o $(GOPATH)/bin/acli
 
 scan:
-	@./scripts/scan.sh $(ARGS)
+	@curl -s $(SCAN_SCRIPT_URL) | bash
+
+scan_and_report:
+	@curl -s $(SCAN_SCRIPT_URL) | bash -s v > licenses.txt
 
 drop_comm:
 	go mod edit -dropreplace github.com/findy-network/findy-common-go
