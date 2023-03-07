@@ -11,7 +11,7 @@ jobs:
       - name: test and measure coverage
         run: make test_cov_out
       - name: upload coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           files: ./coverage.txt
   e2e:
