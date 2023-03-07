@@ -123,6 +123,14 @@ func init() {
 		authnCmd.RegisterFinish.Payload, "format string to build endpoint payload JSON template")
 	startServerCmd.StringVar(&authnCmd.LoginBegin.Payload, "log-begin-pl",
 		authnCmd.LoginBegin.Payload, "format string to build endpoint payload JSON template")
+	startServerCmd.StringVar(&authnCmd.RegisterBegin.InPL, "reg-begin-pl-in",
+		authnCmd.RegisterBegin.InPL, "format string to build endpoint payload JSON template")
+	startServerCmd.StringVar(&authnCmd.LoginBegin.InPL, "log-begin-pl-in",
+		authnCmd.LoginBegin.InPL, "format string to build endpoint payload JSON template")
+	startServerCmd.StringVar(&authnCmd.LoginBegin.MiddlePL, "log-begin-pl-middle",
+		authnCmd.LoginBegin.MiddlePL, "format string to build endpoint payload JSON template to SEND")
+	startServerCmd.StringVar(&authnCmd.RegisterBegin.MiddlePL, "reg-begin-pl-middle",
+		authnCmd.RegisterBegin.MiddlePL, "format string to build endpoint payload JSON template to SEND")
 	startServerCmd.StringVar(&authnCmd.LoginFinish.Payload, "log-finish-pl",
 		authnCmd.LoginFinish.Payload, "format string to build endpoint payload JSON template")
 

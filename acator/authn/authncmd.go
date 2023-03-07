@@ -42,13 +42,17 @@ type Cmd struct {
 	LoginBegin     Endpoint `json:"login_1,omitempty"`
 	LoginFinish    Endpoint `json:"login_2,omitempty"`
 
+	CookieFile string `json:"cookie_file,omitempty"`
+
 	SecEnclave enclave.Secure `json:"-"`
 }
 
 type Endpoint struct {
-	Method  string `json:"method,omitempty"`
-	Path    string `json:"path,omitempty"`
-	Payload string `json:"payload,omitempty"`
+	Method   string `json:"method,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Payload  string `json:"payload,omitempty"`
+	InPL     string `json:"inputPL,omitempty"`
+	MiddlePL string `json:"middlePL,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -126,8 +130,9 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
-	glog.V(13).Infof("json B: %v", registerBegin)
-	glog.V(13).Infof("json F: %v", registerFinish)
+	glog.V(13).Infof("json B: %v", loginBegin)
+	glog.V(13).Infof("json B: %v", loginBegin)
+	glog.V(13).Infof("json F: %v", loginFinish)
 	//rpID = ac.RPID
 	if ac.Origin != "" {
 		origin = ac.Origin
@@ -216,7 +221,20 @@ func registerUser() (result *Result, err error) {
 	r := tryHTTPRequest(registerBegin.Method, beginURL, plr)
 	defer r.Close()
 
-	js := try.To1(acator.Register(r))
+	var js io.Reader
+	if registerBegin.MiddlePL != "" {
+		glog.V(13).Infoln("==> middle Payload:\n", registerBegin.MiddlePL)
+
+		resp := string(try.To1(io.ReadAll(r)))
+		pl := fmt.Sprintf(registerBegin.MiddlePL, resp)
+		glog.V(13).Infoln("middlePL:\n", pl)
+		r := strings.NewReader(pl)
+
+		js = try.To1(acator.Register(r))
+	} else {
+		js = try.To1(acator.Register(r))
+	}
+
 	glog.V(13).Infoln("Register called")
 	if registerFinish.Payload != "" {
 		glog.V(13).Infoln("==> finish Payload:\n", registerFinish.Payload)
@@ -253,14 +271,42 @@ func loginUser() (_ *Result, err error) {
 	r := tryHTTPRequest(loginBegin.Method, us, plr)
 	defer r.Close()
 
-	js := try.To1(acator.Login(r))
+	var js io.Reader
+	if loginBegin.MiddlePL != "" {
+		glog.V(13).Infoln("==> middle Payload:\n", loginBegin.MiddlePL)
 
-	r2 := tryHTTPRequest(loginFinish.Method, fmt.Sprintf(loginFinish.Path, urlStr, name), js)
+		resp := string(try.To1(io.ReadAll(r)))
+		pl := fmt.Sprintf(loginBegin.MiddlePL, resp)
+		glog.V(13).Infoln("middlePL:\n", pl)
+		r := strings.NewReader(pl)
+		js = try.To1(acator.Login(r))
+	} else {
+		js = try.To1(acator.Login(r))
+	}
+	if loginFinish.Payload != "" {
+		glog.V(13).Infoln("==> finish Payload:\n", loginFinish.Payload)
+
+		resp := string(try.To1(io.ReadAll(js)))
+		fullResp := fmt.Sprintf(loginFinish.Payload, name, resp)
+		glog.V(13).Infoln("fullResp:\n", fullResp)
+		js = strings.NewReader(fullResp)
+	}
+
+	finishURL := fmt.Sprintf(loginFinish.Path, urlStr)
+	if loginBegin.Method == "GET" {
+		finishURL = fmt.Sprintf(loginFinish.Path, urlStr, name)
+	}
+
+	r2 := tryHTTPRequest(loginFinish.Method, finishURL, js)
 	defer r2.Close()
 
 	var result Result
-	try.To(json.NewDecoder(r2).Decode(&result))
-
+	if loginBegin.Method == "GET" {
+		try.To(json.NewDecoder(r2).Decode(&result))
+	} else {
+		b := try.To1(io.ReadAll(r2))
+		result.Token = string(b)
+	}
 	result.SubCmd = "login"
 	return &result, nil
 }
@@ -284,7 +330,11 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 
 	c.Jar.SetCookies(URL, response.Cookies())
 
-	if response.StatusCode == http.StatusBadRequest {
+	if response.StatusCode == http.StatusInternalServerError {
+		d := string(try.To1(io.ReadAll(response.Body)))
+		glog.Errorln("Server error:", d)
+		err2.Throwf("SERVER error: %v", d)
+	} else if response.StatusCode == http.StatusBadRequest {
 		d := string(try.To1(io.ReadAll(response.Body)))
 		glog.Errorln("BAD:", d)
 		err2.Throwf("error bad: %v", d)

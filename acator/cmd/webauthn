@@ -5,7 +5,7 @@
 # ===== login ======
 read -r -d '' logBegJSON << EOF
 {"username":"%s",
-"user_verification": "preferred"}
+"user_verification":"discouraged"}
 EOF
 
 read -r -d '' logFinJSON << EOF
