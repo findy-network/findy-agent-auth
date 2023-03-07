@@ -50,7 +50,6 @@ EOF
 # rpid TODO
 #
 go run main.go -url 'https://webauthn.io' \
-	-rpid 'https://webauthn.io/' \
 	-log-begin-met 'POST' \
 	-log-begin '%s/authentication/options' \
 	-log-finish '%s/authentication/verification' \
