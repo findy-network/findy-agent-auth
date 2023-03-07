@@ -97,7 +97,7 @@ var (
 func init() {
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
 	startServerCmd.StringVar(&authnCmd.Url, "url", authnCmd.Url, "web authn server url")
-	startServerCmd.StringVar(&authnCmd.RPID, "rpid", authnCmd.RPID, "web authn RP ID")
+	startServerCmd.StringVar(&authnCmd.CookieFile, "cookies", authnCmd.CookieFile, "cookies to store between calls")
 
 	startServerCmd.StringVar(&authnCmd.RegisterBegin.Path, "reg-begin",
 		authnCmd.RegisterBegin.Path, "format string to build endpoint path")
