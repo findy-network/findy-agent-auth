@@ -11,7 +11,7 @@ COPY . ./
 
 RUN go build -o /go/bin/findy-agent-auth
 
-FROM  ghcr.io/findy-network/findy-base:alpine-3.15
+FROM  ghcr.io/findy-network/findy-base:alpine-3.17
 
 LABEL org.opencontainers.image.source https://github.com/findy-network/findy-agent-auth
 
@@ -34,23 +34,23 @@ ENV FAA_TIMEOUT_SECS "30"
 ENV FAA_CERT_PATH "/grpc"
 
 RUN echo '#!/bin/sh' > /start.sh && \
-    echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' >> /start.sh && \
-    echo '/findy-agent-auth \
-    --port="$FAA_PORT" \
-    --agency="$FAA_AGENCY_ADDR" \
-    --agency-insecure="$FAA_AGENCY_INSECURE" \
-    --gport="$FAA_AGENCY_PORT" \
-    --admin="$FAA_AGENCY_ADMIN_ID" \
-    --domain="$FAA_DOMAIN" \
-    --origin="$FAA_ORIGIN" \
-    --sec-file="/data/fido-enclave.bolt" \
-    --sec-key="$FAA_SEC_KEY" \
-    --cert-path="$FAA_CERT_PATH" \
-    --logging="-logtostderr=true -v=$FAA_LOG_LEVEL" \
-    --cors="$FAA_ENABLE_CORS" \
-    --local-tls="$FAA_LOCAL_TLS" \
-    --jwt-secret="$FAA_JWT_VERIFICATION_KEY" \
-    --timeout="$FAA_TIMEOUT_SECS"' >> /start.sh && chmod a+x /start.sh
+  echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' >> /start.sh && \
+  echo '/findy-agent-auth \
+  --port="$FAA_PORT" \
+  --agency="$FAA_AGENCY_ADDR" \
+  --agency-insecure="$FAA_AGENCY_INSECURE" \
+  --gport="$FAA_AGENCY_PORT" \
+  --admin="$FAA_AGENCY_ADMIN_ID" \
+  --domain="$FAA_DOMAIN" \
+  --origin="$FAA_ORIGIN" \
+  --sec-file="/data/fido-enclave.bolt" \
+  --sec-key="$FAA_SEC_KEY" \
+  --cert-path="$FAA_CERT_PATH" \
+  --logging="-logtostderr=true -v=$FAA_LOG_LEVEL" \
+  --cors="$FAA_ENABLE_CORS" \
+  --local-tls="$FAA_LOCAL_TLS" \
+  --jwt-secret="$FAA_JWT_VERIFICATION_KEY" \
+  --timeout="$FAA_TIMEOUT_SECS"' >> /start.sh && chmod a+x /start.sh
 
 
 ENTRYPOINT ["/bin/sh", "-c", "/start.sh"]
