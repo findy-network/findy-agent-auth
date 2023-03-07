@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# https://webauthn.io/
+
+# ===== login ======
+read -r -d '' logBegJSON << EOF
+{"username":"%s",
+"user_verification": "preferred"}
+EOF
+
+read -r -d '' logFinJSON << EOF
+{"username":"%s",
+"response": %s}
+EOF
+
+read -r -d '' logBegInputJSON << EOF
+{"username":"%s",
+"response": %s }
+EOF
+
+read -r -d '' logBegMiddleJSON << EOF
+{"publicKey": %s}
+EOF
+
+# ===== registration ======
+read -r -d '' regBegJSON << EOF
+{"username":"%s",
+"algorithms":["es256"],
+"user_verification": "preferred",
+"attestation": "direct",
+"attachment": "cross_platform",
+"discoverable_credential": "preferred"}
+EOF
+
+read -r -d '' regFinJSON << EOF
+{"username":"%s",
+"response": %s}
+EOF
+
+read -r -d '' regBegInputJSON << EOF
+{"username":"%s",
+"response": %s }
+EOF
+
+read -r -d '' regBegMiddleJSON << EOF
+{"publicKey": %s}
+EOF
+
+# echo "$regBegJSON" | jq .
+# rpid TODO
+#
+go run main.go -url 'https://webauthn.io' \
+	-rpid 'https://webauthn.io/' \
+	-log-begin-met 'POST' \
+	-log-begin '%s/authentication/options' \
+	-log-finish '%s/authentication/verification' \
+	-log-finish-pl "$logFinJSON" \
+	-log-begin-pl "$logBegJSON" \
+	-log-begin-pl-in "$logBegInputJSON" \
+	-log-begin-pl-middle "$logBegMiddleJSON" \
+ \
+	-reg-begin-met 'POST' \
+	-reg-begin '%s/registration/options' \
+	-reg-begin-pl "$regBegJSON" \
+	-reg-begin-pl-in "$regBegInputJSON" \
+	-reg-begin-pl-middle "$regBegMiddleJSON" \
+	-reg-begin '%s/registration/options' \
+	-reg-finish '%s/registration/verification' \
+	-reg-finish-pl "$regFinJSON" \
+	-logging "-logtostderr -v=15" \
+	$@
