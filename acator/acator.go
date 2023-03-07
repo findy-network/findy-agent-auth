@@ -139,14 +139,6 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	keyHandle := try.To1(enclave.Store.NewKeyHandle())
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
-	ccd := protocol.CollectedClientData{
-		Type:         protocol.CreateCeremony,
-		Challenge:    base64.RawURLEncoding.EncodeToString(creation.Response.Challenge),
-		Origin:       origin,
-		TokenBinding: nil,
-		Hint:         "",
-	}
-	ccdByteJson := try.To1(json.Marshal(ccd))
 	khID := keyHandle.ID()
 	flags := protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent
 	authenticatorData := protocol.AuthenticatorData{
@@ -166,6 +158,18 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 		AttStatement: nil,
 	}
 	aoByteCBOR := try.To1(cbor.Marshal(ao))
+
+	ccd := protocol.CollectedClientData{
+		Type:         protocol.CreateCeremony,
+		Challenge:    creation.Response.Challenge.String(),
+		Origin:       origin,
+		TokenBinding: nil,
+		Hint:         "",
+	}
+	assert.NotEmpty(ccd.Challenge)
+
+	ccdByteJson := try.To1(json.Marshal(ccd))
+	assert.That(checkClientData(ccdByteJson))
 
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -188,9 +192,31 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	return ccr
 }
 
+func checkClientData(d []byte) bool {
+	var ccd protocol.CollectedClientData
+	try.To(json.Unmarshal(d, &ccd))
+	return ccd.Challenge != ""
+}
+
 func tryReadCreation(r io.Reader) *protocol.CredentialCreation {
+	b := try.To1(io.ReadAll(r))
+	//var buf bytes.Buffer
+	//r = io.TeeReader(r, &buf)
 	var creation protocol.CredentialCreation
-	try.To(json.NewDecoder(r).Decode(&creation))
+	//try.To(json.NewDecoder(r).Decode(&creation))
+	try.To(json.Unmarshal(b, &creation))
+
+	//	var m map[string]any
+	//	try.To(json.NewDecoder(&buf).Decode(&m))
+	//	fmt.Printf("\n%v\n", m)
+	//	assert.MKeyExists(m, "timeout")
+	//	c := assert.MKeyExists(m, "challenge").(string)
+	//	assert.NotEmpty(c)
+	//	fmt.Printf("\n%v\n", c)
+
+	//assert.SNotEmpty(creation.Response.Challenge)
+	assert.NotEmpty(creation.Response.User.Name)
+	assert.NotEmpty(creation.Response.Challenge.String())
 	return &creation
 }
 
