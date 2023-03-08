@@ -2,7 +2,9 @@
 package authn
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -130,6 +132,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	urlStr = ac.Url
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
+	cookieFile = ac.CookieFile
 	glog.V(13).Infof("json B: %v", loginBegin)
 	glog.V(13).Infof("json B: %v", loginBegin)
 	glog.V(13).Infof("json F: %v", loginFinish)
@@ -176,7 +179,8 @@ const (
 type cmdFunc func() (*Result, error)
 
 var (
-	//rpID     string
+	cookieFile string
+
 	name     string
 	seed     string
 	urlStr   string
@@ -253,11 +257,29 @@ func registerUser() (result *Result, err error) {
 	defer r2.Close()
 
 	b := try.To1(io.ReadAll(r2))
+	if cookieFile != "" {
+		var buf bytes.Buffer
+		URL := try.To1(url.Parse(urlStr))
+		cookies := c.Jar.Cookies(URL)
+		try.To(gob.NewEncoder(&buf).Encode(cookies))
+		try.To(os.WriteFile(cookieFile, buf.Bytes(), 0664))
+		glog.V(0).Infof("saving %d cookies", len(cookies))
+	}
 	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
 
 func loginUser() (_ *Result, err error) {
 	defer err2.Handle(&err, "login user")
+
+	if cookieFile != "" {
+		data := try.To1(os.ReadFile(cookieFile))
+		buf := bytes.NewReader(data)
+		URL := try.To1(url.Parse(urlStr))
+		var cookies []*http.Cookie
+		try.To(gob.NewDecoder(buf).Decode(&cookies))
+		glog.V(0).Infof("loading %d cookies", len(cookies))
+		c.Jar.SetCookies(URL, cookies)
+	}
 
 	var plr io.Reader
 	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
@@ -328,7 +350,9 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 
 	response := try.To1(c.Do(request))
 
-	c.Jar.SetCookies(URL, response.Cookies())
+	cookies := response.Cookies()
+	glog.V(0).Infof("getting %d cookies from response", len(cookies))
+	c.Jar.SetCookies(URL, cookies)
 
 	if response.StatusCode == http.StatusInternalServerError {
 		d := string(try.To1(io.ReadAll(response.Body)))
