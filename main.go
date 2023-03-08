@@ -281,11 +281,16 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 	_ = enclave.RemoveSessionUser(sessionData.UserID)
 }
 
+type loginUserInfo struct {
+	Username string `json:"username"`
+}
+
 func BeginLogin(w http.ResponseWriter, r *http.Request) {
 	defer err2.Catch(func(err error) {
 		glog.Warningln("begin login", err)
 	})
 
+	glog.V(1).Infoln("END begin login")
 	var err error
 
 	defer err2.Handle(&err, func() {
@@ -293,7 +298,7 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// get username
-	var uInfo userInfo
+	var uInfo loginUserInfo
 	try.To(json.NewDecoder(r.Body).Decode(&uInfo))
 	username := uInfo.Username
 
@@ -323,7 +328,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	})
 
 	glog.V(1).Infoln("get session data for finshing login")
-	sessionData := try.To1(sessionStore.GetWebauthnSession("registration", r))
+	sessionData := try.To1(sessionStore.GetWebauthnSession("authentication", r))
 
 	user := try.To1(enclave.GetExistingSessionUser(sessionData.UserID))
 
