@@ -116,10 +116,16 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/register/begin/{username}", BeginRegistration).Methods("GET")
-	r.HandleFunc("/register/finish/{username}", FinishRegistration).Methods("POST")
-	r.HandleFunc("/login/begin/{username}", BeginLogin).Methods("GET")
-	r.HandleFunc("/login/finish/{username}", FinishLogin).Methods("POST")
+	/*
+		-log-begin '%s/assertion/options' \
+		-log-finis '%s/assertion/result' \
+		-reg-begin '%s/attestation/options' \
+		-reg-finis '%s/attestation/result' \
+	*/
+	r.HandleFunc("/assertion/options", BeginLogin).Methods("POST")
+	r.HandleFunc("/assertion/result", FinishLogin).Methods("POST")
+	r.HandleFunc("/attestation/options", BeginRegistration).Methods("POST")
+	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
 
 	if testUI {
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
@@ -165,17 +171,17 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		glog.Warningln("begin registration error:", err)
 	})
 
-	// get username/friendly name
-	vars := mux.Vars(r)
-	username, ok := vars["username"]
-	glog.V(1).Infoln("begin registration", username)
-	if !ok {
-		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"),
-			http.StatusBadRequest)
-		return
-	}
-
 	var err error
+	// get username/friendly name
+
+	defer err2.Handle(&err, func() {
+		jsonResponse(w, err.Error(), http.StatusBadRequest)
+	})
+
+	// get username
+	var uInfo userInfo
+	try.To(json.NewDecoder(r.Body).Decode(&uInfo))
+	username := uInfo.Username
 
 	// get user
 	userData, exists := try.To2(enclave.GetUser(username))
@@ -218,9 +224,17 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	// store session data as marshaled JSON
 	glog.V(1).Infoln("store session data")
 	try.To(sessionStore.SaveWebauthnSession("registration", sessionData, r, w))
+	try.To(enclave.PutSessionUser(sessionData.UserID, userData))
 
 	jsonResponse(w, options, http.StatusOK)
 	glog.V(1).Infoln("begin registration end", username)
+}
+
+type userInfo struct {
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName,omitempty"`
+
+	UserVerification string `json:"userVerification,omitempty"`
 }
 
 func FinishRegistration(w http.ResponseWriter, r *http.Request) {
@@ -230,25 +244,27 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	// get username
-	vars := mux.Vars(r)
-	username := vars["username"]
-	glog.V(1).Infoln("finish registration", username)
+	defer err2.Handle(&err, func() {
+		jsonResponse(w, err.Error(), http.StatusBadRequest)
+	})
+
+	glog.V(1).Infoln("get session data for registration")
+	sessionData := try.To1(sessionStore.GetWebauthnSession("registration", r))
+
+	user := try.To1(enclave.GetExistingSessionUser(sessionData.UserID))
+	glog.V(1).Infoln("finish registration", user.Name)
 
 	defer err2.Handle(&err, func() {
 		glog.Errorln("error:", err)
 
 		// try to remove added user as registration failed
-		_ = enclave.RemoveUser(username)
-
+		errRm := enclave.RemoveUser(user.Name)
+		if errRm != nil {
+			err = fmt.Errorf("finsish reg: %w: %w", err, errRm)
+		}
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		err = nil
 	})
-
-	glog.V(1).Infoln("getting existing user", username)
-	user := try.To1(enclave.GetExistingUser(username))
-
-	glog.V(1).Infoln("get session data for registration")
-	sessionData := try.To1(sessionStore.GetWebauthnSession("registration", r))
 
 	glog.V(1).Infoln("call web authn finish registration and getting credential")
 	credential := try.To1(webAuthn.FinishRegistration(user, sessionData, r))
@@ -260,7 +276,9 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 	try.To(enclave.PutUser(user))
 
 	jsonResponse(w, "Registration Success", http.StatusOK)
-	glog.V(1).Infoln("END finish registration", username)
+	glog.V(1).Infoln("END finish registration", user.Name)
+
+	_ = enclave.RemoveSessionUser(sessionData.UserID)
 }
 
 func BeginLogin(w http.ResponseWriter, r *http.Request) {
@@ -270,14 +288,14 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	// get username
-	vars := mux.Vars(r)
-	username := vars["username"]
-	glog.V(1).Infoln("BEGIN begin login", username)
-
 	defer err2.Handle(&err, func() {
-		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		jsonResponse(w, err.Error(), http.StatusBadRequest)
 	})
+
+	// get username
+	var uInfo userInfo
+	try.To(json.NewDecoder(r.Body).Decode(&uInfo))
+	username := uInfo.Username
 
 	// get user
 	user := try.To1(enclave.GetExistingUser(username))
@@ -286,7 +304,8 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 	options, sessionData := try.To2(webAuthn.BeginLogin(user))
 
 	// store session data as marshaled JSON
-	err = sessionStore.SaveWebauthnSession("authentication", sessionData, r, w)
+	try.To(sessionStore.SaveWebauthnSession("authentication", sessionData, r, w))
+	try.To(enclave.PutSessionUser(sessionData.UserID, user))
 
 	jsonResponse(w, options, http.StatusOK)
 	glog.V(1).Infoln("END begin login", username)
@@ -299,20 +318,21 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	// get username
-	vars := mux.Vars(r)
-	username := vars["username"]
+	defer err2.Handle(&err, func() {
+		jsonResponse(w, err.Error(), http.StatusBadRequest)
+	})
+
+	glog.V(1).Infoln("get session data for finshing login")
+	sessionData := try.To1(sessionStore.GetWebauthnSession("registration", r))
+
+	user := try.To1(enclave.GetExistingSessionUser(sessionData.UserID))
+
+	username := user.Name
 	glog.V(1).Infoln("BEGIN finish login:", username)
 
 	defer err2.Handle(&err, func() {
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 	})
-
-	// get user
-	user := try.To1(enclave.GetExistingUser(username))
-
-	// load the session data
-	sessionData := try.To1(sessionStore.GetWebauthnSession("authentication", r))
 
 	// in an actual implementation, we should perform additional checks on
 	// the returned 'credential', i.e. check 'credential.Authenticator.CloneWarning'

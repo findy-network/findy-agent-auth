@@ -25,9 +25,10 @@ import (
 )
 
 const userByte = 0
+const userSessionByte = 1
 
 var (
-	buckets           = [][]byte{{01, 01}}
+	buckets           = [][]byte{{01, 01}, {01, 02}}
 	sealedBoxFilename string
 
 	// Key must be set from production environment, SHA-256, 32 bytes
@@ -127,6 +128,68 @@ func RemoveUser(name string) (err error) {
 	_ = try.To1(GetExistingUser(name))
 	return db.RmKeyValueFromBucket(buckets[userByte], &db.Data{
 		Data: []byte(name),
+		Read: hash,
+	})
+}
+
+// PutSessionUser saves the user to database.
+func PutSessionUser(userID []byte, u *user.User) (err error) {
+	defer err2.Handle(&err)
+
+	try.To(db.AddKeyValueToBucket(buckets[userSessionByte],
+		&db.Data{
+			Data: u.Data(),
+			Read: encrypt,
+		},
+		&db.Data{
+			Data: userID,
+			Read: hash,
+		},
+	))
+
+	return nil
+}
+
+// GetSessionUser returns user by name if exists in enclave
+func GetSessionUser(userID []byte) (u *user.User, exist bool, err error) {
+	defer err2.Handle(&err)
+
+	value := &db.Data{
+		Write: decrypt,
+	}
+	already := try.To1(db.GetKeyValueFromBucket(buckets[userSessionByte],
+		&db.Data{
+			Data: userID,
+			Read: hash,
+		},
+		value,
+	))
+	if !already {
+		return nil, already, err
+	}
+
+	return user.NewUserFromData(value.Data), already, err
+}
+
+// GetSessionExistingUser returns user by name if exists in enclave
+func GetExistingSessionUser(userID []byte) (u *user.User, err error) {
+	defer err2.Handle(&err)
+
+	u, already := try.To2(GetSessionUser(userID))
+
+	if !already {
+		return nil, fmt.Errorf("user (%v) not exist", userID)
+	}
+
+	return u, err
+}
+
+func RemoveSessionUser(userID []byte) (err error) {
+	defer err2.Handle(&err)
+
+	_ = try.To1(GetExistingSessionUser(userID))
+	return db.RmKeyValueFromBucket(buckets[userSessionByte], &db.Data{
+		Data: userID,
 		Read: hash,
 	})
 }
