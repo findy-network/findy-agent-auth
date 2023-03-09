@@ -59,10 +59,10 @@ var (
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
 	authnCmd = authn.Cmd{
-		SubCmd:   "login",
-		UserName: "",
-		RPID:     "",
-		Url:      "http://localhost:8090",
+		SubCmd:     "login",
+		UserName:   "",
+		CookiePath: "",
+		Url:        "http://localhost:8090",
 
 		RegisterBegin: authn.Endpoint{
 			Method:  "GET",
@@ -95,9 +95,13 @@ var (
 )
 
 func init() {
-	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
+	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2",
+		"logging startup arguments")
 	startServerCmd.StringVar(&authnCmd.Url, "url", authnCmd.Url, "web authn server url")
-	startServerCmd.StringVar(&authnCmd.CookieFile, "cookies", authnCmd.CookieFile, "cookies to store between calls")
+	startServerCmd.StringVar(&authnCmd.CookieFile, "cookies", authnCmd.CookieFile,
+		"cookies to store between calls")
+	startServerCmd.StringVar(&authnCmd.CookiePath, "cookie-path", authnCmd.CookiePath,
+		"path to page which loads needed cookies")
 
 	startServerCmd.StringVar(&authnCmd.RegisterBegin.Path, "reg-begin",
 		authnCmd.RegisterBegin.Path, "format string to build endpoint path")
