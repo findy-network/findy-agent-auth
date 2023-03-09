@@ -32,7 +32,6 @@ type Cmd struct {
 	UserName      string `json:"user_name"`
 	PublicDIDSeed string `json:"public_did_seed"`
 	Url           string `json:"url,omitempty"`
-	RPID          string `json:"rpid,omitempty"`
 	AAGUID        string `json:"aaguid,omitempty"`
 	Key           string `json:"key,omitempty"`
 	Counter       uint64 `json:"counter,omitempty"`
@@ -44,6 +43,7 @@ type Cmd struct {
 	LoginBegin     Endpoint `json:"login_1,omitempty"`
 	LoginFinish    Endpoint `json:"login_2,omitempty"`
 
+	CookiePath string `json:"cookie_path,omitempty"`
 	CookieFile string `json:"cookie_file,omitempty"`
 
 	SecEnclave enclave.Secure `json:"-"`
@@ -133,10 +133,10 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
 	cookieFile = ac.CookieFile
+	cookiePath = ac.CookiePath
 	glog.V(13).Infof("json B: %v", loginBegin)
 	glog.V(13).Infof("json B: %v", loginBegin)
 	glog.V(13).Infof("json F: %v", loginFinish)
-	//rpID = ac.RPID
 	if ac.Origin != "" {
 		origin = ac.Origin
 		originURL := try.To1(url.Parse(ac.Origin))
@@ -179,7 +179,7 @@ const (
 type cmdFunc func() (*Result, error)
 
 var (
-	cookieFile string
+	cookiePath, cookieFile string
 
 	name     string
 	seed     string
@@ -212,6 +212,8 @@ func empty() (*Result, error) {
 
 func registerUser() (result *Result, err error) {
 	defer err2.Handle(&err, "register user")
+
+	checkCookiePath()
 
 	var plr io.Reader
 	beginURL := fmt.Sprintf(registerBegin.Path, urlStr, name, seed)
@@ -271,15 +273,7 @@ func registerUser() (result *Result, err error) {
 func loginUser() (_ *Result, err error) {
 	defer err2.Handle(&err, "login user")
 
-	if cookieFile != "" {
-		data := try.To1(os.ReadFile(cookieFile))
-		buf := bytes.NewReader(data)
-		URL := try.To1(url.Parse(urlStr))
-		var cookies []*http.Cookie
-		try.To(gob.NewDecoder(buf).Decode(&cookies))
-		glog.V(0).Infof("loading %d cookies", len(cookies))
-		c.Jar.SetCookies(URL, cookies)
-	}
+	checkCookiePath()
 
 	var plr io.Reader
 	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
@@ -347,12 +341,15 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	if jwtToken != "" {
 		request.Header.Add("Authorization", "Bearer "+jwtToken)
 	}
-
+	if rawCookies := os.Getenv("COOKIE"); rawCookies != "" {
+		glog.V(3).Infoln("setting cookies from env (COOKIE):\n", rawCookies)
+		request.Header.Add("Cookie", rawCookies)
+	}
 	response := try.To1(c.Do(request))
 
 	cookies := response.Cookies()
 	glog.V(0).Infof("getting %d cookies from response", len(cookies))
-	c.Jar.SetCookies(URL, cookies)
+	addToCookieJar(URL, cookies)
 
 	if response.StatusCode == http.StatusInternalServerError {
 		d := string(try.To1(io.ReadAll(response.Body)))
@@ -369,6 +366,17 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	echoRespToStdout(response)
 
 	return response.Body
+}
+
+func addToCookieJar(URL *url.URL, cookies []*http.Cookie) {
+	for _, c := range cookies {
+		glog.V(1).Infoln("--- adding cookie:", c.String())
+	}
+	jarCookies := c.Jar.Cookies(URL)
+	cookies = append(cookies, jarCookies...)
+	glog.V(0).Infof("jar cookie len %d, restonse cookie len: %d",
+		len(jarCookies), len(cookies))
+	c.Jar.SetCookies(URL, cookies)
 }
 
 func setupClient() (client *http.Client) {
@@ -406,5 +414,29 @@ func echoRespToStdout(r *http.Response) {
 			io.Reader
 			io.Closer
 		}{io.TeeReader(r.Body, os.Stdout), r.Body}
+	}
+}
+
+func checkCookiePath() {
+	if cookieFile != "" && cookiePath == "" {
+		data := try.To1(os.ReadFile(cookieFile))
+		buf := bytes.NewReader(data)
+		URL := try.To1(url.Parse(urlStr))
+		var cookies []*http.Cookie
+		try.To(gob.NewDecoder(buf).Decode(&cookies))
+		glog.V(0).Infof("loading %d cookies", len(cookies))
+		c.Jar.SetCookies(URL, cookies)
+	} else if cookiePath != "" { // just load page
+		// assert.NotEmpty(cookieFile)
+		// make the http request to load the page AND cookies
+		glog.V(1).Infof("cookie path: '%s'", cookiePath)
+		if cookiePath == "-" {
+			cookiePath = ""
+		}
+		cookiePageURL := urlStr + cookiePath
+		glog.V(1).Infoln("loading cookie page:", cookiePageURL)
+		r := tryHTTPRequest("GET", cookiePageURL, &bytes.Buffer{})
+		// we don't know how the server behaves, we don't want it to abort
+		_ = try.To1(io.ReadAll(r))
 	}
 }
