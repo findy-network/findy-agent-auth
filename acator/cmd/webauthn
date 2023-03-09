@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# https://webauthn.io/
-
 # ===== login ======
 read -r -d '' logBegJSON << EOF
 {"username":"%s",
@@ -46,25 +44,44 @@ read -r -d '' regBegMiddleJSON << EOF
 {"publicKey": %s}
 EOF
 
-# echo "$regBegJSON" | jq .
-# rpid TODO
-#
-go run main.go -url 'https://webauthn.io' \
-	-log-begin-met 'POST' \
-	-log-begin '%s/authentication/options' \
-	-log-finish '%s/authentication/verification' \
+# these follow FIDO2 reference document
+if [[ "$FIDO_ENDPOINTS" != "" ]]; then
+	log_begin_met='POST'
+	log_begin='%s/assertion/options'
+	log_finish='%s/assertion/result'
+	reg_begin_met='POST'
+	reg_begin='%s/attestation/options'
+	reg_finish='%s/attestation/result'
+else # these are for webauthn.io
+	log_begin_met='POST'
+	log_begin='%s/authentication/options'
+	log_finish='%s/authentication/verification'
+	reg_begin_met='POST'
+	reg_begin='%s/registration/options'
+	reg_finish='%s/registration/verification'
+fi
+
+url=${FCLI_URL:-"https://webauthn.io"}
+lvl=${lvl:-"-logtostderr=false -v=0"}
+
+go run main.go -url "$url" \
+	-log-begin-met "$log_begin_met" \
+	-log-begin "$log_begin" \
+	-log-finish "$log_finish" \
+ \
+	-reg-begin-met "$reg_begin_met" \
+	-reg-begin "$reg_begin" \
+	-reg-finish "$reg_finish" \
+ \
 	-log-finish-pl "$logFinJSON" \
 	-log-begin-pl "$logBegJSON" \
 	-log-begin-pl-in "$logBegInputJSON" \
 	-log-begin-pl-middle "$logBegMiddleJSON" \
  \
-	-reg-begin-met 'POST' \
 	-reg-begin '%s/registration/options' \
 	-reg-begin-pl "$regBegJSON" \
 	-reg-begin-pl-in "$regBegInputJSON" \
 	-reg-begin-pl-middle "$regBegMiddleJSON" \
-	-reg-begin '%s/registration/options' \
-	-reg-finish '%s/registration/verification' \
 	-reg-finish-pl "$regFinJSON" \
 	-logging "-logtostderr -v=15" \
 	$@
