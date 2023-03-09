@@ -65,6 +65,7 @@ url=${FCLI_URL:-"https://webauthn.io"}
 lvl=${lvl:-"-logtostderr=false -v=0"}
 
 go run main.go -url "$url" \
+	-logging "$lvl" \
 	-log-begin-met "$log_begin_met" \
 	-log-begin "$log_begin" \
 	-log-finish "$log_finish" \
@@ -83,5 +84,4 @@ go run main.go -url "$url" \
 	-reg-begin-pl-in "$regBegInputJSON" \
 	-reg-begin-pl-middle "$regBegMiddleJSON" \
 	-reg-finish-pl "$regFinJSON" \
-	-logging "-logtostderr -v=15" \
 	$@
