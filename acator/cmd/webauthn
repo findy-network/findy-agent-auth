@@ -62,7 +62,7 @@ else # these are for webauthn.io
 fi
 
 url=${FCLI_URL:-"https://webauthn.io"}
-lvl=${lvl:-"-logtostderr=false -v=0"}
+lvl=${lvl:-"-logtostderr -v=0"} # e.g. -v=5, when 5<= payloads are echoed
 
 go run main.go -url "$url" \
 	-logging "$lvl" \
@@ -74,12 +74,11 @@ go run main.go -url "$url" \
 	-reg-begin "$reg_begin" \
 	-reg-finish "$reg_finish" \
  \
-	-log-finish-pl "$logFinJSON" \
 	-log-begin-pl "$logBegJSON" \
 	-log-begin-pl-in "$logBegInputJSON" \
 	-log-begin-pl-middle "$logBegMiddleJSON" \
+	-log-finish-pl "$logFinJSON" \
  \
-	-reg-begin '%s/registration/options' \
 	-reg-begin-pl "$regBegJSON" \
 	-reg-begin-pl-in "$regBegInputJSON" \
 	-reg-begin-pl-middle "$regBegMiddleJSON" \
