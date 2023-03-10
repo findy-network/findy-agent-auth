@@ -76,6 +76,16 @@ var challengeResponseJSON = `{
   }
 }
 `
+var challengeResponseJSON2 = `{
+  "id": "uQAvsQJQo6VoyT5rY7xn2kEjaWZwLTyqBss7sGroeKqrYRHDMujrFsKU8s-YuLRhadrJYCq_-TWPzYMg_Wam8tgnq6U1ij-wgAKH8UxXcAIFIEOL5J1g8Z46JujqNkciDIuAVMDTXCBeJKZKeaVUfrgBNR6FBDZlCjF4kMnrt39C23cgUp5k9p6RlMDpZCYIxyRObEE",
+  "type": "public-key",
+  "rawId": "uQAvsQJQo6VoyT5rY7xn2kEjaWZwLTyqBss7sGroeKqrYRHDMujrFsKU8s-YuLRhadrJYCq_-TWPzYMg_Wam8tgnq6U1ij-wgAKH8UxXcAIFIEOL5J1g8Z46JujqNkciDIuAVMDTXCBeJKZKeaVUfrgBNR6FBDZlCjF4kMnrt39C23cgUp5k9p6RlMDpZCYIxyRObEE",
+  "response": {
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiN1dNb0VzZTFXQUNtdHc0ZUV6NHpRZjFhQXhkWUh1YzltdF9nMjZ6OG1ucyIsIm9yaWdpbiI6Imh0dHBzOi8vc2QwMXRlc3QwMy5vcGNsb3VkLmp0eS5vcC1wYWx2ZWx1dC5uZXQifQ",
+    "attestationObject": "omhhdXRoRGF0YVkBGRqzyIb7EsWEte74-zlUKCeATcANep0xElBWF0alXQjLRQAAAAASyFpIS69HvbUf8ZKHGhURAJW5AC-xAlCjpWjJPmtjvGfaQSNpZnAtPKoGyzuwauh4qqthEcMy6OsWwpTyz5i4tGFp2slgKr_5NY_NgyD9Zqby2CerpTWKP7CAAofxTFdwAgUgQ4vknWDxnjom6Oo2RyIMi4BUwNNcIF4kpkp5pVR-uAE1HoUENmUKMXiQyeu3f0LbdyBSnmT2npGUwOlkJgjHJE5sQaUBAgMmIAEhWCDRPFsRoCjRVyrQsAirYc6XNlbMfVzlM_hV2_mxcyhNPyJYIIzws0soaNZHGJqbvLeEnZvkZeePriEFSBrKMZ4zqgEuY2ZtdGRub25l"
+  }
+}
+`
 
 // ==== assertion/Login
 // credentialRequestOptions
@@ -331,15 +341,30 @@ func TestParseAssertionResponse(t *testing.T) {
 }
 
 func TestParseResponse(t *testing.T) {
-	assert.PushTester(t)
-	defer assert.PopTester()
-	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
-	assert.NoError(err)
-	assert.NotNil(ccd)
+	type args struct {
+		body string
+	}
+	tests := []struct {
+		name   string
+		args   args
+		wantOK bool
+	}{
+		{"from ISVA", args{challengeResponseJSON2}, true},
+		{"from webautn.io", args{challengeResponseJSON}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.PushTester(t)
+			defer assert.PopTester()
+			ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(tt.args.body))
+			assert.NoError(err)
+			assert.NotNil(ccd)
 
-	js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
-	assert.NoError(err)
-	assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
+			js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
+			assert.NoError(err)
+			assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
+		})
+	}
 }
 
 var webauthnIoChallenge = `{
