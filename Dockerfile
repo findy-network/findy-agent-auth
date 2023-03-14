@@ -1,5 +1,7 @@
 FROM golang:1.20-alpine3.17
 
+ARG GOBUILD_ARGS=""
+
 WORKDIR /work
 
 RUN apk update && apk add git
@@ -9,11 +11,14 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o /go/bin/findy-agent-auth
+RUN go build ${GOBUILD_ARGS} -o /go/bin/findy-agent-auth
 
 FROM  ghcr.io/findy-network/findy-base:alpine-3.17
 
 LABEL org.opencontainers.image.source https://github.com/findy-network/findy-agent-auth
+
+# used when running instrumented binary
+ENV GOCOVERDIR /coverage
 
 COPY --from=0 /go/bin/findy-agent-auth /findy-agent-auth
 
