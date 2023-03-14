@@ -23,7 +23,7 @@ var (
 	cmd        = flag.String("cmd", "login", "FIDO2 cmd: login/register")
 	user       = flag.String("user", "findy-root", "test user name")
 	serverAddr = flag.String("addr", "localhost", "agency host gRPC address")
-	cert       = flag.String("cert", "../../../scripts/e2e/cert/", "TLS cert path")
+	cert       = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
 	hexKey     = flag.String("key",
 		"289239187d7c395044976416280b6a283bf65562a06b0bdc3a75a4db4adfe7c7",
 		"soft cipher master key in HEX")
