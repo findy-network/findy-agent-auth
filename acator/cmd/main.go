@@ -22,9 +22,11 @@ func main() {
 
 	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
-	if glog.V(3) { // TODO: these need own flags
+	if panicTrace {
 		err2.SetPanicTracer(os.Stderr)
-		//err2.SetErrorTracer(os.Stderr)
+	}
+	if errTrace {
+		err2.SetErrorTracer(os.Stderr)
 	}
 
 	jsonAPI := false
@@ -54,6 +56,8 @@ func main() {
 }
 
 var (
+	errTrace, panicTrace bool
+
 	dryRun         bool
 	loggingFlags   string
 	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
@@ -95,6 +99,9 @@ var (
 )
 
 func init() {
+	startServerCmd.BoolVar(&errTrace, "et", false, "enables error stack tracing")
+	startServerCmd.BoolVar(&panicTrace, "pt", false, "enables panic stack tracing")
+
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2",
 		"logging startup arguments")
 	startServerCmd.StringVar(&authnCmd.Url, "url", authnCmd.Url, "web authn server url")
