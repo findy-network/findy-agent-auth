@@ -32,7 +32,7 @@ func TryMarshalData(data *protocol.AuthenticatorData) []byte {
 func MarshalData(ad *protocol.AuthenticatorData) (out []byte, err error) {
 	defer err2.Handle(&err, "marshal authenticator data")
 
-	assert.D.EqualInt(len(ad.RPIDHash), 32, "wrong RPIDHash length")
+	assert.SLen(ad.RPIDHash, 32, "wrong RPIDHash length: %d != 32", len(ad.RPIDHash))
 
 	out = make([]byte, 32+1+4, 37+lenAttestedCredentialData(ad)+10)
 	copy(out, ad.RPIDHash)
