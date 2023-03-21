@@ -265,7 +265,7 @@ func registerUser() (result *Result, err error) {
 		cookies := c.Jar.Cookies(URL)
 		try.To(gob.NewEncoder(&buf).Encode(cookies))
 		try.To(os.WriteFile(cookieFile, buf.Bytes(), 0664))
-		glog.V(0).Infof("saving %d cookies", len(cookies))
+		glog.V(3).Infof("saving %d cookies", len(cookies))
 	}
 	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
@@ -348,7 +348,7 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	response := try.To1(c.Do(request))
 
 	cookies := response.Cookies()
-	glog.V(0).Infof("getting %d cookies from response", len(cookies))
+	glog.V(3).Infof("getting %d cookies from response", len(cookies))
 	addToCookieJar(URL, cookies)
 
 	if response.StatusCode == http.StatusInternalServerError {
@@ -374,7 +374,7 @@ func addToCookieJar(URL *url.URL, cookies []*http.Cookie) {
 	}
 	jarCookies := c.Jar.Cookies(URL)
 	cookies = append(cookies, jarCookies...)
-	glog.V(0).Infof("jar cookie len %d, restonse cookie len: %d",
+	glog.V(3).Infof("jar cookie len %d, restonse cookie len: %d",
 		len(jarCookies), len(cookies))
 	c.Jar.SetCookies(URL, cookies)
 }
@@ -424,7 +424,7 @@ func checkCookiePath() {
 		URL := try.To1(url.Parse(urlStr))
 		var cookies []*http.Cookie
 		try.To(gob.NewDecoder(buf).Decode(&cookies))
-		glog.V(0).Infof("loading %d cookies", len(cookies))
+		glog.V(3).Infof("loading %d cookies", len(cookies))
 		c.Jar.SetCookies(URL, cookies)
 	} else if cookiePath != "" { // just load page
 		// assert.NotEmpty(cookieFile)
