@@ -3,11 +3,10 @@ package authenticator
 import (
 	"encoding/binary"
 
-	"github.com/duo-labs/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/lainio/err2"
-	"github.com/lainio/err2/try"
-
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 // AttestationObject is WebAuthn way to present Attestations:
@@ -32,7 +31,7 @@ func TryMarshalData(data *protocol.AuthenticatorData) []byte {
 func MarshalData(ad *protocol.AuthenticatorData) (out []byte, err error) {
 	defer err2.Handle(&err, "marshal authenticator data")
 
-	assert.D.EqualInt(len(ad.RPIDHash), 32, "wrong RPIDHash length")
+	assert.SLen(ad.RPIDHash, 32, "wrong RPIDHash length: %d != 32", len(ad.RPIDHash))
 
 	out = make([]byte, 32+1+4, 37+lenAttestedCredentialData(ad)+10)
 	copy(out, ad.RPIDHash)
@@ -46,9 +45,9 @@ func MarshalData(ad *protocol.AuthenticatorData) (out []byte, err error) {
 }
 
 func marshalAttestedCredentialData(outData []byte, data *protocol.AuthenticatorData) []byte {
-	assert.D.EqualInt(len(data.AttData.AAGUID), 16, "wrong AAGUID length")
-	assert.D.NotEmpty(data.AttData.CredentialID, "empty credential id")
-	assert.D.NotEmpty(data.AttData.CredentialPublicKey, "empty credential public key")
+	assert.SLen(data.AttData.AAGUID, 16, "wrong AAGUID length")
+	assert.SNotEmpty(data.AttData.CredentialID, "empty credential id")
+	assert.SNotEmpty(data.AttData.CredentialPublicKey, "empty credential public key")
 
 	outData = append(outData, data.AttData.AAGUID[:]...)
 

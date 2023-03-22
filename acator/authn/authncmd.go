@@ -2,7 +2,9 @@
 package authn
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/findy-network/findy-agent-auth/acator"
@@ -35,7 +38,23 @@ type Cmd struct {
 	Token         string `json:"token,omitempty"`
 	Origin        string `json:"origin,omitempty"`
 
+	RegisterBegin  Endpoint `json:"register_1,omitempty"`
+	RegisterFinish Endpoint `json:"register_2,omitempty"`
+	LoginBegin     Endpoint `json:"login_1,omitempty"`
+	LoginFinish    Endpoint `json:"login_2,omitempty"`
+
+	CookiePath string `json:"cookie_path,omitempty"`
+	CookieFile string `json:"cookie_file,omitempty"`
+
 	SecEnclave enclave.Secure `json:"-"`
+}
+
+type Endpoint struct {
+	Method   string `json:"method,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Payload  string `json:"payload,omitempty"`
+	InPL     string `json:"inputPL,omitempty"`
+	MiddlePL string `json:"middlePL,omitempty"`
 }
 
 func (ac *Cmd) Validate() (err error) {
@@ -49,6 +68,32 @@ func (ac *Cmd) Validate() (err error) {
 	assert.NotEmpty(ac.AAGUID, "authenticator ID needed")
 	if ac.Key == "" {
 		assert.INotNil(ac.SecEnclave, "secure enclave is needed")
+	}
+
+	if ac.RegisterBegin.Method == "" {
+		ac.RegisterBegin.Method = "GET"
+	}
+	if ac.RegisterFinish.Method == "" {
+		ac.RegisterFinish.Method = "POST"
+	}
+	if ac.LoginBegin.Method == "" {
+		ac.LoginBegin.Method = "GET"
+	}
+	if ac.LoginFinish.Method == "" {
+		ac.LoginFinish.Method = "POST"
+	}
+
+	if ac.RegisterBegin.Path == "" {
+		ac.RegisterBegin.Path = "%s/register/begin/%s?seed=%s"
+	}
+	if ac.RegisterFinish.Path == "" {
+		ac.RegisterFinish.Path = "%s/register/finish/%s"
+	}
+	if ac.LoginBegin.Path == "" {
+		ac.LoginBegin.Path = "%s/login/begin/%s"
+	}
+	if ac.LoginFinish.Path == "" {
+		ac.LoginFinish.Path = "%s/login/finish/%s"
 	}
 
 	return nil
@@ -79,11 +124,19 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	}
 
 	cmd := cmdModes[ac.SubCmd]
+
 	acator.AAGUID = uuid.Must(uuid.Parse(ac.AAGUID))
 	acator.Counter = uint32(ac.Counter)
 	name = ac.UserName
 	seed = ac.PublicDIDSeed
 	urlStr = ac.Url
+	loginBegin, loginFinish, registerBegin, registerFinish =
+		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
+	cookieFile = ac.CookieFile
+	cookiePath = ac.CookiePath
+	glog.V(13).Infof("json B: %v", loginBegin)
+	glog.V(13).Infof("json B: %v", loginBegin)
+	glog.V(13).Infof("json F: %v", loginFinish)
 	if ac.Origin != "" {
 		origin = ac.Origin
 		originURL := try.To1(url.Parse(ac.Origin))
@@ -126,11 +179,16 @@ const (
 type cmdFunc func() (*Result, error)
 
 var (
+	cookiePath, cookieFile string
+
 	name     string
 	seed     string
 	urlStr   string
 	origin   string
 	jwtToken string
+
+	// format strings to build actual endpoints
+	loginBegin, loginFinish, registerBegin, registerFinish Endpoint
 
 	c = setupClient()
 
@@ -155,37 +213,122 @@ func empty() (*Result, error) {
 func registerUser() (result *Result, err error) {
 	defer err2.Handle(&err, "register user")
 
-	r := tryHTTPRequest("GET", urlStr+"/register/begin/"+name+"?seed="+seed, nil)
+	checkCookiePath()
+
+	var plr io.Reader
+	beginURL := fmt.Sprintf(registerBegin.Path, urlStr, name, seed)
+	if registerBegin.Method == "POST" {
+		beginURL = fmt.Sprintf(registerBegin.Path, urlStr)
+		glog.V(13).Infoln("us:", beginURL)
+		pl := fmt.Sprintf(registerBegin.Payload, name) //, rpID)
+		glog.V(13).Infoln("pl:", pl)
+		plr = strings.NewReader(pl)
+	}
+	r := tryHTTPRequest(registerBegin.Method, beginURL, plr)
 	defer r.Close()
 
-	js := try.To1(acator.Register(r))
+	var js io.Reader
+	if registerBegin.MiddlePL != "" {
+		glog.V(13).Infoln("==> middle Payload:\n", registerBegin.MiddlePL)
 
-	r2 := tryHTTPRequest("POST", urlStr+"/register/finish/"+name, js)
+		resp := string(try.To1(io.ReadAll(r)))
+		pl := fmt.Sprintf(registerBegin.MiddlePL, resp)
+		glog.V(13).Infoln("middlePL:\n", pl)
+		r := strings.NewReader(pl)
+
+		js = try.To1(acator.Register(r))
+	} else {
+		js = try.To1(acator.Register(r))
+	}
+
+	glog.V(13).Infoln("Register called")
+	if registerFinish.Payload != "" {
+		glog.V(13).Infoln("==> finish Payload:\n", registerFinish.Payload)
+
+		resp := string(try.To1(io.ReadAll(js)))
+		fullResp := fmt.Sprintf(registerFinish.Payload, name, resp)
+		glog.V(13).Infoln("fullResp:\n", fullResp)
+		js = strings.NewReader(fullResp)
+	}
+
+	finishURL := fmt.Sprintf(registerFinish.Path, urlStr)
+	if registerBegin.Method == "GET" {
+		finishURL = fmt.Sprintf(registerFinish.Path, urlStr, name)
+	}
+	r2 := tryHTTPRequest(registerFinish.Method, finishURL, js)
 	defer r2.Close()
 
 	b := try.To1(io.ReadAll(r2))
+	if cookieFile != "" {
+		var buf bytes.Buffer
+		URL := try.To1(url.Parse(urlStr))
+		cookies := c.Jar.Cookies(URL)
+		try.To(gob.NewEncoder(&buf).Encode(cookies))
+		try.To(os.WriteFile(cookieFile, buf.Bytes(), 0664))
+		glog.V(3).Infof("saving %d cookies", len(cookies))
+	}
 	return &Result{SubCmd: "register", Token: string(b)}, nil
 }
 
 func loginUser() (_ *Result, err error) {
 	defer err2.Handle(&err, "login user")
 
-	r := tryHTTPRequest("GET", urlStr+"/login/begin/"+name, nil)
+	checkCookiePath()
+
+	var plr io.Reader
+	us := fmt.Sprintf(loginBegin.Path, urlStr, name)
+	if loginBegin.Method == "POST" {
+		us = fmt.Sprintf(loginBegin.Path, urlStr)
+		glog.V(13).Infoln("us:", us)
+		pl := fmt.Sprintf(loginBegin.Payload, name) //, rpID)
+		glog.V(13).Infoln("pl:", pl)
+		plr = strings.NewReader(pl)
+	}
+	r := tryHTTPRequest(loginBegin.Method, us, plr)
 	defer r.Close()
 
-	js := try.To1(acator.Login(r))
+	var js io.Reader
+	if loginBegin.MiddlePL != "" {
+		glog.V(13).Infoln("==> middle Payload:\n", loginBegin.MiddlePL)
 
-	r2 := tryHTTPRequest("POST", urlStr+"/login/finish/"+name, js)
+		resp := string(try.To1(io.ReadAll(r)))
+		pl := fmt.Sprintf(loginBegin.MiddlePL, resp)
+		glog.V(13).Infoln("middlePL:\n", pl)
+		r := strings.NewReader(pl)
+		js = try.To1(acator.Login(r))
+	} else {
+		js = try.To1(acator.Login(r))
+	}
+	if loginFinish.Payload != "" {
+		glog.V(13).Infoln("==> finish Payload:\n", loginFinish.Payload)
+
+		resp := string(try.To1(io.ReadAll(js)))
+		fullResp := fmt.Sprintf(loginFinish.Payload, name, resp)
+		glog.V(13).Infoln("fullResp:\n", fullResp)
+		js = strings.NewReader(fullResp)
+	}
+
+	finishURL := fmt.Sprintf(loginFinish.Path, urlStr)
+	if loginBegin.Method == "GET" {
+		finishURL = fmt.Sprintf(loginFinish.Path, urlStr, name)
+	}
+
+	r2 := tryHTTPRequest(loginFinish.Method, finishURL, js)
 	defer r2.Close()
 
 	var result Result
-	try.To(json.NewDecoder(r2).Decode(&result))
-
+	if loginBegin.Method == "GET" {
+		try.To(json.NewDecoder(r2).Decode(&result))
+	} else {
+		b := try.To1(io.ReadAll(r2))
+		result.Token = string(b)
+	}
 	result.SubCmd = "login"
 	return &result, nil
 }
 
 func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
+	glog.V(13).Infoln("===", addr)
 	URL := try.To1(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
@@ -198,16 +341,42 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 	if jwtToken != "" {
 		request.Header.Add("Authorization", "Bearer "+jwtToken)
 	}
-
+	if rawCookies := os.Getenv("COOKIE"); rawCookies != "" {
+		glog.V(3).Infoln("setting cookies from env (COOKIE):\n", rawCookies)
+		request.Header.Add("Cookie", rawCookies)
+	}
 	response := try.To1(c.Do(request))
 
-	c.Jar.SetCookies(URL, response.Cookies())
+	cookies := response.Cookies()
+	glog.V(3).Infof("getting %d cookies from response", len(cookies))
+	addToCookieJar(URL, cookies)
 
-	if response.StatusCode != http.StatusOK {
-		try.To(fmt.Errorf("status code: %v", response.Status))
+	if response.StatusCode == http.StatusInternalServerError {
+		d := string(try.To1(io.ReadAll(response.Body)))
+		glog.Errorln("Server error:", d)
+		err2.Throwf("SERVER error: %v", d)
+	} else if response.StatusCode == http.StatusBadRequest {
+		d := string(try.To1(io.ReadAll(response.Body)))
+		glog.Errorln("BAD:", d)
+		err2.Throwf("error bad: %v", d)
+	} else if response.StatusCode != http.StatusOK {
+		err2.Throwf("status code: %v", response.Status)
 	}
+
 	echoRespToStdout(response)
+
 	return response.Body
+}
+
+func addToCookieJar(URL *url.URL, cookies []*http.Cookie) {
+	for _, c := range cookies {
+		glog.V(1).Infoln("--- adding cookie:", c.String())
+	}
+	jarCookies := c.Jar.Cookies(URL)
+	cookies = append(cookies, jarCookies...)
+	glog.V(3).Infof("jar cookie len %d, restonse cookie len: %d",
+		len(jarCookies), len(cookies))
+	c.Jar.SetCookies(URL, cookies)
 }
 
 func setupClient() (client *http.Client) {
@@ -245,5 +414,29 @@ func echoRespToStdout(r *http.Response) {
 			io.Reader
 			io.Closer
 		}{io.TeeReader(r.Body, os.Stdout), r.Body}
+	}
+}
+
+func checkCookiePath() {
+	if cookieFile != "" && cookiePath == "" {
+		data := try.To1(os.ReadFile(cookieFile))
+		buf := bytes.NewReader(data)
+		URL := try.To1(url.Parse(urlStr))
+		var cookies []*http.Cookie
+		try.To(gob.NewDecoder(buf).Decode(&cookies))
+		glog.V(3).Infof("loading %d cookies", len(cookies))
+		c.Jar.SetCookies(URL, cookies)
+	} else if cookiePath != "" { // just load page
+		// assert.NotEmpty(cookieFile)
+		// make the http request to load the page AND cookies
+		glog.V(1).Infof("cookie path: '%s'", cookiePath)
+		if cookiePath == "-" {
+			cookiePath = ""
+		}
+		cookiePageURL := urlStr + cookiePath
+		glog.V(1).Infoln("loading cookie page:", cookiePageURL)
+		r := tryHTTPRequest("GET", cookiePageURL, &bytes.Buffer{})
+		// we don't know how the server behaves, we don't want it to abort
+		_ = try.To1(io.ReadAll(r))
 	}
 }

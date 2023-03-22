@@ -1,0 +1,5 @@
+*.json
+*.bash
+*.log
+cookie*
+

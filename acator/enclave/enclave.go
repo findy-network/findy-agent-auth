@@ -9,9 +9,9 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/duo-labs/webauthn/protocol/webauthncose"
 	crpt "github.com/findy-network/findy-common-go/crypto"
 	"github.com/fxamacker/cbor/v2"
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
@@ -30,6 +30,7 @@ type myHandle struct {
 	//key []byte
 	Enclave
 
+	id []byte
 	webauthncose.EC2PublicKeyData
 	privKey *ecdsa.PrivateKey
 }
@@ -39,7 +40,10 @@ type myHandle struct {
 // into this same Enclave (master key is used for the encryption).
 func (h *myHandle) ID() []byte {
 	x509Encoded := try.To1(x509.MarshalECPrivateKey(h.privKey))
-	return h.Cipher.TryEncrypt(x509Encoded)
+	if h.id == nil {
+		h.id = h.Cipher.TryEncrypt(x509Encoded)
+	}
+	return h.id
 }
 
 // CBORPublicKey returns CBOR marshaled byte slice presentation of the public
