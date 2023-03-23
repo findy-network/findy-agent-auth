@@ -6,7 +6,7 @@ require (
 	github.com/findy-network/findy-common-go v0.2.7-0.20230220135615-2cb7199bda9f
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/go-webauthn/webauthn v0.8.2
-	github.com/golang/glog v1.1.0
+	github.com/golang/glog v1.1.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
