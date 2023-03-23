@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "TODO: this is very very temporal!! Until go-webauthn/webauthn pkg change"
-exit 0
-
 set -e
 
 acator_key=$(findy-agent-cli new-key)
