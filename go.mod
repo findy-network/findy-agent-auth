@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
-	github.com/lainio/err2 v0.8.14
+	github.com/lainio/err2 v0.9.0
 	github.com/rs/cors v1.8.3
 	golang.org/x/net v0.8.0
 	google.golang.org/grpc v1.54.0
