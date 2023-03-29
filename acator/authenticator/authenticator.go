@@ -18,7 +18,8 @@ type AttestationObject struct {
 	// The format of the Attestation data.
 	Format string `json:"fmt"`
 	// The attestation statement data sent back if attestation is requested.
-	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
+	// According to w3c spec in impty cases following should be: {}
+	AttStatement map[string]interface{} `json:"attStmt"`
 }
 
 // TryMarshalData is MarshalData convenience wrapper
