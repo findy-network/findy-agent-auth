@@ -155,7 +155,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	ao := authenticator.AttestationObject{
 		RawAuthData:  authenticator.TryMarshalData(&authenticatorData),
 		Format:       "none",
-		AttStatement: nil,
+		AttStatement: map[string]any{},
 	}
 	aoByteCBOR := try.To1(cbor.Marshal(ao))
 
