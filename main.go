@@ -14,6 +14,7 @@ import (
 	"github.com/findy-network/findy-agent-auth/enclave"
 	"github.com/findy-network/findy-agent-auth/session"
 	"github.com/findy-network/findy-agent-auth/user"
+	myhttp "github.com/findy-network/findy-common-go/http"
 	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/utils"
 	"github.com/go-webauthn/webauthn/protocol"
@@ -106,7 +107,6 @@ func main() {
 		jwt.SetJWTSecret(jwtSecret)
 	}
 
-	var err error
 	webAuthn = try.To1(webauthn.New(&webauthn.Config{
 		RPDisplayName: "Findy Agency", // Display Name for your site
 		RPID:          rpID,           // Generally the domain name for your site
@@ -152,19 +152,29 @@ func main() {
 	if glog.V(1) {
 		glog.Infoln("starting server at", serverAddress)
 	}
+
+	var shutdownCh <-chan os.Signal
 	if isHTTPS {
 		certPath = filepath.Join(certPath, "server")
 		certFile := filepath.Join(certPath, "server.crt")
 		keyFile := filepath.Join(certPath, "server.key")
 		glog.V(3).Infoln("starting TLS server with:\n", certFile, "\n", keyFile)
-		err = http.ListenAndServeTLS(serverAddress, certFile, keyFile, handler)
+		server := &http.Server{Addr: serverAddress, Handler: handler}
+		shutdownCh = myhttp.Run(server, certFile, keyFile)
 	} else {
-		err = http.ListenAndServe(serverAddress, handler)
+		server := &http.Server{Addr: serverAddress, Handler: handler}
+		shutdownCh = myhttp.Run(server)
 	}
-	if err != nil {
-		glog.Infoln("listen error:", err)
+	glog.V(3).Infoln("serving...")
+	<-shutdownCh
+	glog.V(1).Infoln("shutdown triggered successfully")
+	myhttp.GracefulStop()
+
+	// memory db dosen't implement backups and this is more sanitity issue than a
+	// real thing
+	if backupTickerDone != nil {
+		backupTickerDone <- struct{}{}
 	}
-	backupTickerDone <- struct{}{}
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
