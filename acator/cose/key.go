@@ -69,7 +69,6 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 		return e, nil
 	case webauthncose.RSAKey:
 		assert.NotImplemented()
-		assert.NotImplemented()
 	default:
 		return nil, webauthncose.ErrUnsupportedKey
 	}
