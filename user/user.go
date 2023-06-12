@@ -154,7 +154,7 @@ func (u *User) AllocateCloudAgent(adminID string, timeout time.Duration) (err er
 
 	// cloud agent already allocated?
 	if u.DID != "" {
-		assert.P.True(len(u.Credentials) > 1, "programming error")
+		assert.That(len(u.Credentials) > 1, "programming error")
 		glog.V(1).Infoln("=== cloud agent already allocated")
 		return nil
 	}

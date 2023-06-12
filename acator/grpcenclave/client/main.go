@@ -45,7 +45,7 @@ var (
 //nolint:funlen,gocyclo
 func main() {
 	err2.SetPanicTracer(os.Stderr)
-	assert.SetDefaultAsserter(assert.AsserterToError)
+	assert.SetDefault(assert.Production)
 	defer err2.Catch(func(err error) {
 		glog.Error(err)
 	})

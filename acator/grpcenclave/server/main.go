@@ -18,7 +18,7 @@ func main() {
 
 	// we want this for glog, this is just a tester, not a real world service
 	try.To(flag.Set("logtostderr", "true"))
-	assert.SetDefaultAsserter(assert.AsserterToError)
+	assert.SetDefault(assert.Production)
 
 	rpcserver.Serve(*cert, *port)
 }
