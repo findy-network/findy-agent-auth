@@ -3,7 +3,7 @@ module github.com/findy-network/findy-agent-auth
 go 1.20
 
 require (
-	github.com/findy-network/findy-common-go v0.2.24
+	github.com/findy-network/findy-common-go v0.2.25
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/go-webauthn/webauthn v0.8.2
 	github.com/golang/glog v1.1.1
@@ -50,7 +50,7 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/crypto v0.10.0 // indirect
 	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3 // indirect
-	golang.org/x/oauth2 v0.8.0 // indirect
+	golang.org/x/oauth2 v0.9.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
