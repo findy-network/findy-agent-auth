@@ -4,8 +4,6 @@ ARG GOBUILD_ARGS=""
 
 WORKDIR /work
 
-RUN apk update && apk add git
-
 COPY go.* ./
 RUN go mod download
 
@@ -13,7 +11,7 @@ COPY . ./
 
 RUN go build ${GOBUILD_ARGS} -o /go/bin/findy-agent-auth
 
-FROM  ghcr.io/findy-network/findy-base:alpine-3.17
+FROM alpine:3.17
 
 LABEL org.opencontainers.image.source https://github.com/findy-network/findy-agent-auth
 
@@ -39,8 +37,7 @@ ENV FAA_TIMEOUT_SECS "30"
 ENV FAA_CERT_PATH "/grpc"
 
 RUN echo '#!/bin/sh' > /start.sh && \
-  echo '[[ ! -z "$STARTUP_FILE_STORAGE_S3" ]] && /s3-copy $STARTUP_FILE_STORAGE_S3 grpc /' >> /start.sh && \
-  echo '/findy-agent-auth \
+  echo 'exec /findy-agent-auth \
   --port="$FAA_PORT" \
   --agency="$FAA_AGENCY_ADDR" \
   --agency-insecure="$FAA_AGENCY_INSECURE" \
