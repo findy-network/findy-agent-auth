@@ -3,7 +3,7 @@ module github.com/findy-network/findy-agent-auth
 go 1.20
 
 require (
-	github.com/findy-network/findy-common-go v0.2.30
+	github.com/findy-network/findy-common-go v0.2.31
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/go-webauthn/webauthn v0.8.6
 	github.com/golang/glog v1.1.1
@@ -13,7 +13,7 @@ require (
 	github.com/lainio/err2 v0.9.29
 	github.com/rs/cors v1.9.0
 	golang.org/x/net v0.13.0
-	google.golang.org/grpc v1.56.2
+	google.golang.org/grpc v1.57.0
 )
 
 require (
