@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/findy-network/findy-common-go v0.2.33
-	github.com/fxamacker/cbor/v2 v2.4.0
+	github.com/fxamacker/cbor/v2 v2.5.0
 	github.com/go-webauthn/webauthn v0.8.6
 	github.com/golang/glog v1.1.2
 	github.com/google/uuid v1.3.0
