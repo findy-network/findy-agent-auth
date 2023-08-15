@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine3.17
+FROM golang:1.21-alpine3.18
 
 ARG GOBUILD_ARGS=""
 
@@ -11,7 +11,7 @@ COPY . ./
 
 RUN go build ${GOBUILD_ARGS} -o /go/bin/findy-agent-auth
 
-FROM alpine:3.17
+FROM alpine:3.18
 
 LABEL org.opencontainers.image.source https://github.com/findy-network/findy-agent-auth
 
