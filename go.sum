@@ -98,8 +98,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/lainio/err2 v0.9.29 h1:t94pirHiu3STTvIHF6pCVv6cCJrQswmax6hBCHM8CpI=
-github.com/lainio/err2 v0.9.29/go.mod h1:glTVV2qNFbBy6WzZFDP2G5BqMiZI58cudp588cEgCuM=
+github.com/lainio/err2 v0.9.40 h1:FNTxI2H0qOrwUeeXQB6AUZXhclTZ35K3PAoriuNHEGE=
+github.com/lainio/err2 v0.9.40/go.mod h1:glTVV2qNFbBy6WzZFDP2G5BqMiZI58cudp588cEgCuM=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/mr-tron/base58 v1.2.0 h1:T/HDJBh4ZCPbU39/+c3rRvE0uKBQlU27+QI8LJ4t64o=
