@@ -56,10 +56,10 @@ func (e *Enclave) NewKeyHandle() (kh se.KeyHandle, err error) {
 // IsKeyHandle tells if given byte slice really is key handle from the current
 // enclave.
 func (e *Enclave) IsKeyHandle(credID []byte) (ok bool, kh se.KeyHandle) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Errorf("error: is key handle: %v", err)
 		ok, kh = false, nil
-	})
+	}))
 
 	glog.V(3).Infoln("send question IsKeyHandle")
 	e.OutChan <- &pb.CmdStatus{
@@ -168,10 +168,10 @@ func (h *keyHandle) Sign(d []byte) (s []byte, err error) {
 
 // Verify verifies the given data and signature.
 func (h *keyHandle) Verify(data, sig []byte) (ok bool) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Errorf("error: verify: %v", err)
 		ok = false
-	})
+	}))
 
 	h.OutChan <- &pb.CmdStatus{
 		CmdID:   h.CmdID,
