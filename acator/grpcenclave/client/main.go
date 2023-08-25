@@ -46,9 +46,9 @@ var (
 func main() {
 	err2.SetPanicTracer(os.Stderr)
 	assert.SetDefault(assert.Production)
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Error(err)
-	})
+	}))
 	flag.Parse()
 
 	// we want this for glog, this is just a tester, not a real world service
@@ -216,7 +216,7 @@ func tryProcess(
 	var (
 		smsg *pb.SecretMsg
 	)
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		smsg = &pb.SecretMsg{
 			CmdID: status.CmdID,
 			Type:  pb.SecretMsg_ERROR,
@@ -227,7 +227,7 @@ func tryProcess(
 			},
 		}
 		_, _ = rpcclient.DoEnterSecret(conn, smsg)
-	})
+	}))
 
 	id := status.GetHandle().ID
 	datas := make([][]byte, 0, 2)

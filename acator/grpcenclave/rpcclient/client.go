@@ -42,10 +42,10 @@ func DoEnter(
 	stream := try.To1(c.Enter(ctx, cmd))
 	glog.V(3).Infoln("successful start of:", cmd.GetType())
 	go func() {
-		defer err2.Catch(func(err error) {
+		defer err2.Catch(err2.Err(func(err error) {
 			glog.V(3).Infoln("err when reading response", err)
 			close(statusCh)
-		})
+		}))
 		for {
 			status, err := stream.Recv()
 			if try.IsEOF(err) {

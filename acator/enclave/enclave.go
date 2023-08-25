@@ -94,10 +94,10 @@ func (e Enclave) NewKeyHandle() (_ KeyHandle, err error) {
 // IsKeyHandle tells if given byte slice really is key handle from the current
 // Enclave.
 func (e Enclave) IsKeyHandle(credID []byte) (ok bool, kh KeyHandle) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Errorln("is key handle:", err)
 		ok, kh = false, nil
-	})
+	}))
 	pk, err := x509.ParseECPrivateKey(e.Cipher.TryDecrypt(credID))
 	ok = err == nil
 	return ok, newFromPrivateKey(e, pk)

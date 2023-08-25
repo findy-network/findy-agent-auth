@@ -46,7 +46,7 @@ var (
 	enclaveKey     = "15308490f1e4026284594dd08d31291bc8ef2aeac730d0daf6ff87bb92d4336c"
 	backupInterval = 24 // hours
 	findyAdmin     = "findy-root"
-	certPath       = "./cert"
+	certPath       = ""
 	allowCors      = false
 	isHTTPS        = false
 	testUI         = false
@@ -178,15 +178,16 @@ func main() {
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("begin registration error:", err)
-	})
+	}))
 
 	var err error
 	// get username/friendly name
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusBadRequest)
+		return err
 	})
 
 	// get username
@@ -216,9 +217,10 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		glog.V(1).Infoln("credexcl:", len(credCreationOpts.CredentialExcludeList))
 	}
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		return err
 	})
 
 	glog.V(1).Infoln("BEGIN (new) registration to webAuthn")
@@ -247,14 +249,15 @@ type userInfo struct {
 }
 
 func FinishRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("BEGIN finish registration:", err)
-	})
+	}))
 
 	var err error
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusBadRequest)
+		return err
 	})
 
 	glog.V(1).Infoln("get session data for registration")
@@ -263,7 +266,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 	user := try.To1(enclave.GetExistingSessionUser(sessionData.UserID))
 	glog.V(1).Infoln("FINISH (new) registration", user.Name)
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
 
 		// try to remove added user as registration failed
@@ -272,7 +275,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 			err = fmt.Errorf("finsish reg: %w: %w", err, errRm)
 		}
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
-		err = nil
+		return nil
 	})
 
 	glog.V(1).Infoln("call web authn finish registration and getting credential")
@@ -295,15 +298,16 @@ type loginUserInfo struct {
 }
 
 func BeginLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("begin login", err)
-	})
+	}))
 
 	glog.V(1).Infoln("END (new) begin login")
 	var err error
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusBadRequest)
+		return err
 	})
 
 	var uInfo loginUserInfo
@@ -322,14 +326,15 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func FinishLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("finish login error:", err)
-	})
+	}))
 
 	var err error
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusBadRequest)
+		return err
 	})
 
 	glog.V(1).Infoln("get session data for finshing login")
@@ -340,14 +345,15 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	username := user.Name
 	glog.V(1).Infoln("BEGIN (new) finish login:", username)
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		return err
 	})
 
 	// in an actual implementation, we should perform additional checks on
 	// the returned 'credential', i.e. check 'credential.Authenticator.CloneWarning'
 	// and then increment the credentials counter
-	_ = try.To1(webAuthn.FinishLogin(user, sessionData, r))
+	try.To1(webAuthn.FinishLogin(user, sessionData, r))
 
 	jsonResponse(w, &AccessToken{Token: user.JWT()}, http.StatusOK)
 	glog.V(1).Infoln("END (new) finish login", username)
@@ -355,10 +361,10 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 
 // from: https://github.com/go-webauthn/webauthn.io/blob/3f03b482d21476f6b9fb82b2bf1458ff61a61d41/server/response.go#L15
 func jsonResponse(w http.ResponseWriter, d interface{}, c int) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Errorf("json response error: %s", err)
 		http.Error(w, "Error creating JSON response", http.StatusInternalServerError)
-	})
+	}))
 
 	dj := try.To1(json.Marshal(d))
 	w.Header().Set("Content-Type", "application/json")
@@ -368,9 +374,9 @@ func jsonResponse(w http.ResponseWriter, d interface{}, c int) {
 }
 
 func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("begin registration error:", err)
-	})
+	}))
 
 	vars := mux.Vars(r)
 	username, ok := vars["username"]
@@ -408,9 +414,10 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 		glog.V(1).Infoln("credexcl:", len(credCreationOpts.CredentialExcludeList))
 	}
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		return err
 	})
 
 	glog.V(1).Infoln("begin registration to webAuthn")
@@ -428,9 +435,9 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("BEGIN finish registration:", err)
-	})
+	}))
 
 	var err error
 
@@ -438,11 +445,12 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	username := vars["username"]
 	glog.V(1).Infoln("finish registration", username)
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
 
 		_ = enclave.RemoveUser(username)
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		return err
 	})
 
 	glog.V(1).Infoln("getting existing user", username)
@@ -463,9 +471,9 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("begin login", err)
-	})
+	}))
 
 	var err error
 
@@ -473,8 +481,9 @@ func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
 	username := vars["username"]
 	glog.V(1).Infoln("BEGIN begin login", username)
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		return err
 	})
 
 	user := try.To1(enclave.GetExistingUser(username))
@@ -486,9 +495,9 @@ func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("finish login error:", err)
-	})
+	}))
 
 	var err error
 
@@ -496,8 +505,9 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 	username := vars["username"]
 	glog.V(1).Infoln("BEGIN finish login:", username)
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
+		return err
 	})
 
 	user := try.To1(enclave.GetExistingUser(username))
@@ -507,7 +517,7 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 	// in an actual implementation, we should perform additional checks on
 	// the returned 'credential', i.e. check 'credential.Authenticator.CloneWarning'
 	// and then increment the credentials counter
-	_ = try.To1(webAuthn.FinishLogin(user, sessionData, r))
+	try.To1(webAuthn.FinishLogin(user, sessionData, r))
 
 	jsonResponse(w, &AccessToken{Token: user.JWT()}, http.StatusOK)
 	glog.V(1).Infoln("END finish login", username)

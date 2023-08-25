@@ -16,9 +16,9 @@ import (
 func main() {
 	// defer err2.Catch() // todo: err2 v.0.9.0+ this is enouh!!
 
-	defer err2.Catch(func(err error) {
+	defer err2.Catch(err2.Err(func(err error) {
 		fmt.Fprintln(os.Stderr, "error:", err.Error())
-	})
+	}))
 
 	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)

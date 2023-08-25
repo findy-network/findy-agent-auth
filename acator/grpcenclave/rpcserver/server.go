@@ -45,15 +45,14 @@ func (a *authnServer) Enter(
 ) (
 	err error,
 ) {
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		glog.Errorf("---- grpc run error: %v", err)
 		status := &pb.CmdStatus{
 			Info: &pb.CmdStatus_Err{Err: "error"},
 			Type: pb.CmdStatus_READY_ERR,
 		}
-		if err := server.Send(status); err != nil {
-			glog.Errorln("error sending response:", err)
-		}
+		try.Out(server.Send(status)).Logf("error sending response:")
+		return err
 	})
 
 	// NOTE. Authentication is done by mutual TLS or must be done for this
@@ -80,7 +79,7 @@ func (a *authnServer) Enter(
 	a.authnCmd.SecEnclave = secEnc
 
 	go func() {
-		defer err2.Catch(func(err error) {
+		defer err2.Catch(err2.Err(func(err error) {
 			errStr := fmt.Sprintf("error: grpc server main: %v", err)
 			glog.Error(errStr)
 			status := &pb.CmdStatus{
@@ -92,7 +91,7 @@ func (a *authnServer) Enter(
 				glog.Error("error sending response")
 			}
 			close(secEnc.OutChan)
-		})
+		}))
 		r := try.To1(a.authnCmd.Exec(nil))
 		secEnc.OutChan <- &pb.CmdStatus{
 			CmdID:   cmdID,
@@ -124,9 +123,12 @@ func (a *authnServer) EnterSecret(
 ) {
 	r = &pb.SecretResult{Ok: false}
 
-	defer err2.Handle(&err, func() {
+	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("ERROR:", err)
 		r.Result = err.Error()
+
+		return err
+
 	})
 
 	glog.V(1).Infoln("secret:", smsg.GetType(), smsg.GetCmdID())
