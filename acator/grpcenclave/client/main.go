@@ -211,7 +211,10 @@ loop:
 
 func tryProcess(
 	status *pb.CmdStatus,
-	caller func(handle enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error),
+	caller func(
+		handle enclave.KeyHandle,
+		data ...[]byte,
+	) (d []byte, s []byte, err error),
 ) {
 	var (
 		smsg *pb.SecretMsg
@@ -229,13 +232,14 @@ func tryProcess(
 		_, _ = rpcclient.DoEnterSecret(conn, smsg)
 	}))
 
-	id := status.GetHandle().ID
+	extHandle := status.GetHandle()
+	id := extHandle.ID
 	datas := make([][]byte, 0, 2)
-	if status.GetHandle().Data != nil {
-		datas = append(datas, status.GetHandle().Data)
+	if extHandle.Data != nil {
+		datas = append(datas, extHandle.Data)
 	}
-	if status.GetHandle().Sign != nil {
-		datas = append(datas, status.GetHandle().Sign)
+	if extHandle.Sign != nil {
+		datas = append(datas, extHandle.Sign)
 	}
 	kh, ok := khmap[id]
 	if ok {
