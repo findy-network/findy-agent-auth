@@ -49,7 +49,7 @@ type Store struct {
 }
 
 // NewStore returns a new session store.
-func NewStore(keyPairs ...[]byte) (*Store, error) {
+func NewStore(allowCors bool, keyPairs ...[]byte) (*Store, error) {
 	// Generate a default encryption key if one isn't provided
 	if len(keyPairs) == 0 {
 		key, err := GenerateSecureKey(DefaultEncryptionKeyLength)
@@ -58,8 +58,16 @@ func NewStore(keyPairs ...[]byte) (*Store, error) {
 		}
 		keyPairs = append(keyPairs, key)
 	}
+
+	cs := sessions.NewCookieStore(keyPairs...)
+	if allowCors {
+		// Specify SameSite=None and Secure if the cookie should be sent in cross-site requests
+		cs.Options.SameSite = http.SameSiteNoneMode
+		cs.Options.Secure = true
+	}
+
 	store := &Store{
-		sessions.NewCookieStore(keyPairs...),
+		cs,
 	}
 	return store, nil
 }

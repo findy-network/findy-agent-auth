@@ -107,12 +107,14 @@ func main() {
 		jwt.SetJWTSecret(jwtSecret)
 	}
 
+	rpOrigins := strings.Split(rpOrigin, ",")
+
 	webAuthn = try.To1(webauthn.New(&webauthn.Config{
 		RPDisplayName: "Findy Agency", // Display Name for your site
 		RPID:          rpID,           // Generally the domain name for your site
-		RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
+		RPOrigins:     rpOrigins,      // The origin URLs for WebAuthn requests
 	}))
-	sessionStore = try.To1(session.NewStore())
+	sessionStore = try.To1(session.NewStore(allowCors))
 
 	r := mux.NewRouter()
 
@@ -139,7 +141,7 @@ func main() {
 	var handler http.Handler = r
 	if allowCors {
 		hCors := cors.New(cors.Options{
-			AllowedOrigins:   []string{rpOrigin},
+			AllowedOrigins:   rpOrigins,
 			AllowCredentials: true,
 			Debug:            true,
 		})
