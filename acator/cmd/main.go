@@ -14,11 +14,10 @@ import (
 )
 
 func main() {
-	// defer err2.Catch() // todo: err2 v.0.9.0+ this is enouh!!
+	// we use err2's std log and route it to our glog outputs.
+	glog.CopyStandardLogTo("ERROR")
 
-	defer err2.Catch(err2.Err(func(err error) {
-		fmt.Fprintln(os.Stderr, "error:", err.Error())
-	}))
+	defer err2.Catch() // this'll write errors to our glog automatically.
 
 	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
