@@ -148,6 +148,14 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	}
 	jwtToken = ac.Token
 
+	// TODO: grpcenclave needs fully stateless system. We need to check the
+	// others as well. This was causing problems. It seems that this there is a
+	// lot of pkg level variables. All of them have to move!!!
+	if c != nil {
+		glog.Info("resetting cookie jar")
+		j := try.To1(cookiejar.New(nil))
+		c.Jar = j
+	}
 	return *try.To1(execute[cmd]()), nil
 }
 
@@ -374,7 +382,7 @@ func addToCookieJar(URL *url.URL, cookies []*http.Cookie) {
 	}
 	jarCookies := c.Jar.Cookies(URL)
 	cookies = append(cookies, jarCookies...)
-	glog.V(3).Infof("jar cookie len %d, restonse cookie len: %d",
+	glog.V(3).Infof("jar cookie len %d, response cookie len: %d",
 		len(jarCookies), len(cookies))
 	c.Jar.SetCookies(URL, cookies)
 }

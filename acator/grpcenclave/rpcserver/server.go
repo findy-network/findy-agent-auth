@@ -126,9 +126,7 @@ func (a *authnServer) EnterSecret(
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("ERROR:", err)
 		r.Result = err.Error()
-
 		return err
-
 	})
 
 	glog.V(1).Infoln("secret:", smsg.GetType(), smsg.GetCmdID())

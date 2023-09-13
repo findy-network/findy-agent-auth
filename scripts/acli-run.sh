@@ -1,6 +1,6 @@
 #!/bin/bash
 
-acli \
+auth \
 	$@ \
 	-logging "-logtostderr -v=3" \
 	-origin https://localhost:8090 \

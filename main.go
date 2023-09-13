@@ -83,10 +83,9 @@ func init() {
 }
 
 func main() {
-	err2.SetPanicTracer(os.Stderr)
-	defer err2.Catch(func(_ error) {
-		glog.Warningln("")
-	})
+	glog.CopyStandardLogTo("ERROR") // for err2
+	defer err2.Catch()
+
 	try.To(startServerCmd.Parse(os.Args[1:]))
 	utils.ParseLoggingArgs(loggingFlags)
 
