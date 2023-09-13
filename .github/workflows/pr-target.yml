@@ -3,17 +3,16 @@ on:
   pull_request_target:
 
 jobs:
-
   # label with "dev" to enable PR filtering
   label:
     permissions:
-        contents: read
-        pull-requests: write
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     steps:
-      - uses: actions/labeler@v4
-        with:
-          repo-token: '${{ secrets.RELEASER_PAT }}'
+      - id: label-the-PR
+        uses: actions/labeler@v4
 
   # automerge successful dependabot PRs
   dependabot:

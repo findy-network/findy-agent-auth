@@ -2,6 +2,8 @@ module github.com/findy-network/findy-agent-auth
 
 go 1.21
 
+toolchain go1.21.0
+
 require (
 	github.com/findy-network/findy-common-go v0.2.38
 	github.com/fxamacker/cbor/v2 v2.5.0
