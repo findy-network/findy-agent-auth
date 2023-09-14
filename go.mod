@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	github.com/findy-network/findy-common-go v0.2.38
+	github.com/findy-network/findy-common-go v0.2.39
 	github.com/fxamacker/cbor/v2 v2.5.0
 	github.com/go-webauthn/webauthn v0.8.6
 	github.com/golang/glog v1.1.2
@@ -52,7 +52,7 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
 	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3 // indirect
-	golang.org/x/oauth2 v0.11.0 // indirect
+	golang.org/x/oauth2 v0.12.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
