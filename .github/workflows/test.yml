@@ -49,7 +49,7 @@ jobs:
         with:
           name: ${{ github.sha }}-coverage-e2e.txt
       - name: upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage.txt,./coverage-e2e.txt
           fail_ci_if_error: ${{ github.ref_name != 'dev' }}
