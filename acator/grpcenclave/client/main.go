@@ -20,10 +20,12 @@ import (
 )
 
 var (
+	// TODO: dart playground
+	// cert       = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
+
 	cmd        = flag.String("cmd", "login", "FIDO2 cmd: login/register")
-	user       = flag.String("user", "findy-root", "test user name")
+	user       = flag.String("user", "elli", "test user name")
 	serverAddr = flag.String("addr", "localhost", "agency host gRPC address")
-	cert       = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
 	hexKey     = flag.String("key",
 		"289239187d7c395044976416280b6a283bf65562a06b0bdc3a75a4db4adfe7c7",
 		"soft cipher master key in HEX")
@@ -46,16 +48,14 @@ var (
 func main() {
 	err2.SetPanicTracer(os.Stderr)
 	assert.SetDefault(assert.Production)
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Error(err)
-	}))
+	defer err2.Catch()
+
 	flag.Parse()
 
 	// we want this for glog, this is just a tester, not a real world service
 	try.To(flag.Set("logtostderr", "true"))
 
-	conn = try.To1(rpcclient.New(*cert, *user,
-		fmt.Sprintf("%s:%d", *serverAddr, *port)))
+	conn = try.To1(rpcclient.New(*serverAddr, *port))
 	defer conn.Close()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -77,118 +77,26 @@ func main() {
 
 loop:
 	for status := range statusCh {
-		glog.Infoln("loop status:", status.GetType(), status.GetCmdID())
+		glog.V(1).Infoln("loop status:", status.GetType(), status.GetCmdID())
 
 		switch status.GetType() {
 		case pb.CmdStatus_STATUS:
 			status.GetSecType()
 			switch status.GetSecType() {
 			case pb.SecretMsg_NEW_HANDLE:
-				id := keyID.Add(1)
-				kh, err := secEnc.NewKeyHandle()
-				var smsg *pb.SecretMsg
-				if err != nil {
-					smsg = &pb.SecretMsg{
-						CmdID: status.CmdID,
-						Type:  pb.SecretMsg_ERROR,
-						Info: &pb.SecretMsg_Err{
-							Err: &pb.SecretMsg_ErrorMsg{
-								Info: "cannot create error handle",
-							},
-						},
-					}
-				} else {
-					khmap[id] = kh
-					smsg = &pb.SecretMsg{
-						CmdID: status.CmdID,
-						Type:  status.SecType,
-						Info: &pb.SecretMsg_Handle{
-							Handle: &pb.SecretMsg_HandleMsg{
-								ID: id,
-							},
-						},
-					}
-
-				}
-				try.To1(rpcclient.DoEnterSecret(conn, smsg))
+				newKeyHandle(secEnc, status)
 			case pb.SecretMsg_IS_KEY_HANDLE:
-				ok, kh := secEnc.IsKeyHandle(status.GetEnclave().CredID)
-				var (
-					id   int64
-					smsg *pb.SecretMsg
-				)
-				if ok {
-					for k, v := range khmap {
-						if kh == v {
-							id = k
-							break
-						}
-					}
-					if id <= 0 {
-						id = keyID.Add(1)
-						khmap[id] = kh
-					}
-					smsg = &pb.SecretMsg{
-						CmdID: status.CmdID,
-						Type:  status.SecType,
-						Info: &pb.SecretMsg_Handle{
-							Handle: &pb.SecretMsg_HandleMsg{
-								ID: id,
-							},
-						},
-					}
-				} else {
-					smsg = &pb.SecretMsg{
-						CmdID: status.CmdID,
-						Type:  pb.SecretMsg_ERROR,
-						Info: &pb.SecretMsg_Err{
-							Err: &pb.SecretMsg_ErrorMsg{
-								Info: "not key handle",
-							},
-						},
-					}
-				}
-				try.To1(rpcclient.DoEnterSecret(conn, smsg))
+				inKeyHandle(secEnc, status)
 			case pb.SecretMsg_ID:
-				tryProcess(status,
-					func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
-						d = kh.ID()
-						return
-					})
+				getID(status)
 			case pb.SecretMsg_CBOR_PUB_KEY:
-				tryProcess(status,
-					func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
-						defer err2.Handle(&err)
-						d = try.To1(kh.CBORPublicKey())
-						return
-					})
+				getCBOR(status)
 			case pb.SecretMsg_SIGN:
-				tryProcess(status,
-					func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
-						defer err2.Handle(&err)
-						s = try.To1(kh.Sign(data[0]))
-						return
-					})
+				sign(status)
 			case pb.SecretMsg_VERIFY:
-				tryProcess(status,
-					func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
-						ok := kh.Verify(data[0], data[1])
-						if !ok {
-							err = fmt.Errorf("cannot verify singnature")
-						}
-						return
-					})
+				verify(status)
 			case pb.SecretMsg_ERROR:
-				smsg := &pb.SecretMsg{
-					CmdID: status.CmdID,
-					Type:  pb.SecretMsg_ERROR,
-					Info: &pb.SecretMsg_Err{
-						Err: &pb.SecretMsg_ErrorMsg{
-							Info: "not key handle",
-						},
-					},
-				}
-				try.To1(rpcclient.DoEnterSecret(conn, smsg))
+				handleStatusErr(status)
 			}
 
 		case pb.CmdStatus_READY_OK:
@@ -207,6 +115,126 @@ loop:
 	}
 	glog.V(3).Infoln("main ends")
 
+}
+
+func handleStatusErr(status *pb.CmdStatus) {
+	smsg := &pb.SecretMsg{
+		CmdID: status.CmdID,
+		Type:  pb.SecretMsg_ERROR,
+		Info: &pb.SecretMsg_Err{
+			Err: &pb.SecretMsg_ErrorMsg{
+				Info: "not key handle",
+			},
+		},
+	}
+	try.To1(rpcclient.DoEnterSecret(conn, smsg))
+}
+
+func verify(status *pb.CmdStatus) {
+	tryProcess(status,
+		func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
+			ok := kh.Verify(data[0], data[1])
+			if !ok {
+				err = fmt.Errorf("cannot verify singnature")
+			}
+			return
+		})
+}
+
+func sign(status *pb.CmdStatus) {
+	tryProcess(status,
+		func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
+			defer err2.Handle(&err)
+			s = try.To1(kh.Sign(data[0]))
+			return
+		})
+}
+
+func getCBOR(status *pb.CmdStatus) {
+	tryProcess(status,
+		func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
+			defer err2.Handle(&err)
+			d = try.To1(kh.CBORPublicKey())
+			return
+		})
+}
+
+func getID(status *pb.CmdStatus) {
+	tryProcess(status,
+		func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
+			d = kh.ID()
+			return
+		})
+}
+
+func inKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
+	ok, kh := secEnc.IsKeyHandle(status.GetEnclave().CredID)
+	var (
+		id   int64
+		smsg *pb.SecretMsg
+	)
+	if ok {
+		for k, v := range khmap {
+			if kh == v {
+				id = k
+				break
+			}
+		}
+		if id <= 0 {
+			id = keyID.Add(1)
+			khmap[id] = kh
+		}
+		smsg = &pb.SecretMsg{
+			CmdID: status.CmdID,
+			Type:  status.SecType,
+			Info: &pb.SecretMsg_Handle{
+				Handle: &pb.SecretMsg_HandleMsg{
+					ID: id,
+				},
+			},
+		}
+	} else {
+		smsg = &pb.SecretMsg{
+			CmdID: status.CmdID,
+			Type:  pb.SecretMsg_ERROR,
+			Info: &pb.SecretMsg_Err{
+				Err: &pb.SecretMsg_ErrorMsg{
+					Info: "not key handle",
+				},
+			},
+		}
+	}
+	try.To1(rpcclient.DoEnterSecret(conn, smsg))
+}
+
+func newKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
+	id := keyID.Add(1)
+	kh, err := secEnc.NewKeyHandle()
+	var smsg *pb.SecretMsg
+	if err != nil {
+		smsg = &pb.SecretMsg{
+			CmdID: status.CmdID,
+			Type:  pb.SecretMsg_ERROR,
+			Info: &pb.SecretMsg_Err{
+				Err: &pb.SecretMsg_ErrorMsg{
+					Info: "cannot create error handle",
+				},
+			},
+		}
+	} else {
+		khmap[id] = kh
+		smsg = &pb.SecretMsg{
+			CmdID: status.CmdID,
+			Type:  status.SecType,
+			Info: &pb.SecretMsg_Handle{
+				Handle: &pb.SecretMsg_HandleMsg{
+					ID: id,
+				},
+			},
+		}
+
+	}
+	try.To1(rpcclient.DoEnterSecret(conn, smsg))
 }
 
 func tryProcess(

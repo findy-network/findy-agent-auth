@@ -9,7 +9,9 @@ import (
 )
 
 var (
-	cert = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
+	// TODO: for Dart we start playing without tls or other security
+	// TODO: we need to build gzip packging to these golang stacks
+	//cert = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
 	port = flag.Int("port", 50053, "agency host gRPC port")
 )
 
@@ -20,5 +22,5 @@ func main() {
 	try.To(flag.Set("logtostderr", "true"))
 	assert.SetDefault(assert.Production)
 
-	rpcserver.Serve(*cert, *port)
+	rpcserver.Serve(*port)
 }

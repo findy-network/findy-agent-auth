@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/findy-network/findy-common-go/agency/client"
 	authn "github.com/findy-network/findy-common-go/grpc/authn/v1"
-	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/rpc"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
@@ -13,17 +13,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-func New(certPath, user, addr string) (conn *grpc.ClientConn, err error) {
+func New(addr string, port int) (conn *grpc.ClientConn, err error) {
 	defer err2.Handle(&err)
 
-	pki := rpc.LoadPKIWithServerName(certPath, addr)
-	glog.V(5).Infoln("rpcclient with user:", user)
-	conn = try.To1(rpc.ClientConn(rpc.ClientCfg{
-		PKI:  pki,
-		JWT:  jwt.BuildJWT(user),
-		Addr: addr,
-	}))
-	return
+	cfg := client.BuildInsecureClientConnBase(addr, port, nil)
+	return rpc.ClientConn(*cfg)
 }
 
 func DoEnter(
