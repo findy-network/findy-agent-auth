@@ -152,7 +152,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	// others as well. This was causing problems. It seems that this there is a
 	// lot of pkg level variables. All of them have to move!!!
 	if c != nil {
-		glog.Info("resetting cookie jar")
+		glog.V(3).Info("resetting cookie jar")
 		j := try.To1(cookiejar.New(nil))
 		c.Jar = j
 	}
