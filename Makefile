@@ -4,6 +4,8 @@ SCAN_SCRIPT_URL="https://raw.githubusercontent.com/findy-network/setup-go-action
 auth:
 	go build -o $(GOPATH)/bin/auth
 
+cli: auth
+
 scan:
 	@curl -s $(SCAN_SCRIPT_URL) | bash
 

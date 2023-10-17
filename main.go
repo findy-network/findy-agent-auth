@@ -67,7 +67,8 @@ func init() {
 	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
 	startServerCmd.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
-	startServerCmd.StringVar(&rpID, "domain", "localhost", "the site domain name")
+	startServerCmd.StringVar(&rpID, "domain", "localhost", "RPID, usually domain without a scheme and port (deprecated)")
+	startServerCmd.StringVar(&rpID, "rpid", "http://localhost", "usually domain without a scheme and port")
 	startServerCmd.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
 	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
 	startServerCmd.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
@@ -91,12 +92,13 @@ func main() {
 
 	u := try.To1(url.Parse(rpOrigin))
 
-	glog.V(3).Infoln(
+	glog.V(2).Infoln(
 		"\nlogging:", loggingFlags,
 		"\norigin host:", u.Host,
 		"\nlisten port:", port,
 		"\norigin port:", u.Port(),
 		"\nHTTPS ==", isHTTPS,
+		"\nRPID ==", rpID,
 	)
 
 	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))

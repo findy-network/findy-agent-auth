@@ -44,7 +44,6 @@ var (
 // unit testing is that we need FIDO2 server running and our version needs
 // agency running as well.
 
-//nolint:funlen,gocyclo
 func main() {
 	err2.SetPanicTracer(os.Stderr)
 	assert.SetDefault(assert.Production)
