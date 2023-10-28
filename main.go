@@ -79,7 +79,7 @@ func init() {
 	startServerCmd.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
 	startServerCmd.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
 	startServerCmd.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
-	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI")
+	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI home page")
 	startServerCmd.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
 }
 
@@ -109,9 +109,11 @@ func main() {
 	}
 
 	webAuthn = try.To1(webauthn.New(&webauthn.Config{
-		RPDisplayName: "Findy Agency", // Display Name for your site
-		RPID:          rpID,           // Generally the domain name for your site
-		RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
+		RPDisplayName: "Findy Agency",     // Display Name for your site
+		RPID:          rpID,               // Generally the domain name for your site
+		RPOrigins:     []string{rpOrigin}, // The origin URL for WebAuthn requests
+		// old deprecated version:
+		//RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
 	}))
 	sessionStore = try.To1(session.NewStore())
 
@@ -130,10 +132,12 @@ func main() {
 	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
 
 	if testUI {
+		glog.V(2).Info("testUI call")
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
 	} else {
 		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			_, _ = w.Write([]byte("OK"))
+			try.To1(fmt.Fprintln(w,
+				"NO UI in current running mode, restart w/ -testui"))
 		})
 	}
 
