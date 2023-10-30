@@ -44,15 +44,12 @@ var (
 
 //nolint:funlen,gocyclo
 func main() {
-	err2.SetPanicTracer(os.Stderr)
-	assert.SetDefault(assert.Production)
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Error(err)
-	}))
-	flag.Parse()
+	os.Args = append(os.Args,
+		"-logtostderr",
+	)
+	defer err2.Catch()
 
-	// we want this for glog, this is just a tester, not a real world service
-	try.To(flag.Set("logtostderr", "true"))
+	flag.Parse()
 
 	conn = try.To1(rpcclient.New(*cert, *user,
 		fmt.Sprintf("%s:%d", *serverAddr, *port)))
