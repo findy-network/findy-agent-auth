@@ -45,14 +45,12 @@ var (
 // agency running as well.
 
 func main() {
-	err2.SetPanicTracer(os.Stderr)
-	assert.SetDefault(assert.Production)
+	os.Args = append(os.Args,
+		"-logtostderr",
+	)
 	defer err2.Catch()
 
 	flag.Parse()
-
-	// we want this for glog, this is just a tester, not a real world service
-	try.To(flag.Set("logtostderr", "true"))
 
 	conn = try.To1(rpcclient.New(*serverAddr, *port))
 	defer conn.Close()

@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	rpcserver "github.com/findy-network/findy-agent-auth/acator/grpcenclave/rpcserver"
-	"github.com/lainio/err2/assert"
-	"github.com/lainio/err2/try"
+	"github.com/lainio/err2"
+	_ "github.com/lainio/err2/assert"
 )
 
 var (
@@ -16,11 +17,12 @@ var (
 )
 
 func main() {
-	flag.Parse()
+	os.Args = append(os.Args,
+		"-logtostderr",
+	)
+	err2.Catch()
 
-	// we want this for glog, this is just a tester, not a real world service
-	try.To(flag.Set("logtostderr", "true"))
-	assert.SetDefault(assert.Production)
+	flag.Parse()
 
 	rpcserver.Serve(*port)
 }

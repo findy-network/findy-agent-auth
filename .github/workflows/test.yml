@@ -23,7 +23,7 @@ jobs:
         uses: findy-network/e2e-test-action@master
         with:
           service: "auth"
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version-file: "./go.mod"
       - name: convert coverage to txt
@@ -39,7 +39,7 @@ jobs:
     needs: [test, e2e]
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: download coverage file
         uses: actions/download-artifact@v3
         with:
