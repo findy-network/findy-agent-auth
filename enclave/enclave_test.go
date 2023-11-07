@@ -38,34 +38,29 @@ func TestNewUser(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
 	u := user.NewUser(emailAddress, emailAddress, "")
-	err := PutUser(u)
-	assert.NoError(err)
+	try.To(PutUser(u))
 
-	err = PutUser(u)
-	assert.NoError(err)
+	try.To(PutUser(u))
 }
 
 func TestGetUser(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	u, found, err := GetUser(emailAddress)
-	assert.NoError(err)
+	u, found := try.To2(GetUser(emailAddress))
 	assert.That(found)
 	assert.NotNil(u)
 
-	_, found, err = GetUser(emailNotCreated)
-	assert.NoError(err)
+	_, found = try.To2(GetUser(emailNotCreated))
 	assert.ThatNot(found)
 }
 
 func TestGetExistingUser(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	u, err := GetExistingUser(emailAddress)
-	assert.NoError(err)
+	u := try.To1(GetExistingUser(emailAddress))
 	assert.NotNil(u)
 
-	_, err = GetExistingUser(emailNotCreated)
+	_, err := GetExistingUser(emailNotCreated)
 	assert.Error(err)
 }
 
@@ -76,14 +71,12 @@ func TestRemoveUser(t *testing.T) {
 	const userToRemove = "remove@example.com"
 
 	u := user.NewUser(userToRemove, userToRemove, "")
-	err := PutUser(u)
-	assert.NoError(err)
+	try.To(PutUser(u))
 	assert.NotNil(u)
 
-	err = RemoveUser(userToRemove)
-	assert.NoError(err)
+	try.To(RemoveUser(userToRemove))
 
-	_, err = GetExistingUser(userToRemove)
+	_, err := GetExistingUser(userToRemove)
 	assert.Error(err)
 
 	err = RemoveUser(emailNotCreated)

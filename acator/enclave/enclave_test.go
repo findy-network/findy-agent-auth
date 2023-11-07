@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 func TestEnclave_NewKeyHandle(t *testing.T) {
@@ -29,8 +30,7 @@ func TestEnclave_NewKeyHandle(t *testing.T) {
 			e := New(tt.fields.key)
 			assert.NotNil(e)
 
-			got, err := e.NewKeyHandle()
-			assert.NoError(err)
+			got := try.To1(e.NewKeyHandle())
 			assert.INotNil(got)
 
 			id := got.ID()
@@ -99,12 +99,10 @@ func Test_myHandle_Sign(t *testing.T) {
 			e := New(tt.fields.key)
 			assert.NotNil(e)
 
-			h, err := e.NewKeyHandle()
-			assert.NoError(err)
+			h := try.To1(e.NewKeyHandle())
 			assert.INotNil(h)
 
-			sig, err := h.Sign(tt.args.d)
-			assert.NoError(err)
+			sig := try.To1(h.Sign(tt.args.d))
 
 			id := h.ID()
 			assert.SNotNil(id)
