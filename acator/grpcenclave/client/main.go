@@ -51,6 +51,7 @@ func main() {
 	defer err2.Catch()
 
 	flag.Parse()
+	glog.CopyStandardLogTo("ERROR")
 
 	conn = try.To1(rpcclient.New(*serverAddr, *port))
 	defer conn.Close()
@@ -254,7 +255,7 @@ func tryProcess(
 				},
 			},
 		}
-		_, _ = rpcclient.DoEnterSecret(conn, smsg)
+		try.Out1(rpcclient.DoEnterSecret(conn, smsg)).Logf()
 	}))
 
 	extHandle := status.GetHandle()
