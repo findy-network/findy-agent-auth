@@ -16,6 +16,7 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 // Credential creation/Register
@@ -193,8 +194,7 @@ func TestRegister(t *testing.T) {
 			originURL, _ := url.Parse(tt.args.rpOrigin)
 			Origin = *originURL
 			r := strings.NewReader(tt.args.registerOptions)
-			js, err := Register(r)
-			assert.NoError(err)
+			js := try.To1(Register(r))
 			assert.INotNil(js)
 
 			ccd, err := protocol.ParseCredentialCreationResponseBody(js)
@@ -204,9 +204,8 @@ func TestRegister(t *testing.T) {
 				println("----")
 				assert.Equal(ccd.Response.CollectedClientData.Challenge, tt.args.challenge)
 				println("----")
-				err := ccd.Verify(tt.args.challenge,
-					false, tt.args.rpID, []string{tt.args.rpOrigin})
-				assert.NoError(err)
+				try.To(ccd.Verify(tt.args.challenge,
+					false, tt.args.rpID, []string{tt.args.rpOrigin}))
 			}
 		})
 	}
@@ -239,12 +238,11 @@ func TestRegister_server(t *testing.T) {
 			originURL, _ := url.Parse(tt.args.rpOrigin)
 			Origin = *originURL
 			r := strings.NewReader(tt.args.registerOptions)
-			ccd, err := protocol.ParseCredentialCreationResponseBody(r)
-			assert.NoError(err)
+			ccd := try.To1(protocol.ParseCredentialCreationResponseBody(r))
 			assert.NotNil(ccd)
 
 			//assert.Equal(ccd.Response.CollectedClientData.Challenge, tt.args.challenge)
-			err = ccd.Verify(tt.args.challenge,
+			err := ccd.Verify(tt.args.challenge,
 				false, tt.args.rpID, []string{tt.args.rpOrigin})
 			assert.Error(err)
 		})
@@ -262,38 +260,31 @@ func TestLogin(t *testing.T) {
 	Origin = *originURL
 
 	credID := "baocVG9NhJuTsLeiQBmK5rWggP4Pwz5zEKwzTTlNiRd2Lhi_vb0OmfPMLlcjOwg3S_fHAJhqLXIOOcvMepNhGGkORloK9p3oXmcVk3eV_BsCgZOfO-YpqlTdHis8p9inWL1WhJF2FXvGpEHGtG_wSezFFqf4AllxKth68_f8Kp-1rwnqSJJTS74OjOgZ56DWEAHSCBk"
-	data, err := base64.RawURLEncoding.DecodeString(credID)
-	assert.NoError(err)
+	data := try.To1(base64.RawURLEncoding.DecodeString(credID))
 
 	newStr := base64.RawURLEncoding.EncodeToString(data)
-	assert.NoError(err)
 	assert.Equal(newStr, credID)
 
 	credID = newStr
 	credReq := fmt.Sprintf(credentialRequestOptionsFmt, credID)
-	car, err := Login(strings.NewReader(credReq))
-	assert.NoError(err)
+	car := try.To1(Login(strings.NewReader(credReq)))
 	assert.INotNil(car)
 
-	pcad, err := protocol.ParseCredentialRequestResponseBody(car)
-	assert.NoError(err, "no error: %v", err)
+	pcad := try.To1(protocol.ParseCredentialRequestResponseBody(car))
 	assert.NotNil(pcad)
 
 	credentialBytes := pcad.Response.AuthenticatorData.AttData.CredentialPublicKey
-	err = pcad.Verify("fzUPUzuOeReQ3-1MJpkv6mWkkj71CKNxq2Utvechy5U",
+	try.To(pcad.Verify("fzUPUzuOeReQ3-1MJpkv6mWkkj71CKNxq2Utvechy5U",
 		"localhost", []string{"http://localhost:8080"}, "", false,
-		credentialBytes)
-	assert.NoError(err)
+		credentialBytes))
 }
 
 func TestParseAssertionResponse(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
-	assert.NoError(err)
+	ccd := try.To1(protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON)))
 
-	ad, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse))
-	assert.NoError(err)
+	ad := try.To1(protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse)))
 
 	// Step 15. Let hash be the result of computing a hash over the cData using SHA-256.
 	clientDataHash := sha256.Sum256(ad.Raw.AssertionResponse.ClientDataJSON)
@@ -305,15 +296,15 @@ func TestParseAssertionResponse(t *testing.T) {
 
 	credentialBytes := ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey
 
-	coseKey, err := cose.NewFromData(credentialBytes)
-	assert.NoError(err)
+	coseKey := try.To1(cose.NewFromData(credentialBytes))
 	valid := coseKey.Verify(sigData, ad.Response.Signature)
 	assert.That(valid)
-	keyData, _ := coseKey.Marshal()
+	keyData := try.To1(coseKey.Marshal())
+
+	_ = try.To1(base64.RawURLEncoding.DecodeString("pQECAyYgASFYIIcEZtPD-t7SgrBCqo8DmkzK-5hPRC7Agr9-4w2Egc3EIlggArnWSfgKmTTjWiOvtNu9Ck7jJDJpVJvff7CX_xQhzbk"))
 	assert.SLen(credentialBytes, len(keyData))
 
-	key, err := webauthncose.ParsePublicKey(keyData)
-	assert.NoError(err)
+	key := try.To1(webauthncose.ParsePublicKey(keyData))
 	k, ok := key.(webauthncose.EC2PublicKeyData)
 	assert.That(ok)
 	pubkey := &ecdsa.PublicKey{
@@ -323,20 +314,16 @@ func TestParseAssertionResponse(t *testing.T) {
 	}
 
 	valid = cose.VerifyHashSig(pubkey, sigData, ad.Response.Signature)
-	assert.NoError(err)
 	assert.That(valid)
 
-	valid, err = webauthncose.VerifySignature(key, sigData, ad.Response.Signature)
-	assert.NoError(err)
+	valid = try.To1(webauthncose.VerifySignature(key, sigData, ad.Response.Signature))
 	assert.That(valid)
 
-	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
+	try.To(ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
 		"localhost", []string{"http://localhost:8080"}, "", false,
-		credentialBytes)
-	assert.NoError(err)
+		credentialBytes))
 
-	authenticatorJSON, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
-	assert.NoError(err)
+	authenticatorJSON := try.To1(authenticator.MarshalData(&ad.Response.AuthenticatorData))
 	assert.DeepEqual(authenticatorJSON, []uint8(ad.Raw.AssertionResponse.AuthenticatorData))
 }
 
@@ -356,12 +343,10 @@ func TestParseResponse(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.PushTester(t)
 			defer assert.PopTester()
-			ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(tt.args.body))
-			assert.NoError(err)
+			ccd := try.To1(protocol.ParseCredentialCreationResponseBody(strings.NewReader(tt.args.body)))
 			assert.NotNil(ccd)
 
-			js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
-			assert.NoError(err)
+			js := try.To1(authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData))
 			assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
 		})
 	}
