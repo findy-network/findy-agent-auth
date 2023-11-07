@@ -33,7 +33,7 @@ func (e *Enclave) NewKeyHandle() (kh se.KeyHandle, err error) {
 		Type:    pb.CmdStatus_STATUS,
 		CmdType: e.GetType(),
 		SecType: pb.SecretMsg_NEW_HANDLE,
-		Info: &pb.CmdStatus_Enclave{ // TODO: this could be nil
+		Info: &pb.CmdStatus_Enclave{ // TODO: this could be nil, TODO: try it!
 			Enclave: &pb.SecretMsg_EnclaveMsg{
 				CredID: []byte{},
 			},
