@@ -52,7 +52,7 @@ func (h *myHandle) CBORPublicKey() (_ []byte, err error) {
 	return cbor.Marshal(h.EC2PublicKeyData)
 }
 
-// Sign function signs then given byte slice and returns the signature or error.
+// Sign signs the byte slice and returns the signature or error.
 func (h *myHandle) Sign(d []byte) (_ []byte, err error) {
 	defer err2.Handle(&err)
 
