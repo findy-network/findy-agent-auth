@@ -5,6 +5,7 @@ import (
 	"os"
 
 	rpcserver "github.com/findy-network/findy-agent-auth/acator/grpcenclave/rpcserver"
+	"github.com/golang/glog"
 	"github.com/lainio/err2"
 	_ "github.com/lainio/err2/assert"
 )
@@ -23,6 +24,7 @@ func main() {
 	err2.Catch()
 
 	flag.Parse()
+	glog.CopyStandardLogTo("ERROR")
 
 	rpcserver.Serve(*port)
 }
