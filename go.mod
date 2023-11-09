@@ -10,7 +10,7 @@ require (
 	github.com/go-webauthn/webauthn v0.8.6
 	github.com/golang/glog v1.1.2
 	github.com/google/uuid v1.4.0
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
 	github.com/lainio/err2 v0.9.51
 	github.com/rs/cors v1.10.1
