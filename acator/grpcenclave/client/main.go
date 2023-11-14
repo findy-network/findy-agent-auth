@@ -84,7 +84,7 @@ loop:
 			case pb.SecretMsg_NEW_HANDLE:
 				newKeyHandle(secEnc, status)
 			case pb.SecretMsg_IS_KEY_HANDLE:
-				inKeyHandle(secEnc, status)
+				isKeyHandle(secEnc, status)
 			case pb.SecretMsg_ID:
 				getID(status)
 			case pb.SecretMsg_CBOR_PUB_KEY:
@@ -165,7 +165,7 @@ func getID(status *pb.CmdStatus) {
 		})
 }
 
-func inKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
+func isKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
 	ok, kh := secEnc.IsKeyHandle(status.GetEnclave().CredID)
 	var (
 		id   int64
