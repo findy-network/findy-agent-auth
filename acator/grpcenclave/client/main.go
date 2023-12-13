@@ -116,15 +116,7 @@ loop:
 }
 
 func handleStatusErr(status *pb.CmdStatus) {
-	smsg := &pb.SecretMsg{
-		CmdID: status.CmdID,
-		Type:  pb.SecretMsg_ERROR,
-		Info: &pb.SecretMsg_Err{
-			Err: &pb.SecretMsg_ErrorMsg{
-				Info: "not key handle",
-			},
-		},
-	}
+	smsg := newErrEnter(fmt.Errorf(status.GetErr()), "not key handle", status)
 	try.To1(rpcclient.DoEnterSecret(conn, smsg))
 }
 
@@ -192,34 +184,34 @@ func isKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
 			},
 		}
 	} else {
-		smsg = &pb.SecretMsg{
-			CmdID: status.CmdID,
-			Type:  pb.SecretMsg_ERROR,
-			Info: &pb.SecretMsg_Err{
-				Err: &pb.SecretMsg_ErrorMsg{
-					Info: "not key handle",
-				},
-			},
-		}
+		smsg = newErrEnter(fmt.Errorf("error"), "not key handle", status)
 	}
 	try.To1(rpcclient.DoEnterSecret(conn, smsg))
 }
 
+func newErrEnter(err error, msg string, status *pb.CmdStatus) *pb.SecretMsg {
+	return &pb.SecretMsg{
+		CmdID: status.CmdID,
+		Type:  pb.SecretMsg_ERROR,
+		Info: &pb.SecretMsg_Err{
+			Err: &pb.SecretMsg_ErrorMsg{
+				Info: fmt.Sprintf(msg+": %w", err),
+			},
+		},
+	}
+}
+
 func newKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
 	id := keyID.Add(1)
-	kh, err := secEnc.NewKeyHandle()
 	var smsg *pb.SecretMsg
-	if err != nil {
-		smsg = &pb.SecretMsg{
-			CmdID: status.CmdID,
-			Type:  pb.SecretMsg_ERROR,
-			Info: &pb.SecretMsg_Err{
-				Err: &pb.SecretMsg_ErrorMsg{
-					Info: "cannot create error handle",
-				},
-			},
-		}
-	} else {
+	kh := try.Out1(secEnc.NewKeyHandle()).
+		Handle(func(err error) error {
+			smsg = newErrEnter(err, "cannot create error handle", status)
+			return nil
+		}).Val1
+
+	noErr := smsg == nil
+	if noErr {
 		khmap[id] = kh
 		smsg = &pb.SecretMsg{
 			CmdID: status.CmdID,
@@ -246,15 +238,7 @@ func tryProcess(
 		smsg *pb.SecretMsg
 	)
 	defer err2.Catch(err2.Err(func(err error) {
-		smsg = &pb.SecretMsg{
-			CmdID: status.CmdID,
-			Type:  pb.SecretMsg_ERROR,
-			Info: &pb.SecretMsg_Err{
-				Err: &pb.SecretMsg_ErrorMsg{
-					Info: fmt.Sprintf("error: processing: %v", err),
-				},
-			},
-		}
+		smsg = newErrEnter(err, "error: processing", status)
 		try.Out1(rpcclient.DoEnterSecret(conn, smsg)).Logf()
 	}))
 
