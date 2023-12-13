@@ -54,6 +54,7 @@ var createOptions1 = `{
 }`
 
 var challenge1 = "wD-rrGOX9iNarGAGrQlzsOEOoNzJUr3LfY-On9WZiolOkxObMBqtvh-KHCieacYsQGgzcgWkc33W0dHkGphkAg"
+var challenge2 = "h1N4ecbKdGwiYAcr3bQs6KIY_0lIqfaUQMSB-f_3JDk"
 
 var registerReply1 = `
   {
@@ -65,6 +66,18 @@ var registerReply1 = `
       "attestationObject": "omhhdXRoRGF0YVkBGeOwxEKY_BwUmvv0yJlvuSQnrkHkZJuTTKSVmRt4UrhVRQAAAAASyFpIS69HvbUf8ZKHGhURAJX1DIkaZ509qom1X11YynPH7ZLIk0W_e20WpMuufdkDxmxGnfcyGJ2kpIWQSpZS6FRwWULcItiAzepwe9CO2pslWAXVgteIY0Lz2IwddgwEPkz5SoCmvQ6vmKkGB_p4_j_ea9XmQUdEiikZ0z8OnjWiJh5SyM93sWDMO-MuZNImXB7E7JzZHGDT19REGSuxor2l-7KHDKUBAgMmIAEhWCC6uT8__IsdGImsk5-PutZaHzUdzDh86Nbpj_YyjVliLiJYII3qzbfZmFxmtXAXYqGIAkLGscyN417ZRlVwTjfN6rcrY2ZtdGRub25l"
     }
   }
+`
+
+var registerReply2 = `
+{
+        "id": "VHARBHy9qU7kAZfjPCIylQ_LOL2wjpda8-H_NcO2wrM",
+        "type": "public-key",
+        "rawId": "VHARBHy9qU7kAZfjPCIylQ_LOL2wjpda8-H_NcO2wrM",
+        "response": {
+                "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiaDFONGVjYktkR3dpWUFjcjNiUXM2S0lZXzBsSXFmYVVRTVNCLWZfM0pEayIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA5MCJ9",
+                "attestationObject": "o2hhdXRoRGF0YVimhgW4ugjCDUL55FUVGHGJbQ4N6YBZYob7c20R7sAT4qRFAAAAABLIWkhLr0e9tR_xkocaFREAIFRwEQR8valO5AGX4zwiMpUPyzi9sI6XWvPh_zXDtsKzpQECAyYgASHCWCAaKAekCmCctS30RdLUdBeZAzmneRt0Dk_TTYNZh52PJSLCWCDWHfDQIRgtLDdXp5I1f49iv8S1AtRKIZeaFFsLTJpWbGNmbXRkbm9uZWdhdHRTdG10oA"
+        }
+}
 `
 
 var challengeResponseJSON = `{
@@ -223,6 +236,12 @@ func TestRegister_server(t *testing.T) {
 		args   args
 		wantOK bool
 	}{
+//		{"from dart",
+//			args{registerReply2,
+//				challenge2,
+//				"https://webauthn.io", "webauthn.io"},
+//			true,
+//		},
 		{"from webauthn.io",
 			args{registerReply1,
 				challenge1,
@@ -350,6 +369,18 @@ func TestParseResponse(t *testing.T) {
 			assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
 		})
 	}
+}
+
+func TestCBORMarshalDart(t *testing.T) {
+	defer assert.PushTester(t)()
+
+	// first no bytes version from dart code:
+	// keyData := []byte{165, 1, 2, 3, 38, 32, 1, 33, 194, 88, 32, 249, 129, 236, 17, 155, 185, 148, 240, 220, 175, 60, 131, 129, 237, 84, 21, 185, 180, 252, 176, 44, 182, 164, 205, 59, 225, 35, 68, 167, 252, 130, 32, 34, 194, 88, 32, 225, 208, 221, 131, 126, 185, 230, 113, 71, 108, 35, 99, 131, 81, 115, 188, 23, 109, 202, 214, 168, 56, 140, 190, 183, 97, 93, 87, 6, 141, 176, 247}
+
+	// working version, where dart code uses bytes property and CborBytes:
+	keyData := []byte{165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 53, 186, 30, 65, 33, 234, 157, 173, 58, 199, 168, 167, 79, 44, 50, 137, 113, 51, 182, 79, 177, 191, 147, 43, 180, 224, 41, 103, 70, 152, 32, 39, 34, 88, 32, 100, 92, 123, 248, 223, 154, 252, 143, 250, 232, 153, 132, 47, 188, 59, 165, 4, 76, 76, 226, 5, 246, 251, 209, 46, 40, 10, 65, 24, 201, 1, 237}
+	key := try.To1(webauthncose.ParsePublicKey(keyData))
+	assert.INotNil(key)
 }
 
 var webauthnIoChallenge = `{
