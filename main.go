@@ -16,7 +16,6 @@ import (
 	"github.com/findy-network/findy-agent-auth/user"
 	myhttp "github.com/findy-network/findy-common-go/http"
 	"github.com/findy-network/findy-common-go/jwt"
-	"github.com/findy-network/findy-common-go/utils"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/golang/glog"
@@ -87,8 +86,9 @@ func main() {
 	glog.CopyStandardLogTo("ERROR") // for err2
 	defer err2.Catch()
 
+	flag.Parse()
 	try.To(startServerCmd.Parse(os.Args[1:]))
-	utils.ParseLoggingArgs(loggingFlags)
+	//utils.ParseLoggingArgs(loggingFlags)
 
 	u := try.To1(url.Parse(rpOrigin))
 
