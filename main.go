@@ -91,69 +91,9 @@ func (_ nulWriter) Write([]byte) (int, error) { return 0, nil }
 func main() {
 	defer err2.Catch()
 
-	flag.Parse()
-	//try.To(startServereCmd.Parse(os.Args[1:]))
-	utils.ParseLoggingArgs(loggingFlags)
-	if glog.V(1) { // means == V >= 1
-		glog.CopyStandardLogTo("ERROR") // for err2
-	} else {
-		println("here we")
-		time.Sleep(20 * time.Millisecond)
-		devNul := &nulWriter{}
-		err2.SetLogTracer(devNul) // no automatic logging in this case
-		//err2.SetLogTracer(err2.Stdnull) // TODO: until
-	}
-
-	u := try.To1(url.Parse(rpOrigin))
-
-	glog.V(2).Infoln(
-		"\nlogging:", loggingFlags,
-		"\norigin host:", u.Host,
-		"\nlisten port:", port,
-		"\norigin port:", u.Port(),
-		"\nHTTPS ==", isHTTPS,
-		"\nRPID ==", rpID,
-	)
-
-	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
-	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
-
-	if jwtSecret != "" {
-		jwt.SetJWTSecret(jwtSecret)
-	}
-
-	webAuthn = try.To1(webauthn.New(&webauthn.Config{
-		RPDisplayName: "Findy Agency",     // Display Name for your site
-		RPID:          rpID,               // Generally the domain name for your site
-		RPOrigins:     []string{rpOrigin}, // The origin URL for WebAuthn requests
-		// old deprecated version:
-		//RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
-	}))
-	sessionStore = try.To1(session.NewStore())
-
-	r := mux.NewRouter()
-
-	// Our legacy endpoints
-	r.HandleFunc("/register/begin/{username}", oldBeginRegistration).Methods("GET")
-	r.HandleFunc("/register/finish/{username}", oldFinishRegistration).Methods("POST")
-	r.HandleFunc("/login/begin/{username}", oldBeginLogin).Methods("GET")
-	r.HandleFunc("/login/finish/{username}", oldFinishLogin).Methods("POST")
-
-	// New Fido reference standard endpoints
-	r.HandleFunc("/assertion/options", BeginLogin).Methods("POST")
-	r.HandleFunc("/assertion/result", FinishLogin).Methods("POST")
-	r.HandleFunc("/attestation/options", BeginRegistration).Methods("POST")
-	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
-
-	if testUI {
-		glog.V(2).Info("testUI call")
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
-	} else {
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			try.To1(fmt.Fprintln(w,
-				"NO UI in current running mode, restart w/ -testui"))
-		})
-	}
+	flagParse()
+	setupEnv()
+	r := newMuxWithRoutes()
 
 	var handler http.Handler = r
 	if allowCors {
@@ -194,6 +134,33 @@ func main() {
 	if backupTickerDone != nil {
 		backupTickerDone <- struct{}{}
 	}
+}
+
+func newMuxWithRoutes() *mux.Router {
+	r := mux.NewRouter()
+
+	// Our legacy endpoints
+	r.HandleFunc("/register/begin/{username}", oldBeginRegistration).Methods("GET")
+	r.HandleFunc("/register/finish/{username}", oldFinishRegistration).Methods("POST")
+	r.HandleFunc("/login/begin/{username}", oldBeginLogin).Methods("GET")
+	r.HandleFunc("/login/finish/{username}", oldFinishLogin).Methods("POST")
+
+	// New Fido reference standard endpoints
+	r.HandleFunc("/assertion/options", BeginLogin).Methods("POST")
+	r.HandleFunc("/assertion/result", FinishLogin).Methods("POST")
+	r.HandleFunc("/attestation/options", BeginRegistration).Methods("POST")
+	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
+
+	if testUI {
+		glog.V(2).Info("testUI call")
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
+	} else {
+		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			try.To1(fmt.Fprintln(w,
+				"NO UI in current running mode, restart w/ -testui"))
+		})
+	}
+	return r
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
@@ -540,4 +507,47 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 
 	jsonResponse(w, &AccessToken{Token: user.JWT()}, http.StatusOK)
 	glog.V(1).Infoln("END finish login", username)
+}
+
+func flagParse() {
+	flag.Parse()
+	//try.To(startServereCmd.Parse(os.Args[1:]))
+	utils.ParseLoggingArgs(loggingFlags)
+	if glog.V(1) { // means == V >= 1
+		glog.CopyStandardLogTo("ERROR") // for err2
+	} else {
+		time.Sleep(20 * time.Millisecond)
+		devNul := &nulWriter{}
+		err2.SetLogTracer(devNul) // no automatic logging in this case
+		//err2.SetLogTracer(err2.Stdnull) // TODO: until
+	}
+}
+
+func setupEnv() {
+	u := try.To1(url.Parse(rpOrigin))
+
+	glog.V(2).Infoln(
+		"\nlogging:", loggingFlags,
+		"\norigin host:", u.Host,
+		"\nlisten port:", port,
+		"\norigin port:", u.Port(),
+		"\nHTTPS ==", isHTTPS,
+		"\nRPID ==", rpID,
+	)
+
+	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
+	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
+
+	if jwtSecret != "" {
+		jwt.SetJWTSecret(jwtSecret)
+	}
+
+	webAuthn = try.To1(webauthn.New(&webauthn.Config{
+		RPDisplayName: "Findy Agency",     // Display Name for your site
+		RPID:          rpID,               // Generally the domain name for your site
+		RPOrigins:     []string{rpOrigin}, // The origin URL for WebAuthn requests
+		// old deprecated version:
+		//RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
+	}))
+	sessionStore = try.To1(session.NewStore())
 }
