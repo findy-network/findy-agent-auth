@@ -16,6 +16,7 @@ import (
 	"github.com/findy-network/findy-agent-auth/user"
 	myhttp "github.com/findy-network/findy-common-go/http"
 	"github.com/findy-network/findy-common-go/jwt"
+	"github.com/findy-network/findy-common-go/utils"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/golang/glog"
@@ -51,7 +52,7 @@ var (
 	testUI         = false
 	timeoutSecs    = defaultTimeoutSecs
 
-	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
+	// startServereCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
 	defaultOrigin = fmt.Sprintf("http://localhost:%d", port)
 )
@@ -61,34 +62,47 @@ type AccessToken struct {
 }
 
 func init() {
-	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
-	startServerCmd.IntVar(&port, "port", defaultPort, "server port")
-	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
-	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
-	startServerCmd.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
-	startServerCmd.StringVar(&rpID, "domain", "localhost", "RPID, usually domain without a scheme and port (deprecated)")
-	startServerCmd.StringVar(&rpID, "rpid", "http://localhost", "usually domain without a scheme and port")
-	startServerCmd.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
-	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
-	startServerCmd.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
-	startServerCmd.StringVar(&enclaveBackup, "sec-backup-file", enclaveBackup, "secure enclave DB backup base file name")
-	startServerCmd.StringVar(&enclaveKey, "sec-key", enclaveKey, "sec-enc master key, SHA-256, 32-byte hex coded")
-	startServerCmd.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
-	startServerCmd.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
-	startServerCmd.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
-	startServerCmd.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
-	startServerCmd.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
-	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI home page")
-	startServerCmd.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
+	flag.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
+	flag.IntVar(&port, "port", defaultPort, "server port")
+	flag.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
+	flag.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
+	flag.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
+	flag.StringVar(&rpID, "domain", "localhost", "RPID, usually domain without a scheme and port (deprecated)")
+	flag.StringVar(&rpID, "rpid", "http://localhost", "usually domain without a scheme and port")
+	flag.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
+	flag.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
+	flag.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
+	flag.StringVar(&enclaveBackup, "sec-backup-file", enclaveBackup, "secure enclave DB backup base file name")
+	flag.StringVar(&enclaveKey, "sec-key", enclaveKey, "sec-enc master key, SHA-256, 32-byte hex coded")
+	flag.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
+	flag.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
+	flag.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
+	flag.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
+	flag.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
+	flag.BoolVar(&testUI, "test-ui", testUI, "render test UI home page")
+	flag.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
 }
 
+// define dev/null for all operation systems, until it's in err2 // TODO:
+type nulWriter struct{}
+
+func (_ nulWriter) Write([]byte) (int, error) { return 0, nil }
+
 func main() {
-	glog.CopyStandardLogTo("ERROR") // for err2
 	defer err2.Catch()
 
 	flag.Parse()
-	try.To(startServerCmd.Parse(os.Args[1:]))
-	//utils.ParseLoggingArgs(loggingFlags)
+	//try.To(startServereCmd.Parse(os.Args[1:]))
+	utils.ParseLoggingArgs(loggingFlags)
+	if glog.V(1) { // means == V >= 1
+		glog.CopyStandardLogTo("ERROR") // for err2
+	} else {
+		println("here we")
+		time.Sleep(20 * time.Millisecond)
+		devNul := &nulWriter{}
+		err2.SetLogTracer(devNul) // no automatic logging in this case
+		//err2.SetLogTracer(err2.Stdnull) // TODO: until
+	}
 
 	u := try.To1(url.Parse(rpOrigin))
 
