@@ -62,7 +62,7 @@ type AccessToken struct {
 }
 
 func init() {
-	flag.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
+	flag.StringVar(&loggingFlags, "logging", "", "logging startup arguments")
 	flag.IntVar(&port, "port", defaultPort, "server port")
 	flag.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
 	flag.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
@@ -510,15 +510,20 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func flagParse() {
-	flag.Parse()
+	os.Args = append(os.Args,
+		"-logtostderr", // todo: should be the first if we want to change this
+	)
 	//try.To(startServereCmd.Parse(os.Args[1:]))
-	utils.ParseLoggingArgs(loggingFlags)
+	flag.Parse()
+	if loggingFlags != "" {
+		// let loggingFlags overwrite logging flags
+		utils.ParseLoggingArgs(loggingFlags)
+	}
+
 	if glog.V(1) { // means == V >= 1
 		glog.CopyStandardLogTo("ERROR") // for err2
 	} else {
-		time.Sleep(20 * time.Millisecond)
-		devNul := &nulWriter{}
-		err2.SetLogTracer(devNul) // no automatic logging in this case
+		err2.SetLogTracer(&nulWriter{}) // suppress logging from err2
 		//err2.SetLogTracer(err2.Stdnull) // TODO: until
 	}
 }
