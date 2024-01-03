@@ -39,7 +39,7 @@ func InitWithOpts(certPath, addr string, port int, insecure bool, opts []grpc.Di
 		glog.Warning("Establishing INSECURE connection to agency")
 		baseCfg = client.BuildInsecureClientConnBase(addr, port, opts)
 	} else {
-		glog.Info("Establishing SECURE connection to agency")
+		glog.V(1).Info("Establishing SECURE connection to agency")
 		baseCfg = client.BuildClientConnBase(certPath, addr, port, opts)
 	}
 }
