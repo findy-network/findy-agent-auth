@@ -54,7 +54,9 @@ var createOptions1 = `{
 }`
 
 var challenge1 = "wD-rrGOX9iNarGAGrQlzsOEOoNzJUr3LfY-On9WZiolOkxObMBqtvh-KHCieacYsQGgzcgWkc33W0dHkGphkAg"
-var challenge2 = "h1N4ecbKdGwiYAcr3bQs6KIY_0lIqfaUQMSB-f_3JDk"
+
+// challenge2
+var _ = "h1N4ecbKdGwiYAcr3bQs6KIY_0lIqfaUQMSB-f_3JDk"
 
 var registerReply1 = `
   {
@@ -68,7 +70,8 @@ var registerReply1 = `
   }
 `
 
-var registerReply2 = `
+// registerReply2
+var _ = `
 {
         "id": "VHARBHy9qU7kAZfjPCIylQ_LOL2wjpda8-H_NcO2wrM",
         "type": "public-key",
@@ -236,12 +239,12 @@ func TestRegister_server(t *testing.T) {
 		args   args
 		wantOK bool
 	}{
-//		{"from dart",
-//			args{registerReply2,
-//				challenge2,
-//				"https://webauthn.io", "webauthn.io"},
-//			true,
-//		},
+		//		{"from dart",
+		//			args{registerReply2,
+		//				challenge2,
+		//				"https://webauthn.io", "webauthn.io"},
+		//			true,
+		//		},
 		{"from webauthn.io",
 			args{registerReply1,
 				challenge1,
