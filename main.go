@@ -168,7 +168,10 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		glog.Warningln("begin registration error:", err)
 	}))
 
-	var err error
+	var (
+		err         error
+		userCreated bool
+	)
 	// get username/friendly name
 
 	defer err2.Handle(&err, func(err error) error {
@@ -192,6 +195,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		}
 		userData = user.NewUser(username, displayName, uInfo.Seed)
 		try.To(enclave.PutUser(userData))
+		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
 		glog.Warningln("new ator, invalid JWT", userData.DID, displayName)
 		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
@@ -205,6 +209,10 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
+		if userCreated {
+			try.Out(enclave.RemoveUser(username)).
+				Logf("cannot cleanup (%s)", username)
+		}
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
@@ -373,7 +381,10 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var err error
+	var (
+		err         error
+		userCreated bool
+	)
 
 	userData, exists := try.To2(enclave.GetUser(username))
 
@@ -389,6 +400,7 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 		userData = user.NewUser(username, displayName, seed)
 		try.To(enclave.PutUser(userData))
+		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
 		glog.Warningln("new ator, invalid JWT", userData.DID, displayName)
 		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
@@ -402,6 +414,10 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
+		if userCreated {
+			try.Out(enclave.RemoveUser(username)).
+				Logf("cannot cleanup (%s)", username)
+		}
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
@@ -434,7 +450,8 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
 
-		_ = enclave.RemoveUser(username)
+		try.Out(enclave.RemoveUser(username)).
+			Logf("cannot cleanup (%s)", username)
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
