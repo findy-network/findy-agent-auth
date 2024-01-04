@@ -2,6 +2,7 @@
 
 [![test](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/findy-network/findy-agent-auth/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/findy-network/findy-agent-auth/branch/dev/graph/badge.svg?token=KY0702XNS6)](https://codecov.io/gh/findy-network/findy-agent-auth)
+![last-commit](https://img.shields.io/github/last-commit/findy-network/findy-agent-auth)
 
 Authentication services for Findy agency.
 
