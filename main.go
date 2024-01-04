@@ -510,6 +510,10 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func flagParse() {
+	// our default is to ...
+	err2.SetLogTracer(&nulWriter{}) // .. suppress logging from err2
+	//err2.SetLogTracer(err2.Stdnull) // TODO: until
+
 	os.Args = append(os.Args,
 		"-logtostderr", // todo: should be the first if we want to change this
 	)
@@ -522,9 +526,6 @@ func flagParse() {
 
 	if glog.V(1) { // means == V >= 1
 		glog.CopyStandardLogTo("ERROR") // for err2
-	} else {
-		err2.SetLogTracer(&nulWriter{}) // suppress logging from err2
-		//err2.SetLogTracer(err2.Stdnull) // TODO: until
 	}
 }
 
