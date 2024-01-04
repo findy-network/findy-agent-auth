@@ -9,11 +9,10 @@ echo "CERT_PATH: $CERT_PATH"
 enclaveFile="MEMORY_enclave.bolt" 
 
 go run .. \
-	$@ \
 	-agency "localhost" \
 	-logging "-logtostderr -v=3" \
 	-origin http://localhost:8090 \
 	-cert-path=$CERT_PATH \
 	-sec-file "$enclaveFile" \
 	-sec-backup-interval 100 \
-	-port 8090
+	-port 8090 $@ 

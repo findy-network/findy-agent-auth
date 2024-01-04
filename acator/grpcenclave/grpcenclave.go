@@ -33,11 +33,7 @@ func (e *Enclave) NewKeyHandle() (kh se.KeyHandle, err error) {
 		Type:    pb.CmdStatus_STATUS,
 		CmdType: e.GetType(),
 		SecType: pb.SecretMsg_NEW_HANDLE,
-		Info: &pb.CmdStatus_Enclave{ // TODO: this could be nil
-			Enclave: &pb.SecretMsg_EnclaveMsg{
-				CredID: []byte{},
-			},
-		},
+		Info:    nil,
 	}
 	glog.V(3).Infoln("wait answer in NewKeyHandle")
 
@@ -136,8 +132,9 @@ func (h *keyHandle) CBORPublicKey() (pk []byte, err error) {
 	reply := <-h.InChan
 	assert.NotEqual(reply.GetType(), pb.SecretMsg_ERROR)
 	assert.Equal(reply.GetType(), pb.SecretMsg_CBOR_PUB_KEY)
-	glog.V(3).Infoln("question CBORPublicKey ready")
-	return reply.GetHandle().GetData(), nil
+	bytes := reply.GetHandle().GetData()
+	glog.V(3).Infoln("question CBORPublicKey ready", "len:", len(bytes))
+	return bytes, nil
 }
 
 // Sign function signs then given byte slice and returns the signature or error.

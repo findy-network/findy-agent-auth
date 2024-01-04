@@ -16,6 +16,7 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 // Credential creation/Register
@@ -54,6 +55,9 @@ var createOptions1 = `{
 
 var challenge1 = "wD-rrGOX9iNarGAGrQlzsOEOoNzJUr3LfY-On9WZiolOkxObMBqtvh-KHCieacYsQGgzcgWkc33W0dHkGphkAg"
 
+// challenge2
+var _ = "h1N4ecbKdGwiYAcr3bQs6KIY_0lIqfaUQMSB-f_3JDk"
+
 var registerReply1 = `
   {
     "id": "9QyJGmedPaqJtV9dWMpzx-2SyJNFv3ttFqTLrn3ZA8ZsRp33MhidpKSFkEqWUuhUcFlC3CLYgM3qcHvQjtqbJVgF1YLXiGNC89iMHXYMBD5M-UqApr0Or5ipBgf6eP4_3mvV5kFHRIopGdM_Dp41oiYeUsjPd7FgzDvjLmTSJlwexOyc2Rxg09fURBkrsaK9pfuyhww",
@@ -64,6 +68,19 @@ var registerReply1 = `
       "attestationObject": "omhhdXRoRGF0YVkBGeOwxEKY_BwUmvv0yJlvuSQnrkHkZJuTTKSVmRt4UrhVRQAAAAASyFpIS69HvbUf8ZKHGhURAJX1DIkaZ509qom1X11YynPH7ZLIk0W_e20WpMuufdkDxmxGnfcyGJ2kpIWQSpZS6FRwWULcItiAzepwe9CO2pslWAXVgteIY0Lz2IwddgwEPkz5SoCmvQ6vmKkGB_p4_j_ea9XmQUdEiikZ0z8OnjWiJh5SyM93sWDMO-MuZNImXB7E7JzZHGDT19REGSuxor2l-7KHDKUBAgMmIAEhWCC6uT8__IsdGImsk5-PutZaHzUdzDh86Nbpj_YyjVliLiJYII3qzbfZmFxmtXAXYqGIAkLGscyN417ZRlVwTjfN6rcrY2ZtdGRub25l"
     }
   }
+`
+
+// registerReply2
+var _ = `
+{
+        "id": "VHARBHy9qU7kAZfjPCIylQ_LOL2wjpda8-H_NcO2wrM",
+        "type": "public-key",
+        "rawId": "VHARBHy9qU7kAZfjPCIylQ_LOL2wjpda8-H_NcO2wrM",
+        "response": {
+                "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiaDFONGVjYktkR3dpWUFjcjNiUXM2S0lZXzBsSXFmYVVRTVNCLWZfM0pEayIsIm9yaWdpbiI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA5MCJ9",
+                "attestationObject": "o2hhdXRoRGF0YVimhgW4ugjCDUL55FUVGHGJbQ4N6YBZYob7c20R7sAT4qRFAAAAABLIWkhLr0e9tR_xkocaFREAIFRwEQR8valO5AGX4zwiMpUPyzi9sI6XWvPh_zXDtsKzpQECAyYgASHCWCAaKAekCmCctS30RdLUdBeZAzmneRt0Dk_TTYNZh52PJSLCWCDWHfDQIRgtLDdXp5I1f49iv8S1AtRKIZeaFFsLTJpWbGNmbXRkbm9uZWdhdHRTdG10oA"
+        }
+}
 `
 
 var challengeResponseJSON = `{
@@ -193,8 +210,7 @@ func TestRegister(t *testing.T) {
 			originURL, _ := url.Parse(tt.args.rpOrigin)
 			Origin = *originURL
 			r := strings.NewReader(tt.args.registerOptions)
-			js, err := Register(r)
-			assert.NoError(err)
+			js := try.To1(Register(r))
 			assert.INotNil(js)
 
 			ccd, err := protocol.ParseCredentialCreationResponseBody(js)
@@ -204,9 +220,8 @@ func TestRegister(t *testing.T) {
 				println("----")
 				assert.Equal(ccd.Response.CollectedClientData.Challenge, tt.args.challenge)
 				println("----")
-				err := ccd.Verify(tt.args.challenge,
-					false, tt.args.rpID, []string{tt.args.rpOrigin})
-				assert.NoError(err)
+				try.To(ccd.Verify(tt.args.challenge,
+					false, tt.args.rpID, []string{tt.args.rpOrigin}))
 			}
 		})
 	}
@@ -224,6 +239,12 @@ func TestRegister_server(t *testing.T) {
 		args   args
 		wantOK bool
 	}{
+		//		{"from dart",
+		//			args{registerReply2,
+		//				challenge2,
+		//				"https://webauthn.io", "webauthn.io"},
+		//			true,
+		//		},
 		{"from webauthn.io",
 			args{registerReply1,
 				challenge1,
@@ -239,12 +260,11 @@ func TestRegister_server(t *testing.T) {
 			originURL, _ := url.Parse(tt.args.rpOrigin)
 			Origin = *originURL
 			r := strings.NewReader(tt.args.registerOptions)
-			ccd, err := protocol.ParseCredentialCreationResponseBody(r)
-			assert.NoError(err)
+			ccd := try.To1(protocol.ParseCredentialCreationResponseBody(r))
 			assert.NotNil(ccd)
 
 			//assert.Equal(ccd.Response.CollectedClientData.Challenge, tt.args.challenge)
-			err = ccd.Verify(tt.args.challenge,
+			err := ccd.Verify(tt.args.challenge,
 				false, tt.args.rpID, []string{tt.args.rpOrigin})
 			assert.Error(err)
 		})
@@ -262,38 +282,31 @@ func TestLogin(t *testing.T) {
 	Origin = *originURL
 
 	credID := "baocVG9NhJuTsLeiQBmK5rWggP4Pwz5zEKwzTTlNiRd2Lhi_vb0OmfPMLlcjOwg3S_fHAJhqLXIOOcvMepNhGGkORloK9p3oXmcVk3eV_BsCgZOfO-YpqlTdHis8p9inWL1WhJF2FXvGpEHGtG_wSezFFqf4AllxKth68_f8Kp-1rwnqSJJTS74OjOgZ56DWEAHSCBk"
-	data, err := base64.RawURLEncoding.DecodeString(credID)
-	assert.NoError(err)
+	data := try.To1(base64.RawURLEncoding.DecodeString(credID))
 
 	newStr := base64.RawURLEncoding.EncodeToString(data)
-	assert.NoError(err)
 	assert.Equal(newStr, credID)
 
 	credID = newStr
 	credReq := fmt.Sprintf(credentialRequestOptionsFmt, credID)
-	car, err := Login(strings.NewReader(credReq))
-	assert.NoError(err)
+	car := try.To1(Login(strings.NewReader(credReq)))
 	assert.INotNil(car)
 
-	pcad, err := protocol.ParseCredentialRequestResponseBody(car)
-	assert.NoError(err, "no error: %v", err)
+	pcad := try.To1(protocol.ParseCredentialRequestResponseBody(car))
 	assert.NotNil(pcad)
 
 	credentialBytes := pcad.Response.AuthenticatorData.AttData.CredentialPublicKey
-	err = pcad.Verify("fzUPUzuOeReQ3-1MJpkv6mWkkj71CKNxq2Utvechy5U",
+	try.To(pcad.Verify("fzUPUzuOeReQ3-1MJpkv6mWkkj71CKNxq2Utvechy5U",
 		"localhost", []string{"http://localhost:8080"}, "", false,
-		credentialBytes)
-	assert.NoError(err)
+		credentialBytes))
 }
 
 func TestParseAssertionResponse(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON))
-	assert.NoError(err)
+	ccd := try.To1(protocol.ParseCredentialCreationResponseBody(strings.NewReader(challengeResponseJSON)))
 
-	ad, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse))
-	assert.NoError(err)
+	ad := try.To1(protocol.ParseCredentialRequestResponseBody(strings.NewReader(authenticatorAssertionResponse)))
 
 	// Step 15. Let hash be the result of computing a hash over the cData using SHA-256.
 	clientDataHash := sha256.Sum256(ad.Raw.AssertionResponse.ClientDataJSON)
@@ -305,15 +318,15 @@ func TestParseAssertionResponse(t *testing.T) {
 
 	credentialBytes := ccd.Response.AttestationObject.AuthData.AttData.CredentialPublicKey
 
-	coseKey, err := cose.NewFromData(credentialBytes)
-	assert.NoError(err)
+	coseKey := try.To1(cose.NewFromData(credentialBytes))
 	valid := coseKey.Verify(sigData, ad.Response.Signature)
 	assert.That(valid)
-	keyData, _ := coseKey.Marshal()
+	keyData := try.To1(coseKey.Marshal())
+
+	_ = try.To1(base64.RawURLEncoding.DecodeString("pQECAyYgASFYIIcEZtPD-t7SgrBCqo8DmkzK-5hPRC7Agr9-4w2Egc3EIlggArnWSfgKmTTjWiOvtNu9Ck7jJDJpVJvff7CX_xQhzbk"))
 	assert.SLen(credentialBytes, len(keyData))
 
-	key, err := webauthncose.ParsePublicKey(keyData)
-	assert.NoError(err)
+	key := try.To1(webauthncose.ParsePublicKey(keyData))
 	k, ok := key.(webauthncose.EC2PublicKeyData)
 	assert.That(ok)
 	pubkey := &ecdsa.PublicKey{
@@ -323,20 +336,16 @@ func TestParseAssertionResponse(t *testing.T) {
 	}
 
 	valid = cose.VerifyHashSig(pubkey, sigData, ad.Response.Signature)
-	assert.NoError(err)
 	assert.That(valid)
 
-	valid, err = webauthncose.VerifySignature(key, sigData, ad.Response.Signature)
-	assert.NoError(err)
+	valid = try.To1(webauthncose.VerifySignature(key, sigData, ad.Response.Signature))
 	assert.That(valid)
 
-	err = ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
+	try.To(ad.Verify("yifGGzsupyIW3xxZoL09vEbJQYBrQaarZf4CN8GUvWE",
 		"localhost", []string{"http://localhost:8080"}, "", false,
-		credentialBytes)
-	assert.NoError(err)
+		credentialBytes))
 
-	authenticatorJSON, err := authenticator.MarshalData(&ad.Response.AuthenticatorData)
-	assert.NoError(err)
+	authenticatorJSON := try.To1(authenticator.MarshalData(&ad.Response.AuthenticatorData))
 	assert.DeepEqual(authenticatorJSON, []uint8(ad.Raw.AssertionResponse.AuthenticatorData))
 }
 
@@ -356,15 +365,25 @@ func TestParseResponse(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.PushTester(t)
 			defer assert.PopTester()
-			ccd, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(tt.args.body))
-			assert.NoError(err)
+			ccd := try.To1(protocol.ParseCredentialCreationResponseBody(strings.NewReader(tt.args.body)))
 			assert.NotNil(ccd)
 
-			js, err := authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData)
-			assert.NoError(err)
+			js := try.To1(authenticator.MarshalData(&ccd.Response.AttestationObject.AuthData))
 			assert.SLen(js, len(ccd.Response.AttestationObject.RawAuthData))
 		})
 	}
+}
+
+func TestCBORMarshalDart(t *testing.T) {
+	defer assert.PushTester(t)()
+
+	// first no bytes version from dart code:
+	// keyData := []byte{165, 1, 2, 3, 38, 32, 1, 33, 194, 88, 32, 249, 129, 236, 17, 155, 185, 148, 240, 220, 175, 60, 131, 129, 237, 84, 21, 185, 180, 252, 176, 44, 182, 164, 205, 59, 225, 35, 68, 167, 252, 130, 32, 34, 194, 88, 32, 225, 208, 221, 131, 126, 185, 230, 113, 71, 108, 35, 99, 131, 81, 115, 188, 23, 109, 202, 214, 168, 56, 140, 190, 183, 97, 93, 87, 6, 141, 176, 247}
+
+	// working version, where dart code uses bytes property and CborBytes:
+	keyData := []byte{165, 1, 2, 3, 38, 32, 1, 33, 88, 32, 53, 186, 30, 65, 33, 234, 157, 173, 58, 199, 168, 167, 79, 44, 50, 137, 113, 51, 182, 79, 177, 191, 147, 43, 180, 224, 41, 103, 70, 152, 32, 39, 34, 88, 32, 100, 92, 123, 248, 223, 154, 252, 143, 250, 232, 153, 132, 47, 188, 59, 165, 4, 76, 76, 226, 5, 246, 251, 209, 46, 40, 10, 65, 24, 201, 1, 237}
+	key := try.To1(webauthncose.ParsePublicKey(keyData))
+	assert.INotNil(key)
 }
 
 var webauthnIoChallenge = `{

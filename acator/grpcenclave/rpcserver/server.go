@@ -17,13 +17,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Serve(certPath string, port int) {
-	pki := rpc.LoadPKI(certPath)
-	glog.V(3).Infof("starting gRPC server with\ncrt:\t%s\nkey:\t%s\nclient:\t%s",
-		pki.Server.CertFile, pki.Server.KeyFile, pki.Client.CertFile)
+func Serve(port int) {
 	rpc.Serve(&rpc.ServerCfg{
+		NoAuthorization: true,
+
 		Port: port,
-		PKI:  pki,
 		Register: func(s *grpc.Server) error {
 			pb.RegisterAuthnServiceServer(s, &authnServer{})
 			glog.V(10).Infoln("GRPC registration all done")
@@ -110,7 +108,7 @@ func (a *authnServer) Enter(
 		glog.V(1).Infoln("<== status:", status.CmdType, status.CmdID)
 		try.To(server.Send(status))
 	}
-	glog.V(1).Info("end Enter\n===============")
+	glog.V(1).Infoln("end Enter\n===============\n\n")
 	return nil
 }
 

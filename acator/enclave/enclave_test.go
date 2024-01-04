@@ -1,12 +1,10 @@
 package enclave
 
 import (
-	"crypto/ecdsa"
-	"reflect"
 	"testing"
 
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 func TestEnclave_NewKeyHandle(t *testing.T) {
@@ -29,8 +27,7 @@ func TestEnclave_NewKeyHandle(t *testing.T) {
 			e := New(tt.fields.key)
 			assert.NotNil(e)
 
-			got, err := e.NewKeyHandle()
-			assert.NoError(err)
+			got := try.To1(e.NewKeyHandle())
 			assert.INotNil(got)
 
 			id := got.ID()
@@ -93,18 +90,15 @@ func Test_myHandle_Sign(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.PushTester(t)
-			defer assert.PopTester()
+			defer assert.PushTester(t)()
 
 			e := New(tt.fields.key)
 			assert.NotNil(e)
 
-			h, err := e.NewKeyHandle()
-			assert.NoError(err)
+			h := try.To1(e.NewKeyHandle())
 			assert.INotNil(h)
 
-			sig, err := h.Sign(tt.args.d)
-			assert.NoError(err)
+			sig := try.To1(h.Sign(tt.args.d))
 
 			id := h.ID()
 			assert.SNotNil(id)
@@ -120,36 +114,6 @@ func Test_myHandle_Sign(t *testing.T) {
 			assert.INotNil(nkh)
 
 			assert.That(nkh.Verify(tt.args.d, sig))
-		})
-	}
-}
-
-func Test_myHandle_ID(t *testing.T) {
-	type fields struct {
-		Enclave          Enclave
-		EC2PublicKeyData webauthncose.EC2PublicKeyData
-		privKey          *ecdsa.PrivateKey
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   []byte
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.PushTester(t)
-			defer assert.PopTester()
-
-			h := &myHandle{
-				Enclave:          tt.fields.Enclave,
-				EC2PublicKeyData: tt.fields.EC2PublicKeyData,
-				privKey:          tt.fields.privKey,
-			}
-			if got := h.ID(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("myHandle.ID() = %v, want %v", got, tt.want)
-			}
 		})
 	}
 }

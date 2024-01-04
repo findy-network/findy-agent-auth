@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lainio/err2/assert"
+	"github.com/lainio/err2/try"
 )
 
 func TestKey_SignAndVerify(t *testing.T) {
@@ -23,20 +24,19 @@ func TestKey_SignAndVerify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.PushTester(t)
 			defer assert.PopTester()
-			k, err := New()
-			if err != nil {
-				t.Errorf("New() error = %v", err)
-				return
-			}
-			sig, err := k.Sign(tt.args.hash)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Sign() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			k := try.To1(New())
+			var (
+				sig []byte
+				err error
+			)
+			if tt.wantErr {
+				sig, err = k.Sign(tt.args.hash)
+				assert.Error(err)
+			} else {
+				sig = try.To1(k.Sign(tt.args.hash))
 			}
 			valid := k.Verify(tt.args.hash, sig)
-			if !valid {
-				t.Errorf("cannot verify")
-			}
+			assert.That(valid)
 		})
 	}
 }
@@ -44,8 +44,7 @@ func TestKey_SignAndVerify(t *testing.T) {
 func TestKey_TryMarshalSecretPrivateKey(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	k, err := New()
-	assert.NoError(err)
+	k := try.To1(New())
 
 	d := k.TryMarshalSecretPrivateKey()
 

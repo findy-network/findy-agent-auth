@@ -52,7 +52,7 @@ var (
 	testUI         = false
 	timeoutSecs    = defaultTimeoutSecs
 
-	startServerCmd = flag.NewFlagSet("server", flag.ExitOnError)
+	// startServereCmd = flag.NewFlagSet("server", flag.ExitOnError)
 
 	defaultOrigin = fmt.Sprintf("http://localhost:%d", port)
 )
@@ -62,78 +62,38 @@ type AccessToken struct {
 }
 
 func init() {
-	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2", "logging startup arguments")
-	startServerCmd.IntVar(&port, "port", defaultPort, "server port")
-	startServerCmd.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
-	startServerCmd.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
-	startServerCmd.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
-	startServerCmd.StringVar(&rpID, "domain", "localhost", "the site domain name")
-	startServerCmd.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
-	startServerCmd.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
-	startServerCmd.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
-	startServerCmd.StringVar(&enclaveBackup, "sec-backup-file", enclaveBackup, "secure enclave DB backup base file name")
-	startServerCmd.StringVar(&enclaveKey, "sec-key", enclaveKey, "sec-enc master key, SHA-256, 32-byte hex coded")
-	startServerCmd.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
-	startServerCmd.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
-	startServerCmd.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
-	startServerCmd.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
-	startServerCmd.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
-	startServerCmd.BoolVar(&testUI, "test-ui", testUI, "render test UI")
-	startServerCmd.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
+	flag.StringVar(&loggingFlags, "logging", "", "logging startup arguments")
+	flag.IntVar(&port, "port", defaultPort, "server port")
+	flag.StringVar(&agencyAddr, "agency", "guest", "agency gRPC server addr")
+	flag.IntVar(&agencyPort, "gport", 50051, "agency gRPC server port")
+	flag.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
+	flag.StringVar(&rpID, "domain", "localhost", "RPID, usually domain without a scheme and port (deprecated)")
+	flag.StringVar(&rpID, "rpid", "http://localhost", "usually domain without a scheme and port")
+	flag.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
+	flag.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
+	flag.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
+	flag.StringVar(&enclaveBackup, "sec-backup-file", enclaveBackup, "secure enclave DB backup base file name")
+	flag.StringVar(&enclaveKey, "sec-key", enclaveKey, "sec-enc master key, SHA-256, 32-byte hex coded")
+	flag.IntVar(&backupInterval, "sec-backup-interval", backupInterval, "secure enclave backup interval in hours")
+	flag.StringVar(&findyAdmin, "admin", findyAdmin, "admin ID used for this agency ecosystem")
+	flag.StringVar(&certPath, "cert-path", certPath, "cert root path where server and client certificates exist")
+	flag.BoolVar(&allowCors, "cors", allowCors, "allow cross-origin requests")
+	flag.BoolVar(&isHTTPS, "local-tls", isHTTPS, "serve HTTPS")
+	flag.BoolVar(&testUI, "test-ui", testUI, "render test UI home page")
+	flag.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
 }
 
+// define dev/null for all operation systems, until it's in err2 // TODO:
+type nulWriter struct{}
+
+func (_ nulWriter) Write([]byte) (int, error) { return 0, nil }
+
 func main() {
-	glog.CopyStandardLogTo("ERROR") // for err2
 	defer err2.Catch()
 
-	try.To(startServerCmd.Parse(os.Args[1:]))
-	utils.ParseLoggingArgs(loggingFlags)
-
-	u := try.To1(url.Parse(rpOrigin))
-
-	glog.V(3).Infoln(
-		"\nlogging:", loggingFlags,
-		"\norigin host:", u.Host,
-		"\nlisten port:", port,
-		"\norigin port:", u.Port(),
-		"\nHTTPS ==", isHTTPS,
-	)
-
-	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
-	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
-
-	if jwtSecret != "" {
-		jwt.SetJWTSecret(jwtSecret)
-	}
-
-	webAuthn = try.To1(webauthn.New(&webauthn.Config{
-		RPDisplayName: "Findy Agency", // Display Name for your site
-		RPID:          rpID,           // Generally the domain name for your site
-		RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
-	}))
-	sessionStore = try.To1(session.NewStore())
-
-	r := mux.NewRouter()
-
-	// Our legacy endpoints
-	r.HandleFunc("/register/begin/{username}", oldBeginRegistration).Methods("GET")
-	r.HandleFunc("/register/finish/{username}", oldFinishRegistration).Methods("POST")
-	r.HandleFunc("/login/begin/{username}", oldBeginLogin).Methods("GET")
-	r.HandleFunc("/login/finish/{username}", oldFinishLogin).Methods("POST")
-
-	// New Fido reference standard endpoints
-	r.HandleFunc("/assertion/options", BeginLogin).Methods("POST")
-	r.HandleFunc("/assertion/result", FinishLogin).Methods("POST")
-	r.HandleFunc("/attestation/options", BeginRegistration).Methods("POST")
-	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
-
-	if testUI {
-		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
-	} else {
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			_, _ = w.Write([]byte("OK"))
-		})
-	}
+	flagParse()
+	setupEnv()
+	r := newMuxWithRoutes()
 
 	var handler http.Handler = r
 	if allowCors {
@@ -176,12 +136,42 @@ func main() {
 	}
 }
 
+func newMuxWithRoutes() *mux.Router {
+	r := mux.NewRouter()
+
+	// Our legacy endpoints
+	r.HandleFunc("/register/begin/{username}", oldBeginRegistration).Methods("GET")
+	r.HandleFunc("/register/finish/{username}", oldFinishRegistration).Methods("POST")
+	r.HandleFunc("/login/begin/{username}", oldBeginLogin).Methods("GET")
+	r.HandleFunc("/login/finish/{username}", oldFinishLogin).Methods("POST")
+
+	// New Fido reference standard endpoints
+	r.HandleFunc("/assertion/options", BeginLogin).Methods("POST")
+	r.HandleFunc("/assertion/result", FinishLogin).Methods("POST")
+	r.HandleFunc("/attestation/options", BeginRegistration).Methods("POST")
+	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
+
+	if testUI {
+		glog.V(2).Info("testUI call")
+		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
+	} else {
+		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			try.To1(fmt.Fprintln(w,
+				"NO UI in current running mode, restart w/ -testui"))
+		})
+	}
+	return r
+}
+
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("begin registration error:", err)
 	}))
 
-	var err error
+	var (
+		err         error
+		userCreated bool
+	)
 	// get username/friendly name
 
 	defer err2.Handle(&err, func(err error) error {
@@ -205,6 +195,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		}
 		userData = user.NewUser(username, displayName, uInfo.Seed)
 		try.To(enclave.PutUser(userData))
+		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
 		glog.Warningln("new ator, invalid JWT", userData.DID, displayName)
 		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
@@ -218,6 +209,10 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
+		if userCreated {
+			try.Out(enclave.RemoveUser(username)).
+				Logf("cannot cleanup (%s)", username)
+		}
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
@@ -386,7 +381,10 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var err error
+	var (
+		err         error
+		userCreated bool
+	)
 
 	userData, exists := try.To2(enclave.GetUser(username))
 
@@ -402,6 +400,7 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 		userData = user.NewUser(username, displayName, seed)
 		try.To(enclave.PutUser(userData))
+		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
 		glog.Warningln("new ator, invalid JWT", userData.DID, displayName)
 		jsonResponse(w, fmt.Errorf("invalid token"), http.StatusBadRequest)
@@ -415,6 +414,10 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
+		if userCreated {
+			try.Out(enclave.RemoveUser(username)).
+				Logf("cannot cleanup (%s)", username)
+		}
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
@@ -447,7 +450,8 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	defer err2.Handle(&err, func(err error) error {
 		glog.Errorln("error:", err)
 
-		_ = enclave.RemoveUser(username)
+		try.Out(enclave.RemoveUser(username)).
+			Logf("cannot cleanup (%s)", username)
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
@@ -520,4 +524,53 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 
 	jsonResponse(w, &AccessToken{Token: user.JWT()}, http.StatusOK)
 	glog.V(1).Infoln("END finish login", username)
+}
+
+func flagParse() {
+	// our default is to ...
+	err2.SetLogTracer(&nulWriter{}) // .. suppress logging from err2
+	//err2.SetLogTracer(err2.Stdnull) // TODO: until
+
+	os.Args = append(os.Args,
+		"-logtostderr", // todo: should be the first if we want to change this
+	)
+	//try.To(startServereCmd.Parse(os.Args[1:]))
+	flag.Parse()
+	if loggingFlags != "" {
+		// let loggingFlags overwrite logging flags
+		utils.ParseLoggingArgs(loggingFlags)
+	}
+
+	if glog.V(1) { // means == V >= 1
+		glog.CopyStandardLogTo("ERROR") // for err2
+	}
+}
+
+func setupEnv() {
+	u := try.To1(url.Parse(rpOrigin))
+
+	glog.V(2).Infoln(
+		"\nlogging:", loggingFlags,
+		"\norigin host:", u.Host,
+		"\nlisten port:", port,
+		"\norigin port:", u.Port(),
+		"\nHTTPS ==", isHTTPS,
+		"\nRPID ==", rpID,
+	)
+
+	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
+	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
+
+	if jwtSecret != "" {
+		jwt.SetJWTSecret(jwtSecret)
+	}
+
+	webAuthn = try.To1(webauthn.New(&webauthn.Config{
+		RPDisplayName: "Findy Agency",     // Display Name for your site
+		RPID:          rpID,               // Generally the domain name for your site
+		RPOrigins:     []string{rpOrigin}, // The origin URL for WebAuthn requests
+		// old deprecated version:
+		//RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
+	}))
+	sessionStore = try.To1(session.NewStore())
 }

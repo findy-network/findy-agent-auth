@@ -100,7 +100,5 @@ func TestOnboardInsecure(t *testing.T) {
 	defer assert.PopTester()
 	u := user.NewUser("username", "displayName", "seed")
 
-	err := u.AllocateCloudAgent("findy-root", 3*time.Second)
-
-	assert.NoError(err)
+	try.To(u.AllocateCloudAgent("findy-root", 3*time.Second))
 }

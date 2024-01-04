@@ -30,16 +30,16 @@ func Init(certPath, addr string, port int, insecure bool) {
 
 func InitWithOpts(certPath, addr string, port int, insecure bool, opts []grpc.DialOption) {
 	glog.V(3).Infoln(
-		"certPath:", certPath,
-		"addr:", addr,
-		"port:", port,
-		"insecure:", insecure,
+		"\ncertPath:", certPath,
+		"\naddr:", addr,
+		"\nport:", port,
+		"\ninsecure:", insecure,
 	)
 	if insecure && certPath == "" {
 		glog.Warning("Establishing INSECURE connection to agency")
 		baseCfg = client.BuildInsecureClientConnBase(addr, port, opts)
 	} else {
-		glog.Info("Establishing SECURE connection to agency")
+		glog.V(1).Info("Establishing SECURE connection to agency")
 		baseCfg = client.BuildClientConnBase(certPath, addr, port, opts)
 	}
 }

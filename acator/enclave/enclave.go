@@ -52,7 +52,7 @@ func (h *myHandle) CBORPublicKey() (_ []byte, err error) {
 	return cbor.Marshal(h.EC2PublicKeyData)
 }
 
-// Sign function signs then given byte slice and returns the signature or error.
+// Sign signs the byte slice and returns the signature or error.
 func (h *myHandle) Sign(d []byte) (_ []byte, err error) {
 	defer err2.Handle(&err)
 
@@ -141,10 +141,10 @@ func newFromPrivateKey(e Enclave, priKey *ecdsa.PrivateKey) *myHandle {
 		Enclave: e,
 		EC2PublicKeyData: webauthncose.EC2PublicKeyData{
 			PublicKeyData: webauthncose.PublicKeyData{
-				KeyType:   2,
-				Algorithm: -7,
+				KeyType:   int64(webauthncose.EllipticKey),
+				Algorithm: int64(webauthncose.AlgES256),
 			},
-			Curve:  1,
+			Curve:  int64(webauthncose.P256),
 			XCoord: priKey.X.Bytes(),
 			YCoord: priKey.Y.Bytes(),
 		},
