@@ -11,7 +11,7 @@ jobs:
       - name: test and measure coverage
         run: make test_cov_out
       - name: store coverage file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}-coverage.txt
           path: ./coverage.txt
@@ -29,7 +29,7 @@ jobs:
       - name: convert coverage to txt
         run: go tool covdata textfmt -i=coverage -o coverage-e2e.txt
       - name: store coverage file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}-coverage-e2e.txt
           path: ./coverage-e2e.txt
@@ -41,11 +41,11 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
       - name: download coverage file
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ github.sha }}-coverage.txt
       - name: download coverage file
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ github.sha }}-coverage-e2e.txt
       - name: upload coverage
