@@ -63,7 +63,7 @@ func (a *authnServer) Enter(
 		SubCmd:        strings.ToLower(cmd.GetType().String()),
 		UserName:      cmd.GetUserName(),
 		PublicDIDSeed: cmd.GetPublicDIDSeed(),
-		Url:           cmd.GetURL(),
+		URL:           cmd.GetURL(),
 		AAGUID:        cmd.GetAAGUID(),
 		Counter:       cmd.GetCounter(),
 		Token:         cmd.GetJWT(),
@@ -113,7 +113,7 @@ func (a *authnServer) Enter(
 }
 
 func (a *authnServer) EnterSecret(
-	ctx context.Context,
+	_ context.Context,
 	smsg *pb.SecretMsg,
 ) (
 	r *pb.SecretResult,

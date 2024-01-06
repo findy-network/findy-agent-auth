@@ -22,7 +22,7 @@ func New(addr string, port int) (conn *grpc.ClientConn, err error) {
 
 func DoEnter(
 	conn *grpc.ClientConn,
-	ctx context.Context,
+	ctx context.Context, //nolint: revive
 	cmd *authn.Cmd,
 ) (
 	ch chan *authn.CmdStatus,

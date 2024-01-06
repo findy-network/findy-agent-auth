@@ -68,7 +68,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 		Challenge: base64.RawURLEncoding.EncodeToString(ca.Response.Challenge),
 		Origin:    origin,
 	}
-	ccdByteJson, _ := json.Marshal(ccd)
+	ccdByteJSON, _ := json.Marshal(ccd)
 
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
@@ -83,7 +83,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 	}
 	authenticatorRawData := authenticator.TryMarshalData(&authenticatorData)
 
-	clientDataHash := sha256.Sum256(ccdByteJson)
+	clientDataHash := sha256.Sum256(ccdByteJSON)
 
 	sigData := append(authenticatorRawData, clientDataHash[:]...)
 	sig := try.To1(keyHandle.Sign(sigData))
@@ -97,7 +97,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 			RawID: credID,
 		},
 		AssertionResponse: protocol.AuthenticatorAssertionResponse{
-			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},
+			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJSON},
 			AuthenticatorData:     authenticatorRawData,
 			Signature:             sig,
 		},
@@ -168,8 +168,8 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	}
 	assert.NotEmpty(ccd.Challenge)
 
-	ccdByteJson := try.To1(json.Marshal(ccd))
-	assert.That(checkClientData(ccdByteJson))
+	ccdByteJSON := try.To1(json.Marshal(ccd))
+	assert.That(checkClientData(ccdByteJSON))
 
 	ccr = &protocol.CredentialCreationResponse{
 		PublicKeyCredential: protocol.PublicKeyCredential{
@@ -180,7 +180,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 			RawID: khID,
 		},
 		AttestationResponse: protocol.AuthenticatorAttestationResponse{
-			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJson},
+			AuthenticatorResponse: protocol.AuthenticatorResponse{ClientDataJSON: ccdByteJSON},
 			AttestationObject:     aoByteCBOR,
 		},
 	}

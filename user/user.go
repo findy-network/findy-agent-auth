@@ -46,7 +46,7 @@ func InitWithOpts(certPath, addr string, port int, insecure bool, opts []grpc.Di
 
 // User represents the user model
 type User struct {
-	Id            uint64
+	ID            uint64
 	Name          string // full email address
 	PublicDIDSeed string // seed for the public DID
 	DisplayName   string // shortened version of the Name
@@ -76,7 +76,7 @@ func NewFromData(d []byte) *User {
 // New creates and returns a new User
 func New(name, displayName, seed string) *User {
 	return &User{
-		Id:            randomUint64(),
+		ID:            randomUint64(),
 		Name:          name,
 		DisplayName:   displayName,
 		PublicDIDSeed: seed,
@@ -92,7 +92,7 @@ func randomUint64() uint64 {
 // WebAuthnID returns the user's ID
 func (u User) WebAuthnID() []byte {
 	buf := make([]byte, binary.MaxVarintLen64)
-	binary.PutUvarint(buf, u.Id)
+	binary.PutUvarint(buf, u.ID)
 	return buf
 }
 

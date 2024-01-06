@@ -31,7 +31,7 @@ type Cmd struct {
 	SubCmd        string `json:"sub_cmd"`
 	UserName      string `json:"user_name"`
 	PublicDIDSeed string `json:"public_did_seed"`
-	Url           string `json:"url,omitempty"`
+	URL           string `json:"url,omitempty"`
 	AAGUID        string `json:"aaguid,omitempty"`
 	Key           string `json:"key,omitempty"`
 	Counter       uint64 `json:"counter,omitempty"`
@@ -64,7 +64,7 @@ func (ac *Cmd) Validate() (err error) {
 	assert.That(ac.SubCmd == "register" || ac.SubCmd == "login",
 		"wrong sub command: %s: want: register|login", ac.SubCmd)
 	assert.NotEmpty(ac.UserName, "user name needed")
-	assert.NotEmpty(ac.Url, "connection url cannot be empty")
+	assert.NotEmpty(ac.URL, "connection url cannot be empty")
 	assert.NotEmpty(ac.AAGUID, "authenticator ID needed")
 	if ac.Key == "" {
 		assert.INotNil(ac.SecEnclave, "secure enclave is needed")
@@ -129,7 +129,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 	acator.Counter = uint32(ac.Counter)
 	name = ac.UserName
 	seed = ac.PublicDIDSeed
-	urlStr = ac.Url
+	urlStr = ac.URL
 	loginBegin, loginFinish, registerBegin, registerFinish =
 		ac.LoginBegin, ac.LoginFinish, ac.RegisterBegin, ac.RegisterFinish
 	cookieFile = ac.CookieFile
@@ -142,7 +142,7 @@ func (ac *Cmd) Exec(_ io.Writer) (r Result, err error) {
 		originURL := try.To1(url.Parse(ac.Origin))
 		acator.Origin = *originURL
 	} else {
-		origin = ac.Url
+		origin = ac.URL
 		originURL := try.To1(url.Parse(urlStr))
 		acator.Origin = *originURL
 	}
@@ -165,8 +165,8 @@ func (ac Cmd) TryReadJSON(r io.Reader) Cmd {
 	if newCmd.AAGUID == "" {
 		newCmd.AAGUID = ac.AAGUID
 	}
-	if newCmd.Url == "" {
-		newCmd.Url = ac.Url
+	if newCmd.URL == "" {
+		newCmd.URL = ac.URL
 	}
 	if newCmd.Key == "" {
 		newCmd.Key = ac.Key
@@ -353,7 +353,7 @@ func tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
 		glog.V(3).Infoln("setting cookies from env (COOKIE):\n", rawCookies)
 		request.Header.Add("Cookie", rawCookies)
 	}
-	response := try.To1(c.Do(request))
+	response := try.To1(c.Do(request)) //nolint: bodyclose
 
 	cookies := response.Cookies()
 	glog.V(3).Infof("getting %d cookies from response", len(cookies))

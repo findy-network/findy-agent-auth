@@ -59,7 +59,7 @@ func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 
 	pk := webauthncose.PublicKeyData{}
 	try.To(cbor.Unmarshal(keyBytes, &pk))
-	switch webauthncose.COSEKeyType(pk.KeyType) { //nolint
+	switch webauthncose.COSEKeyType(pk.KeyType) { //nolint: exhaustive
 	case webauthncose.OctetKey:
 		assert.NotImplemented()
 	case webauthncose.EllipticKey:

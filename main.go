@@ -32,7 +32,7 @@ const defaultTimeoutSecs = 30
 
 var (
 	loggingFlags   string
-	port           int = defaultPort
+	port           = defaultPort
 	agencyAddr     string
 	agencyPort     int
 	agencyInsecure bool
@@ -86,7 +86,7 @@ func init() {
 // define dev/null for all operation systems, until it's in err2 // TODO:
 type nulWriter struct{}
 
-func (_ nulWriter) Write([]byte) (int, error) { return 0, nil }
+func (nulWriter) Write([]byte) (int, error) { return 0, nil }
 
 func main() {
 	defer err2.Catch()
@@ -111,7 +111,6 @@ func main() {
 	if glog.V(1) {
 		glog.Infoln("starting server at", serverAddress)
 	}
-
 	var shutdownCh <-chan os.Signal
 	if isHTTPS {
 		certPath = filepath.Join(certPath, "server")
@@ -277,7 +276,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	// Add needed data to User
 	user.AddCredential(*credential)
-	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second))
+	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second)) //nolint: contextcheck
 	// Persist that data
 	try.To(enclave.PutUser(user))
 
@@ -466,7 +465,7 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	credential := try.To1(webAuthn.FinishRegistration(user, sessionData, r))
 
 	user.AddCredential(*credential)
-	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second))
+	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second)) //nolint: contextcheck
 	try.To(enclave.PutUser(user))
 
 	jsonResponse(w, "Registration Success", http.StatusOK)

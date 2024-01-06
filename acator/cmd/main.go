@@ -65,7 +65,7 @@ var (
 		SubCmd:     "login",
 		UserName:   "",
 		CookiePath: "",
-		Url:        "http://localhost:8090",
+		URL:        "http://localhost:8090",
 
 		RegisterBegin: authn.Endpoint{
 			Method:  "GET",
@@ -103,7 +103,7 @@ func init() {
 
 	startServerCmd.StringVar(&loggingFlags, "logging", "-logtostderr=true -v=2",
 		"logging startup arguments")
-	startServerCmd.StringVar(&authnCmd.Url, "url", authnCmd.Url, "web authn server url")
+	startServerCmd.StringVar(&authnCmd.URL, "url", authnCmd.URL, "web authn server url")
 	startServerCmd.StringVar(&authnCmd.CookieFile, "cookies", authnCmd.CookieFile,
 		"cookies to store between calls")
 	startServerCmd.StringVar(&authnCmd.CookiePath, "cookie-path", authnCmd.CookiePath,
