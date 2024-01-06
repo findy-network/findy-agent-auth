@@ -573,3 +573,10 @@ func setupEnv() {
 	}))
 	sessionStore = try.To1(session.NewStore())
 }
+
+const (
+	urlBeginLogin = "/assertion/options"
+	urlFinishLogin = "/assertion/result"
+	urlBeginRegister = "/attestation/options"
+	urlFinishRegister = "/attestation/result"
+)
