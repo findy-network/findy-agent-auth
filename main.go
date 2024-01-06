@@ -193,7 +193,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		if uInfo.Seed == "" {
 			glog.V(5).Infoln("no seed supplied")
 		}
-		userData = user.NewUser(username, displayName, uInfo.Seed)
+		userData = user.New(username, displayName, uInfo.Seed)
 		try.To(enclave.PutUser(userData))
 		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
@@ -398,7 +398,7 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 			glog.V(5).Infoln("no seed supplied")
 		}
 
-		userData = user.NewUser(username, displayName, seed)
+		userData = user.New(username, displayName, seed)
 		try.To(enclave.PutUser(userData))
 		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {

@@ -106,7 +106,7 @@ func GetUser(name string) (u *user.User, exist bool, err error) {
 		return nil, already, err
 	}
 
-	return user.NewUserFromData(value.Data), already, err
+	return user.NewFromData(value.Data), already, err
 }
 
 // GetExistingUser returns user by name if exists in enclave
@@ -168,7 +168,7 @@ func GetSessionUser(userID []byte) (u *user.User, exist bool, err error) {
 		return nil, already, err
 	}
 
-	return user.NewUserFromData(value.Data), already, err
+	return user.NewFromData(value.Data), already, err
 }
 
 // GetSessionExistingUser returns user by name if exists in enclave
