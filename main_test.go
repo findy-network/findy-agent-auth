@@ -53,28 +53,18 @@ func TestRegisterBegin(t *testing.T) {
 		res := w.Result()
 		defer res.Body.Close()
 		data := try.To1(io.ReadAll(res.Body))
-		//want := `{"rp":{"name":"Findy Agency","id":"http://localhost"},"user":{"name":"test-user","displayName":"test-user","id":"wbXI2OaJrKaAAQ"},"challenge":"qCzrcuGEVcSeXiT75HhdTiOfjwWGwa5iCkj1ibq5fDk","pubKeyCredParams":[{"type":"public-key","alg":-7},{"type":"public-key","alg":-35},{"type":"public-key","alg":-36},{"type":"public-key","alg":-257},{"type":"public-key","alg":-258},{"type":"public-key","alg":-259},{"type":"public-key","alg":-37},{"type":"public-key","alg":-38},{"type":"public-key","alg":-39},{"type":"public-key","alg":-8}],"timeout":300000,"authenticatorSelection":{"requireResidentKey":false,"userVerification":"preferred"}}`
 		assert.Equal(res.StatusCode, http.StatusOK)
 		assert.That(len(data) > 0)
 		s := string(data)
-		println(s)
-
 		s = fmt.Sprintf(`{"publicKey": %s}`, s)
-		//assert.Equal(string(data), want)
 
-		// TODO: continue with client logic!
 		acator.Origin = *try.To1(url.Parse(defaultOrigin))
 		repl := try.To1(acator.Register(bytes.NewBufferString(s)))
-		//repl := try.To1(acator.Register(res.Body))
 
-		//data = try.To1(io.ReadAll(repl))
-		//assert.That(len(data) > 0)
-
-		// TODO: second http POST request NOTE: this is must that next work
-		// because this adds the user to enclave. 
 		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
 		// Copy the Cookie over to a new Request
-		request.Header = http.Header{"Cookie": w.HeaderMap["Set-Cookie"]}
+		
+		request.Header = http.Header{"Cookie": w.Result().Header["Set-Cookie"]}
 		w = httptest.NewRecorder()
 
 		FinishRegistration(w, request)
