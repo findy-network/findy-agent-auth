@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/assert"
 	"github.com/lainio/err2/try"
 
 	"github.com/rs/cors"
@@ -223,6 +224,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	))
 	glog.V(1).Infof("sessionData: %v", sessionData)
 
+	assert.INotNil(sessionStore)
 	// store session data as marshaled JSON
 	glog.V(1).Infoln("store session data")
 	try.To(sessionStore.SaveWebauthnSession("registration", sessionData, r, w))
@@ -253,6 +255,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 		return err
 	})
 
+	assert.INotNil(sessionStore)
 	glog.V(1).Infoln("get session data for registration")
 	sessionData := try.To1(sessionStore.GetWebauthnSession("registration", r))
 
