@@ -215,8 +215,8 @@ func tryReadCreation(r io.Reader) *protocol.CredentialCreation {
 	//	fmt.Printf("\n%v\n", c)
 
 	//assert.SNotEmpty(creation.Response.Challenge)
-	assert.NotEmpty(creation.Response.User.Name)
-	assert.NotEmpty(creation.Response.Challenge.String())
+	assert.NotEmpty(creation.Response.User.Name, "check envelope JSON")
+	assert.NotEmpty(creation.Response.Challenge.String(), "check envelope JSON")
 	return &creation
 }
 
