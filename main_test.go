@@ -63,7 +63,6 @@ func TestRegisterBegin(t *testing.T) {
 
 		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
 		// Copy the Cookie over to a new Request
-		
 		request.Header = http.Header{"Cookie": w.Result().Header["Set-Cookie"]}
 		w = httptest.NewRecorder()
 
@@ -76,38 +75,41 @@ func TestRegisterBegin(t *testing.T) {
 		s = string(data)
 		println(s)
 	})
-//	t.Run("login", func(t *testing.T) {
-//		defer assert.PushTester(t)()
-//
-//		sendPL := try.To1(json.Marshal(userLoginCfg))
-//		req := httptest.NewRequest(http.MethodGet, urlBeginLogin,
-//			bytes.NewReader(sendPL))
-//		w := httptest.NewRecorder()
-//
-//		BeginLogin(w, req)
-//
-//		res := w.Result()
-//		defer res.Body.Close()
-//		data := try.To1(io.ReadAll(res.Body))
-//		//want := `{"rp":{"name":"Findy Agency","id":"http://localhost"},"user":{"name":"test-user","displayName":"test-user","id":"wbXI2OaJrKaAAQ"},"challenge":"qCzrcuGEVcSeXiT75HhdTiOfjwWGwa5iCkj1ibq5fDk","pubKeyCredParams":[{"type":"public-key","alg":-7},{"type":"public-key","alg":-35},{"type":"public-key","alg":-36},{"type":"public-key","alg":-257},{"type":"public-key","alg":-258},{"type":"public-key","alg":-259},{"type":"public-key","alg":-37},{"type":"public-key","alg":-38},{"type":"public-key","alg":-39},{"type":"public-key","alg":-8}],"timeout":300000,"authenticatorSelection":{"requireResidentKey":false,"userVerification":"preferred"}}`
-//		assert.Equal(res.StatusCode, http.StatusOK, string(data))
-//		assert.That(len(data) > 0)
-//		s := string(data)
-//		println(s)
-//
-//		s = fmt.Sprintf(`{"publicKey": %s}`, s)
-//		//assert.Equal(string(data), want)
-//
-//		// TODO: continue with client logic!
-//		acator.Origin = *try.To1(url.Parse("http://localhost"))
-//		repl := try.To1(acator.Login(bytes.NewBufferString(s)))
-//		//repl := try.To1(acator.Register(res.Body))
-//
-//		data = try.To1(io.ReadAll(repl))
-//		assert.That(len(data) > 0)
-//
-//		// TODO: second http POST request
-//	})
+	t.Run("login", func(t *testing.T) {
+		defer assert.PushTester(t)()
+
+		sendPL := try.To1(json.Marshal(userLoginCfg))
+		req := httptest.NewRequest(http.MethodGet, urlBeginLogin,
+			bytes.NewReader(sendPL))
+		w := httptest.NewRecorder()
+
+		BeginLogin(w, req)
+
+		res := w.Result()
+		defer res.Body.Close()
+		data := try.To1(io.ReadAll(res.Body))
+		assert.Equal(res.StatusCode, http.StatusOK, string(data))
+		assert.That(len(data) > 0)
+		s := string(data)
+		println(s)
+		s = fmt.Sprintf(`{"publicKey": %s}`, s)
+
+		repl := try.To1(acator.Login(bytes.NewBufferString(s)))
+
+		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
+		// Copy the Cookie over to a new Request
+		request.Header = http.Header{"Cookie": w.Result().Header["Set-Cookie"]}
+		w = httptest.NewRecorder()
+
+		FinishLogin(w, request)
+		res2 := w.Result()
+		defer res2.Body.Close()
+		data = try.To1(io.ReadAll(res2.Body))
+		assert.Equal(res2.StatusCode, http.StatusOK)
+		assert.That(len(data) > 0)
+		s = string(data)
+		println(s)
+	})
 }
 
 func TestMain(m *testing.M) {
