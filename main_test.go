@@ -63,7 +63,7 @@ func TestRegisterBegin(t *testing.T) {
 
 		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
 		// Copy the Cookie over to a new Request
-		request.Header = http.Header{"Cookie": w.Result().Header["Set-Cookie"]}
+		request.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
 		w = httptest.NewRecorder()
 
 		FinishRegistration(w, request)
@@ -98,7 +98,7 @@ func TestRegisterBegin(t *testing.T) {
 
 		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
 		// Copy the Cookie over to a new Request
-		request.Header = http.Header{"Cookie": w.Result().Header["Set-Cookie"]}
+		request.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
 		w = httptest.NewRecorder()
 
 		FinishLogin(w, request)
@@ -132,7 +132,6 @@ func setUp() {
 
 	// overwrite with our mock gRPC endpoint and server
 	user.InitWithOpts("", "localhost", 50052, true, dialOpts)
-
 }
 
 func tearDown() {}
@@ -191,4 +190,3 @@ func dialer() func(context.Context, string) (net.Conn, error) {
 		return listener.Dial()
 	}
 }
-
