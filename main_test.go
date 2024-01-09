@@ -43,73 +43,72 @@ func TestRegisterBegin(t *testing.T) {
 	t.Run("register", func(t *testing.T) {
 		defer assert.PushTester(t)()
 
-		sendPL := try.To1(json.Marshal(userCfg))
-		req := httptest.NewRequest(http.MethodPost, urlBeginRegister,
-			bytes.NewReader(sendPL))
-		w := httptest.NewRecorder()
-
-		BeginRegistration(w, req)
-
-		res := w.Result()
-		defer res.Body.Close()
-		data := try.To1(io.ReadAll(res.Body))
-		assert.Equal(res.StatusCode, http.StatusOK)
-		assert.That(len(data) > 0)
-		s := string(data)
-		s = fmt.Sprintf(`{"publicKey": %s}`, s)
-
-		acator.Origin = *try.To1(url.Parse(defaultOrigin))
-		repl := try.To1(acator.Register(bytes.NewBufferString(s)))
-
-		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
-		// Copy the Cookie over to a new Request
-		request.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
-		w = httptest.NewRecorder()
-
-		FinishRegistration(w, request)
-		res2 := w.Result()
-		defer res2.Body.Close()
-		data = try.To1(io.ReadAll(res2.Body))
-		assert.Equal(res2.StatusCode, http.StatusOK)
-		assert.That(len(data) > 0)
-		s = string(data)
-		println(s)
+		ti := &testInfo{
+			sendPL:    try.To1(json.Marshal(userCfg)),
+			endpoints: []string{urlBeginRegister, urlFinishRegister},
+			calls: []func(w http.ResponseWriter, r *http.Request){
+				BeginRegistration, FinishRegistration,
+			},
+			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+				acator.Register,
+			},
+		}
+		doTest(t, ti)
 	})
 	t.Run("login", func(t *testing.T) {
 		defer assert.PushTester(t)()
 
-		sendPL := try.To1(json.Marshal(userLoginCfg))
-		req := httptest.NewRequest(http.MethodGet, urlBeginLogin,
-			bytes.NewReader(sendPL))
-		w := httptest.NewRecorder()
-
-		BeginLogin(w, req)
-
-		res := w.Result()
-		defer res.Body.Close()
-		data := try.To1(io.ReadAll(res.Body))
-		assert.Equal(res.StatusCode, http.StatusOK, string(data))
-		assert.That(len(data) > 0)
-		s := string(data)
-		println(s)
-		s = fmt.Sprintf(`{"publicKey": %s}`, s)
-
-		repl := try.To1(acator.Login(bytes.NewBufferString(s)))
-
-		request := httptest.NewRequest(http.MethodPost, urlFinishRegister, repl)
-		// Copy the Cookie over to a new Request
-		request.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
-		w = httptest.NewRecorder()
-
-		FinishLogin(w, request)
-		res2 := w.Result()
-		defer res2.Body.Close()
-		data = try.To1(io.ReadAll(res2.Body))
-		assert.Equal(res2.StatusCode, http.StatusOK)
-		assert.That(len(data) > 0)
-		s = string(data)
-		println(s)
+		ti := &testInfo{
+			sendPL:    try.To1(json.Marshal(userLoginCfg)),
+			endpoints: []string{urlBeginLogin, urlFinishLogin},
+			calls: []func(w http.ResponseWriter, r *http.Request){
+				BeginLogin, FinishLogin,
+			},
+			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+				acator.Login,
+			},
+		}
+		doTest(t, ti)
 	})
+}
+
+type testInfo struct {
+	sendPL     []byte
+	endpoints  []string
+	calls      []func(w http.ResponseWriter, r *http.Request)
+	buildCalls []func(jsonStream io.Reader) (outStream io.Reader, err error)
+}
+
+func doTest(t *testing.T, ti *testInfo) {
+	t.Helper()
+
+	req1 := httptest.NewRequest(http.MethodPost, ti.endpoints[0],
+		bytes.NewReader(ti.sendPL))
+	w := httptest.NewRecorder()
+
+	ti.calls[0](w, req1)
+
+	res := w.Result()
+	defer res.Body.Close()
+	data := try.To1(io.ReadAll(res.Body))
+	assert.Equal(res.StatusCode, http.StatusOK)
+	assert.That(len(data) > 0)
+	s := string(data)
+	s = fmt.Sprintf(`{"publicKey": %s}`, s)
+
+	repl := try.To1(ti.buildCalls[0](bytes.NewBufferString(s)))
+
+	req2 := httptest.NewRequest(http.MethodPost, ti.endpoints[1], repl)
+	req2.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
+	w = httptest.NewRecorder()
+
+	ti.calls[1](w, req2)
+
+	res2 := w.Result()
+	defer res2.Body.Close()
+	data = try.To1(io.ReadAll(res2.Body))
+	assert.Equal(res2.StatusCode, http.StatusOK)
+	assert.That(len(data) > 0)
 }
 
 func TestMain(m *testing.M) {
@@ -127,7 +126,8 @@ func setUp() {
 	enclaveKey = ""
 
 	rpOrigin = defaultOrigin
-	//sessionStore = try.To1(session.NewStore())
+	acator.Origin = *try.To1(url.Parse(defaultOrigin))
+
 	setupEnv()
 
 	// overwrite with our mock gRPC endpoint and server
