@@ -140,16 +140,16 @@ func newMuxWithRoutes() *mux.Router {
 	r := mux.NewRouter()
 
 	// Our legacy endpoints
-	r.HandleFunc("/register/begin/{username}", oldBeginRegistration).Methods("GET")
-	r.HandleFunc("/register/finish/{username}", oldFinishRegistration).Methods("POST")
-	r.HandleFunc("/login/begin/{username}", oldBeginLogin).Methods("GET")
-	r.HandleFunc("/login/finish/{username}", oldFinishLogin).Methods("POST")
+	r.HandleFunc(urlOldBeginRegister, oldBeginRegistration).Methods("GET")
+	r.HandleFunc(urlOldFinishRegister, oldFinishRegistration).Methods("POST")
+	r.HandleFunc(urlOldBeginLogin, oldBeginLogin).Methods("GET")
+	r.HandleFunc(urlOldFinishLogin, oldFinishLogin).Methods("POST")
 
 	// New Fido reference standard endpoints
-	r.HandleFunc("/assertion/options", BeginLogin).Methods("POST")
-	r.HandleFunc("/assertion/result", FinishLogin).Methods("POST")
-	r.HandleFunc("/attestation/options", BeginRegistration).Methods("POST")
-	r.HandleFunc("/attestation/result", FinishRegistration).Methods("POST")
+	r.HandleFunc(urlBeginLogin, BeginLogin).Methods("POST")
+	r.HandleFunc(urlFinishLogin, FinishLogin).Methods("POST")
+	r.HandleFunc(urlBeginRegister, BeginRegistration).Methods("POST")
+	r.HandleFunc(urlFinishRegister, FinishRegistration).Methods("POST")
 
 	if testUI {
 		glog.V(2).Info("testUI call")
@@ -374,9 +374,7 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 		glog.Warningln("begin registration error:", err)
 	}))
 
-	vars := mux.Vars(r)
-	username, ok := vars["username"]
-	glog.V(1).Infoln("begin registration", username)
+	username, ok := oldGetUserName(r)
 	if !ok {
 		jsonResponse(w, fmt.Errorf("must supply a valid username i.e. foo@bar.com"),
 			http.StatusBadRequest)
@@ -438,6 +436,18 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 	glog.V(1).Infoln("begin registration end", username)
 }
 
+func oldGetUserName(r *http.Request) (string, bool) {
+	vars := mux.Vars(r)
+	username, ok := vars["username"]
+	glog.V(1).Infoln("begin registration", username)
+	if !ok { // second try because gorilla mux isn't compatible with httptest
+		s := strings.Split(r.URL.Path, "/")
+		username = s[len(s)-1]
+		ok = username != ""
+	}
+	return username, ok
+}
+
 func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	defer err2.Catch(err2.Err(func(err error) {
 		glog.Warningln("BEGIN finish registration:", err)
@@ -445,8 +455,8 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	vars := mux.Vars(r)
-	username := vars["username"]
+	username, ok := oldGetUserName(r)
+	assert.That(ok)
 	glog.V(1).Infoln("finish registration", username)
 
 	defer err2.Handle(&err, func(err error) error {
@@ -482,8 +492,8 @@ func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	vars := mux.Vars(r)
-	username := vars["username"]
+	username, ok := oldGetUserName(r)
+	assert.That(ok)
 	glog.V(1).Infoln("BEGIN begin login", username)
 
 	defer err2.Handle(&err, func(err error) error {
@@ -506,8 +516,8 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	vars := mux.Vars(r)
-	username := vars["username"]
+	username, ok := oldGetUserName(r)
+	assert.That(ok)
 	glog.V(1).Infoln("BEGIN finish login:", username)
 
 	defer err2.Handle(&err, func(err error) error {
@@ -582,4 +592,9 @@ const (
 	urlFinishLogin    = "/assertion/result"
 	urlBeginRegister  = "/attestation/options"
 	urlFinishRegister = "/attestation/result"
+
+	urlOldBeginRegister  = "/register/begin/{username}"
+	urlOldFinishRegister = "/register/finish/{username}"
+	urlOldBeginLogin     = "/login/begin/{username}"
+	urlOldFinishLogin    = "/login/finish/{username}"
 )
