@@ -54,21 +54,31 @@ func NewFromData(data []byte) (k *Key, err error) {
 	return k1, nil
 }
 
+// parsePublicKey pares pulic key in cose format.
 func parsePublicKey(keyBytes []byte) (_ interface{}, err error) {
 	defer err2.Handle(&err)
 
 	pk := webauthncose.PublicKeyData{}
 	try.To(cbor.Unmarshal(keyBytes, &pk))
-	switch webauthncose.COSEKeyType(pk.KeyType) { //nolint: exhaustive
+	switch webauthncose.COSEKeyType(pk.KeyType) {
+	case webauthncose.KeyTypeReserved:
+		assert.NotImplemented()
 	case webauthncose.OctetKey:
 		assert.NotImplemented()
+
 	case webauthncose.EllipticKey:
 		var e webauthncose.EC2PublicKeyData
 		try.To(cbor.Unmarshal(keyBytes, &e))
 		e.PublicKeyData = pk
 		return e, nil
+
 	case webauthncose.RSAKey:
 		assert.NotImplemented()
+	case webauthncose.Symmetric:
+		assert.NotImplemented()
+	case webauthncose.HSSLMS:
+		assert.NotImplemented()
+
 	default:
 		return nil, webauthncose.ErrUnsupportedKey
 	}
