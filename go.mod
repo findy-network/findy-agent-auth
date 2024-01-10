@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	github.com/findy-network/findy-common-go v0.2.54
+	github.com/findy-network/findy-common-go v0.2.56
 	github.com/fxamacker/cbor/v2 v2.5.0
 	github.com/go-webauthn/webauthn v0.10.0
 	github.com/golang/glog v1.2.0
@@ -14,7 +14,7 @@ require (
 	github.com/gorilla/sessions v1.2.2
 	github.com/lainio/err2 v0.9.51
 	github.com/rs/cors v1.10.1
-	golang.org/x/net v0.19.0
+	golang.org/x/net v0.20.0
 	google.golang.org/grpc v1.60.1
 )
 
@@ -53,10 +53,10 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	go.etcd.io/bbolt v1.3.8 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20230105202349-8879d0199aa3 // indirect
-	golang.org/x/oauth2 v0.15.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/oauth2 v0.16.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
