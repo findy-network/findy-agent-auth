@@ -37,7 +37,7 @@ func tearDown() {
 func TestNewUser(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	u := user.NewUser(emailAddress, emailAddress, "")
+	u := user.New(emailAddress, emailAddress, "")
 	try.To(PutUser(u))
 
 	try.To(PutUser(u))
@@ -70,7 +70,7 @@ func TestRemoveUser(t *testing.T) {
 
 	const userToRemove = "remove@example.com"
 
-	u := user.NewUser(userToRemove, userToRemove, "")
+	u := user.New(userToRemove, userToRemove, "")
 	try.To(PutUser(u))
 	assert.NotNil(u)
 

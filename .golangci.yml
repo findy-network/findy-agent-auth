@@ -53,7 +53,10 @@ linters:
   # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   disable-all: true
   enable:
-    #    - bodyclose
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
     - depguard
     - dogsled
     - dupl
@@ -78,18 +81,21 @@ linters:
     - misspell
     - nakedret
     #    - noctx
+    - prealloc
+    - predeclared
+    - promlinter
+    - revive
     - nolintlint
-      #- rowserrcheck # TODO: waiting generics
+    - rowserrcheck
     #    - scopelint
     - staticcheck
-    #    - stylecheck
+    - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-#    - whitespace
+    - whitespace
 # don't enable:
-# - asciicheck
 # - gochecknoglobals
 # - gocognit
 # - godot
@@ -97,7 +103,6 @@ linters:
 # - goerr113
 # - maligned
 # - nestif
-# - prealloc
 # - testpackage
 # - wsl
 # golangci.com configuration
@@ -109,4 +114,4 @@ issues:
         - lll
 
 service:
-  golangci-lint-version: 1.54.x # use the fixed version to not introduce new linters unexpectedly
+  golangci-lint-version: 1.55.x # use the fixed version to not introduce new linters unexpectedly

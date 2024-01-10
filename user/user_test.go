@@ -98,7 +98,7 @@ func tearDown() {
 func TestOnboardInsecure(t *testing.T) {
 	assert.PushTester(t)
 	defer assert.PopTester()
-	u := user.NewUser("username", "displayName", "seed")
+	u := user.New("username", "displayName", "seed")
 
 	try.To(u.AllocateCloudAgent("findy-root", 3*time.Second))
 }

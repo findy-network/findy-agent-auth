@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/lainio/err2"
+	"github.com/lainio/err2/assert"
 	"github.com/lainio/err2/try"
 
 	"github.com/rs/cors"
@@ -32,7 +33,7 @@ const defaultTimeoutSecs = 30
 
 var (
 	loggingFlags   string
-	port           int = defaultPort
+	port           = defaultPort
 	agencyAddr     string
 	agencyPort     int
 	agencyInsecure bool
@@ -86,7 +87,7 @@ func init() {
 // define dev/null for all operation systems, until it's in err2 // TODO:
 type nulWriter struct{}
 
-func (_ nulWriter) Write([]byte) (int, error) { return 0, nil }
+func (nulWriter) Write([]byte) (int, error) { return 0, nil }
 
 func main() {
 	defer err2.Catch()
@@ -111,7 +112,6 @@ func main() {
 	if glog.V(1) {
 		glog.Infoln("starting server at", serverAddress)
 	}
-
 	var shutdownCh <-chan os.Signal
 	if isHTTPS {
 		certPath = filepath.Join(certPath, "server")
@@ -193,7 +193,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 		if uInfo.Seed == "" {
 			glog.V(5).Infoln("no seed supplied")
 		}
-		userData = user.NewUser(username, displayName, uInfo.Seed)
+		userData = user.New(username, displayName, uInfo.Seed)
 		try.To(enclave.PutUser(userData))
 		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
@@ -224,6 +224,7 @@ func BeginRegistration(w http.ResponseWriter, r *http.Request) {
 	))
 	glog.V(1).Infof("sessionData: %v", sessionData)
 
+	assert.INotNil(sessionStore)
 	// store session data as marshaled JSON
 	glog.V(1).Infoln("store session data")
 	try.To(sessionStore.SaveWebauthnSession("registration", sessionData, r, w))
@@ -254,6 +255,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 		return err
 	})
 
+	assert.INotNil(sessionStore)
 	glog.V(1).Infoln("get session data for registration")
 	sessionData := try.To1(sessionStore.GetWebauthnSession("registration", r))
 
@@ -277,7 +279,7 @@ func FinishRegistration(w http.ResponseWriter, r *http.Request) {
 
 	// Add needed data to User
 	user.AddCredential(*credential)
-	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second))
+	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second)) //nolint: contextcheck
 	// Persist that data
 	try.To(enclave.PutUser(user))
 
@@ -398,7 +400,7 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 			glog.V(5).Infoln("no seed supplied")
 		}
 
-		userData = user.NewUser(username, displayName, seed)
+		userData = user.New(username, displayName, seed)
 		try.To(enclave.PutUser(userData))
 		userCreated = true
 	} else if !jwt.IsValidUser(userData.DID, r.Header["Authorization"]) {
@@ -466,7 +468,7 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 	credential := try.To1(webAuthn.FinishRegistration(user, sessionData, r))
 
 	user.AddCredential(*credential)
-	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second))
+	try.To(user.AllocateCloudAgent(findyAdmin, time.Duration(timeoutSecs)*time.Second)) //nolint: contextcheck
 	try.To(enclave.PutUser(user))
 
 	jsonResponse(w, "Registration Success", http.StatusOK)
@@ -574,3 +576,10 @@ func setupEnv() {
 	}))
 	sessionStore = try.To1(session.NewStore())
 }
+
+const (
+	urlBeginLogin     = "/assertion/options"
+	urlFinishLogin    = "/assertion/result"
+	urlBeginRegister  = "/attestation/options"
+	urlFinishRegister = "/attestation/result"
+)

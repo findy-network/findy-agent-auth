@@ -109,10 +109,8 @@ loop:
 			)
 			break loop
 		}
-
 	}
 	glog.V(3).Infoln("main ends")
-
 }
 
 func handleStatusErr(status *pb.CmdStatus) {
@@ -222,7 +220,6 @@ func newKeyHandle(secEnc *enclave.Enclave, status *pb.CmdStatus) {
 				},
 			},
 		}
-
 	}
 	try.To1(rpcclient.DoEnterSecret(conn, smsg))
 }
