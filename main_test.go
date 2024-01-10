@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/findy-network/findy-agent-auth/acator"
@@ -39,13 +40,30 @@ var (
 	userLoginCfg = loginUserInfo{Username: "test-user"}
 )
 
-func TestRegisterBegin(t *testing.T) {
+func buildEndpoint(s, n string) string {
+	//return strings.Replace(s, "/{username}", "?username="+n, -1)
+	return strings.Replace(s, "{username}", n, -1)
+}
+
+func TestReplace(t *testing.T) {
+	defer assert.PushTester(t)()
+
+	s := buildEndpoint(urlOldBeginRegister, "new-user")
+	assert.That(len(s) < len(urlOldBeginRegister))
+	assert.Equal(s, "/register/begin/new-user")
+	s = buildEndpoint(urlOldFinishRegister, "new-user")
+	assert.That(len(s) < len(urlOldFinishRegister))
+	assert.Equal(s, "/register/finish/new-user")
+}
+
+func TestEndpoints(t *testing.T) {
 	t.Run("register", func(t *testing.T) {
 		defer assert.PushTester(t)()
-
 		ti := &testInfo{
 			sendPL:    try.To1(json.Marshal(userCfg)),
+			methods:   []string{"POST", "POST"},
 			endpoints: []string{urlBeginRegister, urlFinishRegister},
+			envelope:  []string{`{"publicKey": %s}`, `{"publicKey": %s}`},
 			calls: []func(w http.ResponseWriter, r *http.Request){
 				BeginRegistration, FinishRegistration,
 			},
@@ -57,12 +75,48 @@ func TestRegisterBegin(t *testing.T) {
 	})
 	t.Run("login", func(t *testing.T) {
 		defer assert.PushTester(t)()
-
 		ti := &testInfo{
 			sendPL:    try.To1(json.Marshal(userLoginCfg)),
+			methods:   []string{"POST", "POST"},
 			endpoints: []string{urlBeginLogin, urlFinishLogin},
+			envelope:  []string{`{"publicKey": %s}`, `{"publicKey": %s}`},
 			calls: []func(w http.ResponseWriter, r *http.Request){
 				BeginLogin, FinishLogin,
+			},
+			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+				acator.Login,
+			},
+		}
+		doTest(t, ti)
+	})
+
+	t.Run("old-register", func(t *testing.T) {
+		defer assert.PushTester(t)()
+		ti := &testInfo{
+			methods: []string{"GET", "POST"},
+			endpoints: []string{
+				buildEndpoint(urlOldBeginRegister, "oldtestuser"),
+				buildEndpoint(urlOldFinishRegister, "oldtestuser"),
+			},
+			calls: []func(w http.ResponseWriter, r *http.Request){
+				oldBeginRegistration, oldFinishRegistration,
+			},
+			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+				acator.Register,
+			},
+		}
+		doTest(t, ti)
+	})
+	t.Run("old-login", func(t *testing.T) {
+		defer assert.PushTester(t)()
+		ti := &testInfo{
+			methods: []string{"GET", "POST"},
+			endpoints: []string{
+				buildEndpoint(urlOldBeginLogin, "oldtestuser"),
+				buildEndpoint(urlOldFinishLogin, "oldtestuser"),
+			},
+			calls: []func(w http.ResponseWriter, r *http.Request){
+				oldBeginLogin, oldFinishLogin,
 			},
 			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
 				acator.Login,
@@ -74,7 +128,9 @@ func TestRegisterBegin(t *testing.T) {
 
 type testInfo struct {
 	sendPL     []byte
+	methods    []string
 	endpoints  []string
+	envelope   []string
 	calls      []func(w http.ResponseWriter, r *http.Request)
 	buildCalls []func(jsonStream io.Reader) (outStream io.Reader, err error)
 }
@@ -82,8 +138,11 @@ type testInfo struct {
 func doTest(t *testing.T, ti *testInfo) {
 	t.Helper()
 
-	req1 := httptest.NewRequest(http.MethodPost, ti.endpoints[0],
-		bytes.NewReader(ti.sendPL))
+	var body io.Reader
+	if ti.sendPL != nil {
+		body = bytes.NewReader(ti.sendPL)
+	}
+	req1 := httptest.NewRequest(ti.methods[0], ti.endpoints[0], body)
 	w := httptest.NewRecorder()
 
 	ti.calls[0](w, req1)
@@ -94,11 +153,13 @@ func doTest(t *testing.T, ti *testInfo) {
 	assert.Equal(res.StatusCode, http.StatusOK)
 	assert.That(len(data) > 0)
 	s := string(data)
-	s = fmt.Sprintf(`{"publicKey": %s}`, s)
+	if ti.envelope != nil && ti.envelope[1] != "" {
+		s = fmt.Sprintf(ti.envelope[1], s)
+	}
 
 	repl := try.To1(ti.buildCalls[0](bytes.NewBufferString(s)))
 
-	req2 := httptest.NewRequest(http.MethodPost, ti.endpoints[1], repl)
+	req2 := httptest.NewRequest(ti.methods[1], ti.endpoints[1], repl)
 	req2.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
 	w = httptest.NewRecorder()
 
