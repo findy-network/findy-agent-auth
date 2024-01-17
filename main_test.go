@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -241,9 +240,8 @@ func dialer() func(context.Context, string) (net.Conn, error) {
 	insecureServer = s
 
 	go func() {
-		defer err2.Catch(err2.Err(func(err error) {
-			log.Fatal(err)
-		}))
+		defer err2.Catch()
+
 		try.To(s.Serve(lis))
 	}()
 

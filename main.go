@@ -84,13 +84,8 @@ func init() {
 	flag.IntVar(&timeoutSecs, "timeout", timeoutSecs, "GRPC call timeout in seconds")
 }
 
-// define dev/null for all operation systems, until it's in err2 // TODO:
-type nulWriter struct{}
-
-func (nulWriter) Write([]byte) (int, error) { return 0, nil }
-
 func main() {
-	defer err2.Catch()
+	defer err2.Catch(err2.Stderr)
 
 	flagParse()
 	setupEnv()
@@ -164,9 +159,7 @@ func newMuxWithRoutes() *mux.Router {
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("begin registration error:", err)
-	}))
+	defer err2.Catch("begin registration error:")
 
 	var (
 		err         error
@@ -244,9 +237,7 @@ type userInfo struct {
 }
 
 func FinishRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("BEGIN finish registration:", err)
-	}))
+	defer err2.Catch("BEGIN finish registration:")
 
 	var err error
 
@@ -294,9 +285,7 @@ type loginUserInfo struct {
 }
 
 func BeginLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("begin login", err)
-	}))
+	defer err2.Catch("begin login")
 
 	glog.V(1).Infoln("END (new) begin login")
 	var err error
@@ -322,9 +311,7 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func FinishLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("finish login error:", err)
-	}))
+	defer err2.Catch("finish login error:")
 
 	var err error
 
@@ -357,10 +344,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 
 // from: https://github.com/go-webauthn/webauthn.io/blob/3f03b482d21476f6b9fb82b2bf1458ff61a61d41/server/response.go#L15
 func jsonResponse(w http.ResponseWriter, d interface{}, c int) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Errorf("json response error: %s", err)
-		http.Error(w, "Error creating JSON response", http.StatusInternalServerError)
-	}))
+	defer err2.Catch("json response error")
 
 	dj := try.To1(json.Marshal(d))
 	w.Header().Set("Content-Type", "application/json")
@@ -370,9 +354,7 @@ func jsonResponse(w http.ResponseWriter, d interface{}, c int) {
 }
 
 func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("begin registration error:", err)
-	}))
+	defer err2.Catch("begin registration error:")
 
 	username, ok := oldGetUserName(r)
 	if !ok {
@@ -449,9 +431,7 @@ func oldGetUserName(r *http.Request) (string, bool) {
 }
 
 func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("BEGIN finish registration:", err)
-	}))
+	defer err2.Catch("BEGIN finish registration:")
 
 	var err error
 
@@ -486,9 +466,7 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("begin login", err)
-	}))
+	defer err2.Catch("begin login")
 
 	var err error
 
@@ -510,9 +488,7 @@ func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(err2.Err(func(err error) {
-		glog.Warningln("finish login error:", err)
-	}))
+	defer err2.Catch("finish login error:")
 
 	var err error
 
@@ -539,9 +515,7 @@ func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func flagParse() {
-	// our default is to ...
-	err2.SetLogTracer(&nulWriter{}) // .. suppress logging from err2
-	//err2.SetLogTracer(err2.Stdnull) // TODO: until
+	err2.SetLogTracer(err2.Stdnull) // .. suppress logging from err2
 
 	os.Args = append(os.Args,
 		"-logtostderr", // todo: should be the first if we want to change this
