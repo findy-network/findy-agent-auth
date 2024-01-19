@@ -47,6 +47,8 @@ type Cmd struct {
 	CookieFile string `json:"cookie_file,omitempty"`
 
 	SecEnclave enclave.Secure `json:"-"`
+
+	Legacy bool `json:"-"`
 }
 
 type Endpoint struct {
@@ -70,6 +72,95 @@ func (ac *Cmd) Validate() (err error) {
 		assert.INotNil(ac.SecEnclave, "secure enclave is needed")
 	}
 
+	if ac.Legacy {
+		ac.setOldDefaults()
+	} else {
+		ac.setDefaults()
+	}
+
+	if ac.Origin == "" {
+		originURL := try.To1(url.Parse(ac.URL))
+		ac.Origin = originURL.String()
+	}
+	return nil
+}
+
+func (ac *Cmd) setDefaults() {
+	ac.setPayloads()
+	ac.setInPayloads()
+	ac.setMiddlePayloads()
+
+	if ac.RegisterBegin.Method == "" {
+		ac.RegisterBegin.Method = "POST"
+	}
+	if ac.RegisterFinish.Method == "" {
+		ac.RegisterFinish.Method = "POST"
+	}
+	if ac.LoginBegin.Method == "" {
+		ac.LoginBegin.Method = "POST"
+	}
+	if ac.LoginFinish.Method == "" {
+		ac.LoginFinish.Method = "POST"
+	}
+
+	if ac.RegisterBegin.Path == "" {
+		ac.RegisterBegin.Path = "%s/attestation/options"
+	}
+	if ac.RegisterFinish.Path == "" {
+		ac.RegisterFinish.Path = "%s/attestation/result"
+	}
+	if ac.LoginBegin.Path == "" {
+		ac.LoginBegin.Path = "%s/assertion/result"
+	}
+	if ac.LoginFinish.Path == "" {
+		ac.LoginFinish.Path = "%s/assertion/options"
+	}
+}
+
+func (ac *Cmd) setMiddlePayloads() {
+	if ac.RegisterBegin.MiddlePL == "" {
+		ac.RegisterBegin.MiddlePL = `{"publicKey": %s}`
+	}
+	if ac.LoginBegin.MiddlePL == "" {
+		ac.LoginBegin.MiddlePL = `{"publicKey": %s}`
+	}
+}
+
+func (ac *Cmd) setInPayloads() {
+	if ac.RegisterBegin.InPL == "" {
+		ac.RegisterBegin.InPL = `{"username":"%s",
+"response": %s }`
+	}
+	if ac.LoginBegin.InPL == "" {
+		ac.LoginBegin.InPL = `{"username":"%s",
+"response": %s }`
+	}
+}
+
+func (ac *Cmd) setPayloads() {
+	if ac.RegisterBegin.Payload == "" {
+		ac.RegisterBegin.Payload = `{"username":"%s",
+"algorithms":["es256"],
+"user_verification": "preferred",
+"attestation": "direct",
+"attachment": "cross_platform",
+"discoverable_credential": "preferred"}`
+	}
+	if ac.RegisterFinish.Payload == "" {
+		ac.RegisterFinish.Payload = `{"username":"%s",
+"response": %s}`
+	}
+	if ac.LoginBegin.Payload == "" {
+		ac.LoginBegin.Payload = `{"username":"%s",
+"user_verification": "preferred"}`
+	}
+	if ac.LoginFinish.Payload == "" {
+		ac.LoginFinish.Payload = `{"username":"%s",
+"response": %s}`
+	}
+}
+
+func (ac *Cmd) setOldDefaults() {
 	if ac.RegisterBegin.Method == "" {
 		ac.RegisterBegin.Method = "GET"
 	}
@@ -95,8 +186,6 @@ func (ac *Cmd) Validate() (err error) {
 	if ac.LoginFinish.Path == "" {
 		ac.LoginFinish.Path = "%s/login/finish/%s"
 	}
-
-	return nil
 }
 
 type Result struct {
@@ -164,6 +253,7 @@ type execCmd struct {
 }
 
 func newExecCmd(cmd *Cmd) (ec *execCmd) {
+	assert.NotEmpty(cmd.Origin)
 	ec = new(execCmd)
 	ec.Cmd = *cmd
 	ec.Instance = &acator.Instance{
