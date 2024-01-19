@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -66,7 +65,7 @@ func TestEndpoints(t *testing.T) {
 			calls: []func(w http.ResponseWriter, r *http.Request){
 				BeginRegistration, FinishRegistration,
 			},
-			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+			buildCalls: []func(i *acator.Instance, jsonStream io.Reader) (io.Reader, error){
 				acator.Register,
 			},
 		}
@@ -82,7 +81,7 @@ func TestEndpoints(t *testing.T) {
 			calls: []func(w http.ResponseWriter, r *http.Request){
 				BeginLogin, FinishLogin,
 			},
-			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+			buildCalls: []func(i *acator.Instance, jsonStream io.Reader) (io.Reader, error){
 				acator.Login,
 			},
 		}
@@ -100,7 +99,7 @@ func TestEndpoints(t *testing.T) {
 			calls: []func(w http.ResponseWriter, r *http.Request){
 				oldBeginRegistration, oldFinishRegistration,
 			},
-			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+			buildCalls: []func(i *acator.Instance, jsonStream io.Reader) (io.Reader, error){
 				acator.Register,
 			},
 		}
@@ -117,7 +116,7 @@ func TestEndpoints(t *testing.T) {
 			calls: []func(w http.ResponseWriter, r *http.Request){
 				oldBeginLogin, oldFinishLogin,
 			},
-			buildCalls: []func(jsonStream io.Reader) (io.Reader, error){
+			buildCalls: []func(i *acator.Instance, jsonStream io.Reader) (io.Reader, error){
 				acator.Login,
 			},
 		}
@@ -131,7 +130,7 @@ type testInfo struct {
 	endpoints  []string
 	envelope   []string
 	calls      []func(w http.ResponseWriter, r *http.Request)
-	buildCalls []func(jsonStream io.Reader) (outStream io.Reader, err error)
+	buildCalls []func(i *acator.Instance, jsonStream io.Reader) (outStream io.Reader, err error)
 }
 
 func doTest(t *testing.T, ti *testInfo) {
@@ -156,7 +155,7 @@ func doTest(t *testing.T, ti *testInfo) {
 		s = fmt.Sprintf(ti.envelope[1], s)
 	}
 
-	repl := try.To1(ti.buildCalls[0](bytes.NewBufferString(s)))
+	repl := try.To1(ti.buildCalls[0](nil, bytes.NewBufferString(s)))
 
 	req2 := httptest.NewRequest(ti.methods[1], ti.endpoints[1], repl)
 	req2.Header = http.Header{"Cookie": res.Header["Set-Cookie"]}
@@ -186,7 +185,7 @@ func setUp() {
 	enclaveKey = ""
 
 	rpOrigin = defaultOrigin
-	acator.Origin = *try.To1(url.Parse(defaultOrigin))
+	acator.SetDefInstanceOrigin(defaultOrigin)
 
 	setupEnv()
 

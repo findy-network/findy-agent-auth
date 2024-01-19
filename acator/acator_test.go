@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -207,10 +206,9 @@ func TestRegister(t *testing.T) {
 			// var m map[string]any
 			// err := json.NewDecoder(r).Decode(&m)
 			// assert.NoError(err)
-			originURL, _ := url.Parse(tt.args.rpOrigin)
-			Origin = *originURL
+			SetDefInstanceOrigin(tt.args.rpOrigin)
 			r := strings.NewReader(tt.args.registerOptions)
-			js := try.To1(Register(r))
+			js := try.To1(Register(nil, r))
 			assert.INotNil(js)
 
 			ccd, err := protocol.ParseCredentialCreationResponseBody(js)
@@ -257,8 +255,7 @@ func TestRegister_server(t *testing.T) {
 			assert.PushTester(t)
 			defer assert.PopTester()
 
-			originURL, _ := url.Parse(tt.args.rpOrigin)
-			Origin = *originURL
+			SetDefInstanceOrigin(tt.args.rpOrigin)
 			r := strings.NewReader(tt.args.registerOptions)
 			ccd := try.To1(protocol.ParseCredentialCreationResponseBody(r))
 			assert.NotNil(ccd)
@@ -278,8 +275,7 @@ func TestLogin(t *testing.T) {
 
 	assert.PushTester(t)
 	defer assert.PopTester()
-	originURL, _ := url.Parse("http://localhost:8080")
-	Origin = *originURL
+	SetDefInstanceOrigin("http://localhost:8080")
 
 	credID := "baocVG9NhJuTsLeiQBmK5rWggP4Pwz5zEKwzTTlNiRd2Lhi_vb0OmfPMLlcjOwg3S_fHAJhqLXIOOcvMepNhGGkORloK9p3oXmcVk3eV_BsCgZOfO-YpqlTdHis8p9inWL1WhJF2FXvGpEHGtG_wSezFFqf4AllxKth68_f8Kp-1rwnqSJJTS74OjOgZ56DWEAHSCBk"
 	data := try.To1(base64.RawURLEncoding.DecodeString(credID))
@@ -289,7 +285,7 @@ func TestLogin(t *testing.T) {
 
 	credID = newStr
 	credReq := fmt.Sprintf(credentialRequestOptionsFmt, credID)
-	car := try.To1(Login(strings.NewReader(credReq)))
+	car := try.To1(Login(nil, strings.NewReader(credReq)))
 	assert.INotNil(car)
 
 	pcad := try.To1(protocol.ParseCredentialRequestResponseBody(car))

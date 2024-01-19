@@ -19,33 +19,64 @@ import (
 	"github.com/lainio/err2/try"
 )
 
-var (
+type Instance struct {
 	Counter uint32
-	AAGUID  = uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511"))
-	Origin  url.URL
+	AAGUID  uuid.UUID
+	Origin  *url.URL
+}
+
+func useDefIfNot(i *Instance) *Instance {
+	if i == nil {
+		return defInstance
+	}
+	return i
+}
+
+var (
+	defInstance = &Instance{
+		Counter: 0,
+		AAGUID:  uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511")),
+		Origin:  try.To1(url.Parse(Origin)),
+	}
+	Origin = "http://localhost"
 )
+
+// SetDefInstanceOrigin sets the Origin. Mostly for tests.
+func SetDefInstanceOrigin(s string) {
+	Origin = s
+	defInstance.Origin = try.To1(url.Parse(Origin))
+}
+
+// SetDefInstance sets default instance. Mostly for tests.
+func SetDefInstance(i *Instance) {
+	defInstance = i
+}
 
 // Login reads CredentialAssertion JSON from the input stream and same time
 // process it and outputs CredentialAssertionResponse JSON to output stream.
-func Login(jsonStream io.Reader) (outStream io.Reader, err error) {
+func Login(i *Instance, jsonStream io.Reader) (outStream io.Reader, err error) {
 	defer err2.Handle(&err, "login")
 	pr, pw := io.Pipe()
 
+	i = useDefIfNot(i)
 	go func() {
 		defer pw.Close()
 		defer err2.Catch()
 
 		ca := tryReadAssertion(jsonStream)
-		car := tryBuildAssertionResponse(ca)
+		car := tryBuildAssertionResponse(i, ca)
 		try.To(json.NewEncoder(pw).Encode(car))
 	}()
 	return pr, nil
 }
 
-func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.CredentialAssertionResponse) {
-	origin := try.To1(protocol.FullyQualifiedOrigin(Origin.String()))
+func tryBuildAssertionResponse(
+	i *Instance,
+	ca *protocol.CredentialAssertion,
+) (car *protocol.CredentialAssertionResponse) {
+	origin := try.To1(protocol.FullyQualifiedOrigin(i.Origin.String()))
 
-	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
+	aaGUIDBytes := try.To1(i.AAGUID.MarshalBinary())
 
 	var (
 		found     bool
@@ -72,7 +103,7 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
 		Flags:    protocol.FlagAttestedCredentialData | protocol.FlagUserVerified | protocol.FlagUserPresent,
-		Counter:  Counter,
+		Counter:  i.Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        credID,
@@ -106,15 +137,16 @@ func tryBuildAssertionResponse(ca *protocol.CredentialAssertion) (car *protocol.
 
 // RegisterAsync reads CredentialCreation JSON from the input stream and same time
 // process it and outputs CredentialCreationResponse JSON to output stream.
-func RegisterAsync(jsonStream io.Reader) (outStream io.Reader, err error) {
+func RegisterAsync(i *Instance, jsonStream io.Reader) (outStream io.Reader, err error) {
 	pr, pw := io.Pipe()
 
+	i = useDefIfNot(i)
 	go func() {
 		defer pw.Close()
 		defer err2.Catch()
 
 		cred := tryReadCreation(jsonStream)
-		ccr := tryBuildCreationResponse(cred)
+		ccr := tryBuildCreationResponse(i, cred)
 		try.To(json.NewEncoder(pw).Encode(ccr))
 	}()
 	return pr, nil
@@ -122,18 +154,24 @@ func RegisterAsync(jsonStream io.Reader) (outStream io.Reader, err error) {
 
 // Register reads CredentialCreation JSON from the input stream and same time
 // process it and outputs CredentialCreationResponse JSON to output stream.
-func Register(jsonStream io.Reader) (outStream io.Reader, err error) {
+func Register(i *Instance, jsonStream io.Reader) (outStream io.Reader, err error) {
 	defer err2.Handle(&err)
 
+	i = useDefIfNot(i)
 	cred := tryReadCreation(jsonStream)
-	ccr := tryBuildCreationResponse(cred)
+	ccr := tryBuildCreationResponse(i, cred)
 	b := try.To1(json.Marshal(ccr))
 	return bytes.NewReader(b), nil
 }
 
-func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *protocol.CredentialCreationResponse) {
-	origin := try.To1(protocol.FullyQualifiedOrigin(Origin.String()))
-	aaGUIDBytes := try.To1(AAGUID.MarshalBinary())
+func tryBuildCreationResponse(
+	i *Instance,
+	creation *protocol.CredentialCreation,
+) (
+	ccr *protocol.CredentialCreationResponse,
+) {
+	origin := try.To1(protocol.FullyQualifiedOrigin(i.Origin.String()))
+	aaGUIDBytes := try.To1(i.AAGUID.MarshalBinary())
 	keyHandle := try.To1(enclave.Store.NewKeyHandle())
 	RPIDHash := sha256.Sum256([]byte(creation.Response.RelyingParty.ID))
 
@@ -142,7 +180,7 @@ func tryBuildCreationResponse(creation *protocol.CredentialCreation) (ccr *proto
 	authenticatorData := protocol.AuthenticatorData{
 		RPIDHash: RPIDHash[:],
 		Flags:    flags,
-		Counter:  Counter,
+		Counter:  i.Counter,
 		AttData: protocol.AttestedCredentialData{
 			AAGUID:              aaGUIDBytes,
 			CredentialID:        khID,
