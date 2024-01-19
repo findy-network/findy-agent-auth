@@ -160,8 +160,7 @@ type execCmd struct {
 	Cmd
 	*acator.Instance
 
-	//c = setupClient()
-	c *http.Client
+	*http.Client
 }
 
 func newExecCmd(cmd *Cmd) (ec *execCmd) {
@@ -172,7 +171,7 @@ func newExecCmd(cmd *Cmd) (ec *execCmd) {
 		AAGUID:  uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511")),
 		Origin:  try.To1(url.Parse(cmd.Origin)),
 	}
-	ec.c = setupClient()
+	ec.Client = setupClient()
 	return ec
 }
 
@@ -247,7 +246,7 @@ func registerUser(ec *execCmd) (result *Result, err error) {
 	if ec.CookieFile != "" {
 		var buf bytes.Buffer
 		URL := try.To1(url.Parse(ec.URL))
-		cookies := ec.c.Jar.Cookies(URL)
+		cookies := ec.Jar.Cookies(URL)
 		try.To(gob.NewEncoder(&buf).Encode(cookies))
 		try.To(os.WriteFile(ec.CookieFile, buf.Bytes(), 0664))
 		glog.V(3).Infof("saving %d cookies", len(cookies))
@@ -330,7 +329,7 @@ func (ec *execCmd) tryHTTPRequest(method, addr string, msg io.Reader) (reader io
 		glog.V(3).Infoln("setting cookies from env (COOKIE):\n", rawCookies)
 		request.Header.Add("Cookie", rawCookies)
 	}
-	response := try.To1(ec.c.Do(request)) //nolint: bodyclose
+	response := try.To1(ec.Do(request)) //nolint: bodyclose
 
 	cookies := response.Cookies()
 	glog.V(3).Infof("getting %d cookies from response", len(cookies))
@@ -357,11 +356,11 @@ func (ec *execCmd) addToCookieJar(URL *url.URL, cookies []*http.Cookie) {
 	for _, c := range cookies {
 		glog.V(1).Infoln("--- adding cookie:", c.String())
 	}
-	jarCookies := ec.c.Jar.Cookies(URL)
+	jarCookies := ec.Jar.Cookies(URL)
 	cookies = append(cookies, jarCookies...)
 	glog.V(3).Infof("jar cookie len %d, response cookie len: %d",
 		len(jarCookies), len(cookies))
-	ec.c.Jar.SetCookies(URL, cookies)
+	ec.Jar.SetCookies(URL, cookies)
 }
 
 func setupClient() (client *http.Client) {
@@ -410,7 +409,7 @@ func (ec *execCmd) checkCookiePath() {
 		var cookies []*http.Cookie
 		try.To(gob.NewDecoder(buf).Decode(&cookies))
 		glog.V(3).Infof("loading %d cookies", len(cookies))
-		ec.c.Jar.SetCookies(URL, cookies)
+		ec.Jar.SetCookies(URL, cookies)
 	} else if ec.CookiePath != "" { // just load page
 		// assert.NotEmpty(cookieFile)
 		// make the http request to load the page AND cookies
