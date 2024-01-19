@@ -87,7 +87,6 @@ func (ac *Cmd) Validate() (err error) {
 
 func (ac *Cmd) setDefaults() {
 	ac.setPayloads()
-	ac.setInPayloads()
 	ac.setMiddlePayloads()
 
 	if ac.RegisterBegin.Method == "" {
@@ -110,10 +109,10 @@ func (ac *Cmd) setDefaults() {
 		ac.RegisterFinish.Path = "%s/attestation/result"
 	}
 	if ac.LoginBegin.Path == "" {
-		ac.LoginBegin.Path = "%s/assertion/result"
+		ac.LoginBegin.Path = "%s/assertion/options"
 	}
 	if ac.LoginFinish.Path == "" {
-		ac.LoginFinish.Path = "%s/assertion/options"
+		ac.LoginFinish.Path = "%s/assertion/result"
 	}
 }
 
@@ -126,7 +125,8 @@ func (ac *Cmd) setMiddlePayloads() {
 	}
 }
 
-func (ac *Cmd) setInPayloads() {
+// setInPayloads, NOTE: use only for webuathn.io dialect.
+func (ac *Cmd) _() {
 	if ac.RegisterBegin.InPL == "" {
 		ac.RegisterBegin.InPL = `{"username":"%s",
 "response": %s }`
@@ -139,24 +139,10 @@ func (ac *Cmd) setInPayloads() {
 
 func (ac *Cmd) setPayloads() {
 	if ac.RegisterBegin.Payload == "" {
-		ac.RegisterBegin.Payload = `{"username":"%s",
-"algorithms":["es256"],
-"user_verification": "preferred",
-"attestation": "direct",
-"attachment": "cross_platform",
-"discoverable_credential": "preferred"}`
-	}
-	if ac.RegisterFinish.Payload == "" {
-		ac.RegisterFinish.Payload = `{"username":"%s",
-"response": %s}`
+		ac.RegisterBegin.Payload = `{"username":"%s"}`
 	}
 	if ac.LoginBegin.Payload == "" {
-		ac.LoginBegin.Payload = `{"username":"%s",
-"user_verification": "preferred"}`
-	}
-	if ac.LoginFinish.Payload == "" {
-		ac.LoginFinish.Payload = `{"username":"%s",
-"response": %s}`
+		ac.LoginBegin.Payload = `{"username":"%s"}`
 	}
 }
 
@@ -402,7 +388,7 @@ func loginUser(ec *execCmd) (_ *Result, err error) {
 }
 
 func (ec *execCmd) tryHTTPRequest(method, addr string, msg io.Reader) (reader io.ReadCloser) {
-	glog.V(13).Infoln("===", addr)
+	glog.V(13).Infof("=== '%v'", addr)
 	URL := try.To1(url.Parse(addr))
 	request, _ := http.NewRequest(method, URL.String(), msg)
 
@@ -431,7 +417,7 @@ func (ec *execCmd) tryHTTPRequest(method, addr string, msg io.Reader) (reader io
 		err2.Throwf("SERVER error: %v", d)
 	} else if response.StatusCode == http.StatusBadRequest {
 		d := string(try.To1(io.ReadAll(response.Body)))
-		glog.Errorln("BAD:", d)
+		glog.Errorln("BAD Request:", d)
 		err2.Throwf("error bad: %v", d)
 	} else if response.StatusCode != http.StatusOK {
 		err2.Throwf("status code: %v", response.Status)
