@@ -533,15 +533,15 @@ func flagParse() {
 }
 
 func setupEnv() {
+	origins := strings.Split(rpOrigin, ",")
+
 	glog.V(2).Infoln(
 		"\nlogging:", loggingFlags,
+		"\norigins:", origins,
 		"\nlisten port:", port,
 		"\nHTTPS ==", isHTTPS,
 		"\nRPID ==", rpID,
 	)
-
-	origins := strings.Split(rpOrigin, ",")
-	glog.V(2).Infoln("\norigins:", origins)
 
 	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
 	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
