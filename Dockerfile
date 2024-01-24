@@ -44,7 +44,7 @@ RUN echo '#!/bin/sh' > /start.sh && \
   --gport="$FAA_AGENCY_PORT" \
   --admin="$FAA_AGENCY_ADMIN_ID" \
   --domain="$FAA_DOMAIN" \
-  --origin="$FAA_ORIGIN" \
+  --origins="$FAA_ORIGIN" \
   --sec-file="/data/fido-enclave.bolt" \
   --sec-key="$FAA_SEC_KEY" \
   --cert-path="$FAA_CERT_PATH" \
