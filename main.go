@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,7 +69,8 @@ func init() {
 	flag.BoolVar(&agencyInsecure, "agency-insecure", false, "establish insecure connection to agency")
 	flag.StringVar(&rpID, "domain", "localhost", "RPID, usually domain without a scheme and port (deprecated)")
 	flag.StringVar(&rpID, "rpid", "http://localhost", "usually domain without a scheme and port")
-	flag.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests")
+	flag.StringVar(&rpOrigin, "origin", defaultOrigin, "origin URL for Webauthn requests  (deprecated)")
+	flag.StringVar(&rpOrigin, "origins", defaultOrigin, "origin URLs for Webauthn requests, separated with comma")
 	flag.StringVar(&jwtSecret, "jwt-secret", "", "secure key for JWT token generation")
 	flag.StringVar(&enclaveFile, "sec-file", enclaveFile, "secure enclave DB file name")
 	flag.StringVar(&enclaveBackup, "sec-backup-file", enclaveBackup, "secure enclave DB backup base file name")
@@ -94,7 +94,7 @@ func main() {
 	var handler http.Handler = r
 	if allowCors {
 		hCors := cors.New(cors.Options{
-			AllowedOrigins:   []string{rpOrigin},
+			AllowedOrigins:   strings.Split(rpOrigin, ","),
 			AllowCredentials: true,
 			Debug:            true,
 		})
@@ -533,16 +533,15 @@ func flagParse() {
 }
 
 func setupEnv() {
-	u := try.To1(url.Parse(rpOrigin))
-
 	glog.V(2).Infoln(
 		"\nlogging:", loggingFlags,
-		"\norigin host:", u.Host,
 		"\nlisten port:", port,
-		"\norigin port:", u.Port(),
 		"\nHTTPS ==", isHTTPS,
 		"\nRPID ==", rpID,
 	)
+
+	origins := strings.Split(rpOrigin, ",")
+	glog.V(2).Infoln("\norigins:", origins)
 
 	try.To(enclave.InitSealedBox(enclaveFile, enclaveBackup, enclaveKey))
 	user.Init(certPath, agencyAddr, agencyPort, agencyInsecure)
@@ -552,11 +551,11 @@ func setupEnv() {
 	}
 
 	webAuthn = try.To1(webauthn.New(&webauthn.Config{
-		RPDisplayName: "Findy Agency",     // Display Name for your site
-		RPID:          rpID,               // Generally the domain name for your site
-		RPOrigins:     []string{rpOrigin}, // The origin URL for WebAuthn requests
-		// old deprecated version:
-		//RPOrigin:      rpOrigin,       // The origin URL for WebAuthn requests
+		RPDisplayName: "Findy Agency", // Display Name for your site
+		RPID:          rpID,           // Generally the domain name for your site
+		// The origins for WebAuthn requests
+		// e.g. http://localhost:8888 or android:apk-key-hash:xxx
+		RPOrigins: origins,
 	}))
 	sessionStore = try.To1(session.NewStore())
 }
