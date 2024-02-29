@@ -518,7 +518,7 @@ func flagParse() {
 	err2.SetLogTracer(err2.Stdnull) // .. suppress logging from err2
 
 	os.Args = append(os.Args,
-		"-logtostderr", // todo: should be the first if we want to change this
+		"-logtostderr",
 	)
 	//try.To(startServereCmd.Parse(os.Args[1:]))
 	flag.Parse()
