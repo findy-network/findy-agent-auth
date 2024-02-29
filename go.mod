@@ -14,11 +14,7 @@ require (
 	github.com/gorilla/sessions v1.2.2
 	github.com/lainio/err2 v0.9.52
 	github.com/rs/cors v1.10.1
-<<<<<<< HEAD
-	golang.org/x/net v0.20.0
-=======
 	golang.org/x/net v0.21.0
->>>>>>> 44e72a63528556ed2ee37bd3b745da4936a84e19
 	google.golang.org/grpc v1.62.0
 )
 
