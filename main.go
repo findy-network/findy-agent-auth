@@ -150,7 +150,7 @@ func newMuxWithRoutes() *mux.Router {
 		glog.V(2).Info("testUI call")
 		r.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
 	} else {
-		r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		r.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 			try.To1(fmt.Fprintln(w,
 				"NO UI in current running mode, restart w/ -testui"))
 		})
