@@ -269,10 +269,6 @@ func TestRegister_server(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	// we need cred ID i.e. we need to make working Register where we'll get
-	// cred ID
-	//t.Skip("new go-webauthn")
-
 	assert.PushTester(t)
 	defer assert.PopTester()
 	SetDefInstanceOrigin("http://localhost:8080")
