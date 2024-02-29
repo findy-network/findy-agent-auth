@@ -260,7 +260,6 @@ func TestRegister_server(t *testing.T) {
 			ccd := try.To1(protocol.ParseCredentialCreationResponseBody(r))
 			assert.NotNil(ccd)
 
-			//assert.Equal(ccd.Response.CollectedClientData.Challenge, tt.args.challenge)
 			err := ccd.Verify(tt.args.challenge,
 				false, tt.args.rpID, []string{tt.args.rpOrigin})
 			assert.Error(err)
