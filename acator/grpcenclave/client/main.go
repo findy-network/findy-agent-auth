@@ -140,7 +140,7 @@ func sign(status *pb.CmdStatus) {
 
 func getCBOR(status *pb.CmdStatus) {
 	tryProcess(status,
-		func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
+		func(kh enclave.KeyHandle, _ ...[]byte) (d []byte, s []byte, err error) {
 			defer err2.Handle(&err)
 			d = try.To1(kh.CBORPublicKey())
 			return
@@ -149,7 +149,7 @@ func getCBOR(status *pb.CmdStatus) {
 
 func getID(status *pb.CmdStatus) {
 	tryProcess(status,
-		func(kh enclave.KeyHandle, data ...[]byte) (d []byte, s []byte, err error) {
+		func(kh enclave.KeyHandle, _ ...[]byte) (d []byte, s []byte, err error) {
 			d = kh.ID()
 			return
 		})
