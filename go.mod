@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 require (
 	github.com/findy-network/findy-common-go v0.2.65
-	github.com/fxamacker/cbor/v2 v2.5.0
+	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/go-webauthn/webauthn v0.10.1
 	github.com/golang/glog v1.2.0
 	github.com/google/uuid v1.6.0
@@ -25,6 +25,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
+	github.com/fxamacker/cbor v1.5.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
 	github.com/go-webauthn/x v0.1.8 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
