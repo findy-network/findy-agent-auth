@@ -1,5 +1,6 @@
 #!/bin/bash
 
+AUTH=${AUTH:-"go run .."}
 GOPATH=${GOPATH:-`go env GOPATH`}
 CERT_PATH=${CERT_PATH:-""}
 
