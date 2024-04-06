@@ -9,6 +9,7 @@ import (
 	"github.com/findy-network/findy-agent-auth/acator/authn"
 	"github.com/findy-network/findy-agent-auth/acator/grpcenclave"
 	pb "github.com/findy-network/findy-common-go/grpc/authn/v1"
+	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/rpc"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
@@ -17,16 +18,18 @@ import (
 	"google.golang.org/grpc"
 )
 
+func RegisterAuthnServer(s *grpc.Server) error {
+	pb.RegisterAuthnServiceServer(s, &authnServer{})
+	glog.V(1).Infoln("GRPC registration for authnServer")
+	return nil
+}
+
 func Serve(port int) {
 	rpc.Serve(&rpc.ServerCfg{
 		NoAuthorization: true,
 
-		Port: port,
-		Register: func(s *grpc.Server) error {
-			pb.RegisterAuthnServiceServer(s, &authnServer{})
-			glog.V(10).Infoln("GRPC registration all done")
-			return nil
-		},
+		Port:     port,
+		Register: RegisterAuthnServer,
 	})
 }
 
@@ -34,7 +37,21 @@ type authnServer struct {
 	pb.UnimplementedAuthnServiceServer
 	atomic.Int64
 
+	root string
+
 	authnCmd *authn.Cmd
+}
+
+func (a *authnServer) AuthFuncOverride(
+	ctx context.Context,
+	fullMethodName string,
+) (
+	context.Context,
+	error, //nolint: unparam
+) {
+	glog.V(1).Infoln("======== AuthFuncOverride", fullMethodName)
+	// let's set some user name for future use, etc.
+	return jwt.NewContextWithUser(ctx, a.root), nil
 }
 
 func (a *authnServer) Enter(
