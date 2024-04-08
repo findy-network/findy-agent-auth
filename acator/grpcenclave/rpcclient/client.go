@@ -16,9 +16,12 @@ import (
 func New(cert, addr string, port int) (conn *grpc.ClientConn, err error) {
 	defer err2.Handle(&err)
 
-	//cfg := client.BuildInsecureClientConnBase(addr, port, nil)
-	//cfg := client.BuildNoTLSClientConnBase(addr, port, nil)
-	cfg := client.BuildClientConnBase(cert, addr, port, nil)
+	var cfg *rpc.ClientCfg
+	if cert == "" {
+		cfg = client.BuildInsecureClientConnBase(addr, port, nil)
+	} else {
+		cfg = client.BuildClientConnBase(cert, addr, port, nil)
+	}
 	return rpc.ClientConn(*cfg)
 }
 
