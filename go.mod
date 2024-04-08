@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	github.com/findy-network/findy-common-go v0.2.69
+	github.com/findy-network/findy-common-go v0.2.70-0.20240408093930-fea7b4cd528d
 	github.com/fxamacker/cbor/v2 v2.6.0
 	github.com/go-webauthn/webauthn v0.10.2
 	github.com/golang/glog v1.2.1

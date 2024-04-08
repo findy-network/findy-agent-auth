@@ -23,6 +23,7 @@ var (
 	// TODO: dart playground
 	// cert       = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
 
+	cert       = flag.String("cert", "../../../../findy-agent/grpc/cert", "pki cert path")
 	cmd        = flag.String("cmd", "login", "FIDO2 cmd: login/register")
 	user       = flag.String("user", "elli", "test user name")
 	serverAddr = flag.String("addr", "localhost", "agency host gRPC address")
@@ -53,11 +54,11 @@ func main() {
 	flag.Parse()
 	glog.CopyStandardLogTo("ERROR")
 
-	conn = try.To1(rpcclient.New(*serverAddr, *port))
-	defer conn.Close()
-
 	ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	conn = try.To1(rpcclient.New(*cert, *serverAddr, *port))
+	defer conn.Close()
 
 	statusCh := try.To1(rpcclient.DoEnter(conn, ctx, &pb.Cmd{
 		Type:          pb.Cmd_Type(pb.Cmd_Type_value[strings.ToUpper(*cmd)]),

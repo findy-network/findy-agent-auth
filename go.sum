@@ -34,6 +34,8 @@ github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1m
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/findy-network/findy-common-go v0.2.69 h1:4Qie4pxSGmMCodthzmeXrw4FnbTYKp/xNu8RK6R6Hi0=
 github.com/findy-network/findy-common-go v0.2.69/go.mod h1:t8sVeRI7iNeUHDOdjjHv8DXwBLEp+K+Wvy6HzdC7F6c=
+github.com/findy-network/findy-common-go v0.2.70-0.20240408093930-fea7b4cd528d h1:vNacVI0NVy9ufWIHgsGfLcS7YqMBCiY50ERY3IKw1xg=
+github.com/findy-network/findy-common-go v0.2.70-0.20240408093930-fea7b4cd528d/go.mod h1:t8sVeRI7iNeUHDOdjjHv8DXwBLEp+K+Wvy6HzdC7F6c=
 github.com/form3tech-oss/jwt-go v3.2.5+incompatible h1:/l4kBbb4/vGSsdtB5nUe8L7B9mImVMaBPw9L/0TBHU8=
 github.com/form3tech-oss/jwt-go v3.2.5+incompatible/go.mod h1:pbq4aXjuKjdthFRnoDwaVPLA+WlJuPGy+QneDUgJi2k=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
