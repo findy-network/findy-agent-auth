@@ -47,7 +47,7 @@ func (a *authnServer) AuthFuncOverride(
 	fullMethodName string,
 ) (
 	context.Context,
-	error, //nolint: unparam
+	error,
 ) {
 	glog.V(1).Infoln("======== AuthFuncOverride", fullMethodName)
 	// let's set some user name for future use, etc.
