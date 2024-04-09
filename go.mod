@@ -15,7 +15,7 @@ require (
 	github.com/lainio/err2 v1.0.0
 	github.com/rs/cors v1.10.1
 	golang.org/x/net v0.24.0
-	google.golang.org/grpc v1.63.0
+	google.golang.org/grpc v1.63.2
 )
 
 require (
