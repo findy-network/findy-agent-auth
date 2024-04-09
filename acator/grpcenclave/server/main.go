@@ -11,8 +11,7 @@ import (
 )
 
 var (
-	// TODO: for Dart we start playing without tls or other security
-	// TODO: we need to build gzip packging to these golang stacks
+	// TODO: bring next line when we need to test with certs the server.
 	//cert = flag.String("cert", "../../../scripts/test-cert/", "TLS cert path")
 	port = flag.Int("port", 50053, "agency host gRPC port")
 )
