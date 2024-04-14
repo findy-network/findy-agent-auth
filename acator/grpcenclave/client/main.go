@@ -27,6 +27,8 @@ var (
 	cmd        = flag.String("cmd", "login", "FIDO2 cmd: login/register")
 	user       = flag.String("user", "elli", "test user name")
 	serverAddr = flag.String("addr", "localhost", "agency host gRPC address")
+	url        = flag.String("url", "http://localhost:8090", "FIDO2 server URL")
+	origin     = flag.String("origin", "", "FIDO2 server needs origin if not in HTTPS")
 	hexKey     = flag.String("key",
 		"289239187d7c395044976416280b6a283bf65562a06b0bdc3a75a4db4adfe7c7",
 		"soft cipher master key in HEX")
@@ -60,15 +62,16 @@ func main() {
 	conn = try.To1(rpcclient.New(*cert, *serverAddr, *port))
 	defer conn.Close()
 
+	glog.V(3).Infoln("Origin:", *origin)
 	statusCh := try.To1(rpcclient.DoEnter(conn, ctx, &pb.Cmd{
 		Type:          pb.Cmd_Type(pb.Cmd_Type_value[strings.ToUpper(*cmd)]),
 		UserName:      *user,
 		PublicDIDSeed: "",
-		URL:           "http://localhost:8090",
+		URL:           *url,
 		AAGUID:        "12c85a48-4baf-47bd-b51f-f192871a1511",
 		Counter:       0,
 		JWT:           "",
-		Origin:        "",
+		Origin:        *origin,
 	}))
 
 	secEnc := enclave.New(*hexKey)
