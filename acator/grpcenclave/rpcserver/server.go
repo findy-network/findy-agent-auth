@@ -19,7 +19,8 @@ import (
 )
 
 func RegisterAuthnServer(s *grpc.Server) error {
-	pb.RegisterAuthnServiceServer(s, &authnServer{})
+	authnServ := &authnServer{authnCmd: make(map[int64]*authn.Cmd, 128)}
+	pb.RegisterAuthnServiceServer(s, authnServ)
 	glog.V(1).Infoln("GRPC registration for authnServer")
 	return nil
 }
@@ -39,7 +40,7 @@ type authnServer struct {
 
 	root string
 
-	authnCmd *authn.Cmd
+	authnCmd map[int64]*authn.Cmd
 }
 
 func (a *authnServer) AuthFuncOverride(
@@ -73,10 +74,10 @@ func (a *authnServer) Enter(
 	// NOTE. Authentication is done by mutual TLS or must be done for this
 	// service!
 
-	glog.V(3).Infoln("=== authn Enter cmd:", cmd.Type)
 	cmdID := a.Add(1)
+	glog.V(3).Infof("=== authn Enter cmd:%v, cmdID: %v", cmd.Type, cmdID)
 
-	a.authnCmd = &authn.Cmd{
+	a.authnCmd[cmdID] = &authn.Cmd{
 		SubCmd:        strings.ToLower(cmd.GetType().String()),
 		UserName:      cmd.GetUserName(),
 		PublicDIDSeed: cmd.GetPublicDIDSeed(),
@@ -92,7 +93,7 @@ func (a *authnServer) Enter(
 		OutChan: make(chan *pb.CmdStatus),
 		InChan:  make(chan *pb.SecretMsg),
 	}
-	a.authnCmd.SecEnclave = secEnc
+	a.authnCmd[cmdID].SecEnclave = secEnc
 
 	go func() {
 		defer err2.Catch(err2.Err(func(err error) {
@@ -108,7 +109,7 @@ func (a *authnServer) Enter(
 			}
 			close(secEnc.OutChan)
 		}))
-		r := try.To1(a.authnCmd.Exec(nil))
+		r := try.To1(a.authnCmd[cmdID].Exec(nil))
 		secEnc.OutChan <- &pb.CmdStatus{
 			CmdID:   cmdID,
 			Type:    pb.CmdStatus_READY_OK,
@@ -123,10 +124,12 @@ func (a *authnServer) Enter(
 	}()
 
 	for status := range secEnc.OutChan {
-		glog.V(1).Infoln("<== status:", status.CmdType, status.CmdID)
+		glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
 		try.To(server.Send(status))
 	}
-	glog.V(1).Infoln("end Enter\n===============\n\n")
+	glog.V(3).Infoln("end Enter, delete cmdID:", cmdID, "...")
+	delete(a.authnCmd, cmdID)
+	glog.V(3).Infoln("... ", cmdID, " deleted from map")
 	return nil
 }
 
@@ -145,8 +148,8 @@ func (a *authnServer) EnterSecret(
 		return err
 	})
 
-	glog.V(1).Infoln("secret:", smsg.GetType(), smsg.GetCmdID())
-	secEnc, ok := a.authnCmd.SecEnclave.(*grpcenclave.Enclave)
+	glog.V(3).Infof("secret type: %v, ID: %v", smsg.GetType(), smsg.GetCmdID())
+	secEnc, ok := a.authnCmd[smsg.GetCmdID()].SecEnclave.(*grpcenclave.Enclave)
 	assert.That(ok)
 	assert.NotNil(secEnc)
 	assert.CNotNil(secEnc.InChan)
