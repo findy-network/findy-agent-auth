@@ -84,6 +84,7 @@ func (a *authnServer) Enter(
 		AAGUID:        cmd.GetAAGUID(),
 		Counter:       cmd.GetCounter(),
 		Token:         cmd.GetJWT(),
+		Origin:        cmd.GetOrigin(),
 	}
 	secEnc := &grpcenclave.Enclave{
 		Cmd:     cmd,
