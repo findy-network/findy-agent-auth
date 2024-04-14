@@ -52,8 +52,9 @@ func DoEnter(
 				close(statusCh)
 				break
 			}
-			glog.V(4).Infoln("--> cmd status:",
+			glog.V(4).Infof("--> cmd ID:%v, status: %v, (secType: %v)",
 				status.GetCmdID(),
+				status.GetType(),
 				status.GetSecType(),
 			)
 			statusCh <- status
