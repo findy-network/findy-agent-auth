@@ -430,7 +430,7 @@ func (ec *execCmd) tryHTTPRequest(method, addr string, msg io.Reader) (reader io
 
 func (ec *execCmd) addToCookieJar(URL *url.URL, cookies []*http.Cookie) {
 	for _, c := range cookies {
-		glog.V(1).Infoln("--- adding cookie:", c.String())
+		glog.V(3).Infoln("--- adding cookie:", c.String())
 	}
 	jarCookies := ec.Jar.Cookies(URL)
 	cookies = append(cookies, jarCookies...)
@@ -489,12 +489,12 @@ func (ec *execCmd) checkCookiePath() {
 	} else if ec.CookiePath != "" { // just load page
 		// assert.NotEmpty(cookieFile)
 		// make the http request to load the page AND cookies
-		glog.V(1).Infof("cookie path: '%s'", ec.CookiePath)
+		glog.V(3).Infof("cookie path: '%s'", ec.CookiePath)
 		if ec.CookiePath == "-" {
 			ec.CookiePath = ""
 		}
 		cookiePageURL := ec.URL + ec.CookiePath
-		glog.V(1).Infoln("loading cookie page:", cookiePageURL)
+		glog.V(3).Infoln("loading cookie page:", cookiePageURL)
 		r := ec.tryHTTPRequest("GET", cookiePageURL, &bytes.Buffer{})
 		// we don't know how the server behaves, we don't want it to abort
 		_ = try.To1(io.ReadAll(r))
