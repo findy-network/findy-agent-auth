@@ -23,7 +23,7 @@ func RegisterAuthnServer(s *grpc.Server) error {
 	authnCmd := x.NewRWMap[CmdMap]()
 	authnServ := &authnServer{authnCmd: authnCmd}
 	pb.RegisterAuthnServiceServer(s, authnServ)
-	glog.V(1).Infoln("GRPC registration for authnServer")
+	glog.V(0).Infoln("GRPC registration for authnServer")
 	return nil
 }
 
@@ -81,22 +81,26 @@ func (a *authnServer) Enter(
 	cmdID := a.Add(1)
 	glog.V(3).Infof("=== authn Enter cmd:%v, cmdID: %v", cmd.Type, cmdID)
 
-	secEnc := &grpcenclave.Enclave{
-		Cmd:     cmd,
-		CmdID:   cmdID,
-		OutChan: make(chan *pb.CmdStatus),
-		InChan:  make(chan *pb.SecretMsg),
-	}
-	a.authnCmd.Set(cmdID, &authn.Cmd{
-		SubCmd:        strings.ToLower(cmd.GetType().String()),
-		UserName:      cmd.GetUserName(),
-		PublicDIDSeed: cmd.GetPublicDIDSeed(),
-		URL:           cmd.GetURL(),
-		AAGUID:        cmd.GetAAGUID(),
-		Counter:       cmd.GetCounter(),
-		Token:         cmd.GetJWT(),
-		Origin:        cmd.GetOrigin(),
-		SecEnclave:    secEnc,
+	var secEnc *grpcenclave.Enclave
+	a.authnCmd.Tx(func(m map[int64]*authn.Cmd) {
+		secEnc = &grpcenclave.Enclave{
+			Cmd:     cmd,
+			CmdID:   cmdID,
+			OutChan: make(chan *pb.CmdStatus),
+			InChan:  make(chan *pb.SecretMsg),
+		}
+		a.authnCmd.Set(cmdID, &authn.Cmd{
+			SubCmd:        strings.ToLower(cmd.GetType().String()),
+			UserName:      cmd.GetUserName(),
+			PublicDIDSeed: cmd.GetPublicDIDSeed(),
+			URL:           cmd.GetURL(),
+			AAGUID:        cmd.GetAAGUID(),
+			Counter:       cmd.GetCounter(),
+			Token:         cmd.GetJWT(),
+			Origin:        cmd.GetOrigin(),
+			SecEnclave:    secEnc,
+		})
+
 	})
 
 	go func() {
@@ -108,10 +112,8 @@ func (a *authnServer) Enter(
 				Info:  &pb.CmdStatus_Err{Err: errStr},
 				Type:  pb.CmdStatus_READY_ERR,
 			}
-			if err := server.Send(status); err != nil {
-				glog.Error("error sending response")
-			}
-			close(secEnc.OutChan)
+			try.Out(server.Send(status)).Logf("error sending response")
+			// NOTE: we don't close channel here, context handles them
 		}))
 		r := try.To1(a.authnCmd.Get(cmdID).Exec(nil))
 		secEnc.OutChan <- &pb.CmdStatus{
@@ -127,13 +129,25 @@ func (a *authnServer) Enter(
 		close(secEnc.OutChan)
 	}()
 
-	for status := range secEnc.OutChan {
-		glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
-		try.To(server.Send(status))
+loop:
+	for {
+		select {
+		case <-server.Context().Done():
+			glog.V(3).Infoln("end Enter, delete cmdID:", cmdID, "...")
+			//a.authnCmd.Del(cmdID)
+			glog.V(3).Infoln("... ", cmdID, " deleted from map")
+			break loop
+
+		case status, ok := <-secEnc.OutChan:
+			if !ok {
+				glog.V(3).Infoln("channel closed")
+				break loop
+			}
+			glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
+			try.To(server.Send(status))
+			continue loop
+		}
 	}
-	glog.V(3).Infoln("end Enter, delete cmdID:", cmdID, "...")
-	a.authnCmd.Del(cmdID)
-	glog.V(3).Infoln("... ", cmdID, " deleted from map")
 	return nil
 }
 
@@ -144,6 +158,15 @@ func (a *authnServer) EnterSecret(
 	r *pb.SecretResult,
 	err error,
 ) {
+	// Check smsg, if it's SecretMsg_ERROR  nothing to do and CANNOT do,
+	// because our default type is SecretMsg_ERROR (0) and
+	// because our secure enclave doesn't need information then.
+	// This is problem if a.authnCmd.Del is called, which happens when ready.
+	if smsg.GetType() == pb.SecretMsg_ERROR {
+		a.authnCmd.Del(smsg.GetCmdID())
+		return
+	}
+
 	r = &pb.SecretResult{Ok: false}
 
 	defer err2.Handle(&err, func(err error) error {
@@ -151,6 +174,12 @@ func (a *authnServer) EnterSecret(
 		r.Result = err.Error()
 		return err
 	})
+
+	assert.NotNil(a.authnCmd)
+	assert.NotNil(smsg)
+	assert.NotZero(smsg.GetCmdID())
+	assert.NotNil(a.authnCmd.Get(smsg.GetCmdID()), "type: %v", smsg.GetType())
+	assert.INotNil(a.authnCmd.Get(smsg.GetCmdID()).SecEnclave)
 
 	glog.V(3).Infof("secret type: %v, ID: %v", smsg.GetType(), smsg.GetCmdID())
 	secEnc, ok := a.authnCmd.Get(smsg.GetCmdID()).SecEnclave.(*grpcenclave.Enclave)
