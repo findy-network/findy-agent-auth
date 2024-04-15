@@ -240,11 +240,13 @@ type execCmd struct {
 
 func newExecCmd(cmd *Cmd) (ec *execCmd) {
 	assert.NotEmpty(cmd.Origin)
+	assert.NotEmpty(cmd.AAGUID)
+
 	ec = new(execCmd)
 	ec.Cmd = *cmd
 	ec.Instance = &acator.Instance{
 		Counter: 0,
-		AAGUID:  uuid.Must(uuid.Parse("12c85a48-4baf-47bd-b51f-f192871a1511")),
+		AAGUID:  uuid.Must(uuid.Parse(cmd.AAGUID)),
 		Origin:  try.To1(url.Parse(cmd.Origin)),
 	}
 	ec.Client = setupClient()
