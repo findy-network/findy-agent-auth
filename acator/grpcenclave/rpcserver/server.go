@@ -78,18 +78,21 @@ func (a *authnServer) Enter(
 	// NOTE. Authentication is done by mutual TLS or must be done for this
 	// service!
 
-	cmdID := a.Add(1)
-	glog.V(3).Infof("=== authn Enter cmd:%v, cmdID: %v", cmd.Type, cmdID)
-
-	var secEnc *grpcenclave.Enclave
+	var (
+		secEnc *grpcenclave.Enclave
+		cmdID int64 
+	)
 	a.authnCmd.Tx(func(m map[int64]*authn.Cmd) {
+		cmdID = a.Add(1)
+		glog.V(3).Infof("=== authn Enter cmd:%v, cmdID: %v", cmd.Type, cmdID)
+
 		secEnc = &grpcenclave.Enclave{
 			Cmd:     cmd,
 			CmdID:   cmdID,
 			OutChan: make(chan *pb.CmdStatus),
 			InChan:  make(chan *pb.SecretMsg),
 		}
-		a.authnCmd.Set(cmdID, &authn.Cmd{
+		m[cmdID] = &authn.Cmd{
 			SubCmd:        strings.ToLower(cmd.GetType().String()),
 			UserName:      cmd.GetUserName(),
 			PublicDIDSeed: cmd.GetPublicDIDSeed(),
@@ -99,8 +102,7 @@ func (a *authnServer) Enter(
 			Token:         cmd.GetJWT(),
 			Origin:        cmd.GetOrigin(),
 			SecEnclave:    secEnc,
-		})
-
+		}
 	})
 
 	go func() {
@@ -126,7 +128,7 @@ func (a *authnServer) Enter(
 				},
 			},
 		}
-		close(secEnc.OutChan)
+		//close(secEnc.OutChan)
 	}()
 
 loop:
@@ -139,8 +141,8 @@ loop:
 			break loop
 
 		case status, ok := <-secEnc.OutChan:
-			if !ok {
-				glog.V(3).Infoln("channel closed")
+			if !ok || status.GetType() == pb.CmdStatus_READY_OK {
+				glog.V(0).Infoln("channel closed")
 				break loop
 			}
 			glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
