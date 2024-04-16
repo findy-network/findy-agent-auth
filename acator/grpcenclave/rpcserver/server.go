@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/findy-network/findy-agent-auth/acator/authn"
 	"github.com/findy-network/findy-agent-auth/acator/grpcenclave"
@@ -80,7 +81,7 @@ func (a *authnServer) Enter(
 
 	var (
 		secEnc *grpcenclave.Enclave
-		cmdID int64 
+		cmdID  int64
 	)
 	a.authnCmd.Tx(func(m map[int64]*authn.Cmd) {
 		cmdID = a.Add(1)
@@ -117,7 +118,16 @@ func (a *authnServer) Enter(
 			try.Out(server.Send(status)).Logf("error sending response")
 			// NOTE: we don't close channel here, context handles them
 		}))
-		r := try.To1(a.authnCmd.Get(cmdID).Exec(nil))
+
+		var (
+			r    authn.Result
+			aCmd *authn.Cmd
+		)
+		a.authnCmd.Tx(func(m map[int64]*authn.Cmd) {
+			aCmd = m[cmdID]
+		})
+		r = try.To1(aCmd.Exec(nil))
+
 		secEnc.OutChan <- &pb.CmdStatus{
 			CmdID:   cmdID,
 			Type:    pb.CmdStatus_READY_OK,
@@ -135,14 +145,12 @@ loop:
 	for {
 		select {
 		case <-server.Context().Done():
-			glog.V(3).Infoln("end Enter, delete cmdID:", cmdID, "...")
-			//a.authnCmd.Del(cmdID)
-			glog.V(3).Infoln("... ", cmdID, " deleted from map")
 			break loop
 
 		case status, ok := <-secEnc.OutChan:
 			if !ok || status.GetType() == pb.CmdStatus_READY_OK {
-				glog.V(0).Infoln("channel closed")
+				glog.V(1).Infoln("channel closed")
+				go a.free(cmdID)
 				break loop
 			}
 			glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
@@ -192,4 +200,13 @@ func (a *authnServer) EnterSecret(
 	secEnc.InChan <- smsg
 
 	return
+}
+
+func (a *authnServer) free(cmdID int64) {
+	glog.V(3).Infoln("sleep before free: ", cmdID)
+	time.Sleep(500*time.Millisecond)
+
+	glog.V(3).Infoln("end Enter, delete cmdID:", cmdID, "...")
+	a.authnCmd.Del(cmdID)
+	glog.V(3).Infoln("... ", cmdID, " deleted from map")
 }
