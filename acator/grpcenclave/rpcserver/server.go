@@ -3,16 +3,15 @@ package rpcserver
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
-	"sync/atomic"
-	"time"
+	"sync"
 
 	"github.com/findy-network/findy-agent-auth/acator/authn"
 	"github.com/findy-network/findy-agent-auth/acator/grpcenclave"
 	pb "github.com/findy-network/findy-common-go/grpc/authn/v1"
 	"github.com/findy-network/findy-common-go/jwt"
 	"github.com/findy-network/findy-common-go/rpc"
-	"github.com/findy-network/findy-common-go/x"
 	"github.com/golang/glog"
 	"github.com/lainio/err2"
 	"github.com/lainio/err2/assert"
@@ -21,8 +20,7 @@ import (
 )
 
 func RegisterAuthnServer(s *grpc.Server) error {
-	authnCmd := x.NewRWMap[CmdMap]()
-	authnServ := &authnServer{authnCmd: authnCmd}
+	authnServ := &authnServer{}
 	pb.RegisterAuthnServiceServer(s, authnServ)
 	glog.V(0).Infoln("GRPC registration for authnServer")
 	return nil
@@ -37,15 +35,15 @@ func Serve(port int) {
 	})
 }
 
-type CmdMap = map[int64]*authn.Cmd
-
 type authnServer struct {
 	pb.UnimplementedAuthnServiceServer
-	atomic.Int64
 
 	root string
 
-	authnCmd *x.RWMap[CmdMap, int64, *authn.Cmd]
+	id uint8
+	mu sync.Mutex
+
+	authnCmd [math.MaxUint8+1]*authn.Cmd
 }
 
 func (a *authnServer) AuthFuncOverride(
@@ -81,19 +79,20 @@ func (a *authnServer) Enter(
 
 	var (
 		secEnc *grpcenclave.Enclave
-		cmdID  int64
+		cmdID  uint8
 	)
-	a.authnCmd.Tx(func(m map[int64]*authn.Cmd) {
-		cmdID = a.Add(1)
+	a.tx(func() {
+		cmdID = a.id
+		a.id++
 		glog.V(3).Infof("=== authn Enter cmd:%v, cmdID: %v", cmd.Type, cmdID)
 
 		secEnc = &grpcenclave.Enclave{
 			Cmd:     cmd,
-			CmdID:   cmdID,
+			CmdID:   int64(cmdID),
 			OutChan: make(chan *pb.CmdStatus),
 			InChan:  make(chan *pb.SecretMsg),
 		}
-		m[cmdID] = &authn.Cmd{
+		a.authnCmd[cmdID] = &authn.Cmd{
 			SubCmd:        strings.ToLower(cmd.GetType().String()),
 			UserName:      cmd.GetUserName(),
 			PublicDIDSeed: cmd.GetPublicDIDSeed(),
@@ -111,7 +110,7 @@ func (a *authnServer) Enter(
 			errStr := fmt.Sprintf("error: grpc server main: %v", err)
 			glog.Error(errStr)
 			status := &pb.CmdStatus{
-				CmdID: cmdID,
+				CmdID: int64(cmdID),
 				Info:  &pb.CmdStatus_Err{Err: errStr},
 				Type:  pb.CmdStatus_READY_ERR,
 			}
@@ -123,13 +122,13 @@ func (a *authnServer) Enter(
 			r    authn.Result
 			aCmd *authn.Cmd
 		)
-		a.authnCmd.Tx(func(m map[int64]*authn.Cmd) {
-			aCmd = m[cmdID]
+		a.tx(func() {
+			aCmd = a.authnCmd[cmdID]
 		})
 		r = try.To1(aCmd.Exec(nil))
 
 		secEnc.OutChan <- &pb.CmdStatus{
-			CmdID:   cmdID,
+			CmdID:   int64(cmdID),
 			Type:    pb.CmdStatus_READY_OK,
 			CmdType: cmd.GetType(),
 			Info: &pb.CmdStatus_Ok{
@@ -150,7 +149,6 @@ loop:
 		case status, ok := <-secEnc.OutChan:
 			if !ok || status.GetType() == pb.CmdStatus_READY_OK {
 				glog.V(1).Infoln("channel closed")
-				go a.free(cmdID)
 				break loop
 			}
 			glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
@@ -168,15 +166,6 @@ func (a *authnServer) EnterSecret(
 	r *pb.SecretResult,
 	err error,
 ) {
-	// Check smsg, if it's SecretMsg_ERROR  nothing to do and CANNOT do,
-	// because our default type is SecretMsg_ERROR (0) and
-	// because our secure enclave doesn't need information then.
-	// This is problem if a.authnCmd.Del is called, which happens when ready.
-	if smsg.GetType() == pb.SecretMsg_ERROR {
-		a.authnCmd.Del(smsg.GetCmdID())
-		return
-	}
-
 	r = &pb.SecretResult{Ok: false}
 
 	defer err2.Handle(&err, func(err error) error {
@@ -185,14 +174,11 @@ func (a *authnServer) EnterSecret(
 		return err
 	})
 
-	assert.NotNil(a.authnCmd)
 	assert.NotNil(smsg)
-	assert.NotZero(smsg.GetCmdID())
-	assert.NotNil(a.authnCmd.Get(smsg.GetCmdID()), "type: %v", smsg.GetType())
-	assert.INotNil(a.authnCmd.Get(smsg.GetCmdID()).SecEnclave)
+	assert.NotEqual(smsg.GetCmdID(), math.MaxUint8+1)
 
 	glog.V(3).Infof("secret type: %v, ID: %v", smsg.GetType(), smsg.GetCmdID())
-	secEnc, ok := a.authnCmd.Get(smsg.GetCmdID()).SecEnclave.(*grpcenclave.Enclave)
+	secEnc, ok := a.authnCmd[smsg.GetCmdID()].SecEnclave.(*grpcenclave.Enclave)
 	assert.That(ok)
 	assert.NotNil(secEnc)
 	assert.CNotNil(secEnc.InChan)
@@ -202,11 +188,8 @@ func (a *authnServer) EnterSecret(
 	return
 }
 
-func (a *authnServer) free(cmdID int64) {
-	glog.V(3).Infoln("sleep before free: ", cmdID)
-	time.Sleep(500*time.Millisecond)
-
-	glog.V(3).Infoln("end Enter, delete cmdID:", cmdID, "...")
-	a.authnCmd.Del(cmdID)
-	glog.V(3).Infoln("... ", cmdID, " deleted from map")
+func (a *authnServer) tx(fn func()) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	fn()
 }
