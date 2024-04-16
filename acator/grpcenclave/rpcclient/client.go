@@ -13,6 +13,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+var (
+	c authn.AuthnServiceClient
+)
+
 func New(cert, addr string, port int) (conn *grpc.ClientConn, err error) {
 	defer err2.Handle(&err)
 
@@ -35,7 +39,7 @@ func DoEnter(
 ) {
 	defer err2.Handle(&err)
 
-	c := authn.NewAuthnServiceClient(conn)
+	c = authn.NewAuthnServiceClient(conn)
 	statusCh := make(chan *authn.CmdStatus)
 
 	stream := try.To1(c.Enter(ctx, cmd))
@@ -72,7 +76,9 @@ func DoEnterSecret(
 ) {
 	defer err2.Handle(&err)
 
-	c := authn.NewAuthnServiceClient(conn)
+	// we use the same client
+	//c := authn.NewAuthnServiceClient(conn)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
