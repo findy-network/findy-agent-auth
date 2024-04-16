@@ -43,7 +43,7 @@ type authnServer struct {
 	id uint8
 	mu sync.Mutex
 
-	authnCmd [math.MaxUint8+1]*authn.Cmd
+	authnCmd [math.MaxUint8 + 1]*authn.Cmd
 }
 
 func (a *authnServer) AuthFuncOverride(
