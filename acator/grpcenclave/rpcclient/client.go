@@ -13,10 +13,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	c authn.AuthnServiceClient
-)
-
 func New(cert, addr string, port int) (conn *grpc.ClientConn, err error) {
 	defer err2.Handle(&err)
 
@@ -29,6 +25,16 @@ func New(cert, addr string, port int) (conn *grpc.ClientConn, err error) {
 	return rpc.ClientConn(*cfg)
 }
 
+// ChCloser return error handler that closes all given channels.
+func ChCloser[C ~chan T, T any](chs ...C) err2.Handler {
+	return func(err error) error {
+		for _, c := range chs {
+			close(c)
+		}
+		return err
+	}
+}
+
 func DoEnter(
 	conn *grpc.ClientConn,
 	ctx context.Context, //nolint: revive
@@ -39,16 +45,14 @@ func DoEnter(
 ) {
 	defer err2.Handle(&err)
 
-	c = authn.NewAuthnServiceClient(conn)
+	authnClient := authn.NewAuthnServiceClient(conn)
 	statusCh := make(chan *authn.CmdStatus)
 
-	stream := try.To1(c.Enter(ctx, cmd))
+	stream := try.To1(authnClient.Enter(ctx, cmd))
 	glog.V(3).Infoln("successful start of:", cmd.GetType())
 	go func() {
-		defer err2.Catch(err2.Err(func(err error) {
-			glog.V(3).Infoln("err when reading response", err)
-			close(statusCh)
-		}))
+		defer err2.Catch(ChCloser(statusCh), err2.Log)
+
 		for {
 			status, err := stream.Recv()
 			if try.IsEOF(err) {
@@ -76,14 +80,13 @@ func DoEnterSecret(
 ) {
 	defer err2.Handle(&err)
 
-	// we use the same client
-	//c := authn.NewAuthnServiceClient(conn)
+	authnClient := authn.NewAuthnServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	glog.V(3).Infoln("going to send SecretMsg:", smsg.Type)
-	res = try.To1(c.EnterSecret(ctx, smsg))
+	res = try.To1(authnClient.EnterSecret(ctx, smsg))
 
 	glog.V(3).Infoln("successful sent of SecretMsg:", smsg.Type)
 	return res, nil
