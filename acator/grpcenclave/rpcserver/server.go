@@ -147,13 +147,15 @@ loop:
 			break loop
 
 		case status, ok := <-secEnc.OutChan:
+			if ok {
+				glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
+				try.To(server.Send(status))
+			}
+
 			if !ok || status.GetType() == pb.CmdStatus_READY_OK {
 				glog.V(1).Infoln("channel closed")
 				break loop
 			}
-			glog.V(3).Infoln("<== status:", status.CmdType, status.CmdID)
-			try.To(server.Send(status))
-			continue loop
 		}
 	}
 	return nil
