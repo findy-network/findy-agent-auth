@@ -311,11 +311,13 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func FinishLogin(w http.ResponseWriter, r *http.Request) {
+	// TODO: here we call jsonResponse for error reporting, only
 	defer err2.Catch("finish login error:")
 
 	var err error
 
 	defer err2.Handle(&err, func(err error) error {
+		// TODO: here we *just* switch the the error code to StatusBad...
 		jsonResponse(w, err.Error(), http.StatusBadRequest)
 		return err
 	})
@@ -329,6 +331,7 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	glog.V(1).Infoln("BEGIN (new) finish login:", username)
 
 	defer err2.Handle(&err, func(err error) error {
+		// TODO: here we *just* switch the the error code to StatusInternal..
 		jsonResponse(w, err.Error(), http.StatusInternalServerError)
 		return err
 	})
@@ -338,6 +341,9 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 	// and then increment the credentials counter
 	try.To1(webAuthn.FinishLogin(user, sessionData, r))
 
+	// TODO: reporting jsonResponse in success path is something different even
+	// that there we have error status codes, but still. it makes everything
+	// clear.
 	jsonResponse(w, &AccessToken{Token: user.JWT()}, http.StatusOK)
 	glog.V(1).Infoln("END (new) finish login", username)
 }
