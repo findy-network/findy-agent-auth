@@ -164,13 +164,13 @@ func newMuxWithRoutes() *mux.Router {
 }
 
 func BeginRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
 
 	var (
-		err         error
 		userCreated bool
 	)
 	// get username/friendly name
@@ -244,12 +244,11 @@ type userInfo struct {
 }
 
 func FinishRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
-
-	var err error
 
 	defer err2.Handle(&err, markErrBadRequest)
 
@@ -293,13 +292,13 @@ type loginUserInfo struct {
 }
 
 func BeginLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
 
 	glog.V(1).Infoln("END (new) begin login")
-	var err error
 
 	defer err2.Handle(&err, markErrBadRequest)
 
@@ -315,16 +314,15 @@ func BeginLogin(w http.ResponseWriter, r *http.Request) {
 	try.To(enclave.PutSessionUser(sessionData.UserID, user))
 
 	jsonResponse(w, options.Response, nil)
-	glog.V(1).Infoln("END (new) egin login", username)
+	glog.V(1).Infoln("END (new) begin login", username)
 }
 
 func FinishLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
-
-	var err error
 
 	defer err2.Handle(&err, markErrBadRequest)
 
@@ -352,7 +350,9 @@ func FinishLogin(w http.ResponseWriter, r *http.Request) {
 
 // from: https://github.com/go-webauthn/webauthn.io/blob/3f03b482d21476f6b9fb82b2bf1458ff61a61d41/server/response.go#L15
 func jsonResponse(w http.ResponseWriter, d any, err error) {
-	defer err2.Catch("json response error")
+	defer err2.Catch()
+
+	glog.Infoln("jsonResponse")
 
 	c := http.StatusOK
 	switch {
@@ -363,6 +363,7 @@ func jsonResponse(w http.ResponseWriter, d any, err error) {
 	case errors.Is(err, errBadRequest):
 		c = http.StatusBadRequest
 	default:
+		c = http.StatusInternalServerError
 		break
 	}
 
@@ -375,20 +376,20 @@ func jsonResponse(w http.ResponseWriter, d any, err error) {
 
 func markErrBadRequest(err error) error {
 	err = fmt.Errorf("http err: %w: %w", errBadRequest, err)
+	glog.Errorln("mark:", err.Error())
 	return err
 }
 
-func markErrInternal(err error, s ...string) error {
+func markErrInternal(err error) error {
 	prefix := "http err"
-	if len(s) > 0 {
-		prefix = s[0]
-	}
 	err = fmt.Errorf("%s: %w: %w", prefix, errInternal, err)
+	glog.Errorln("mark:", err.Error())
 	return err
 }
 
 func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
@@ -401,7 +402,6 @@ func oldBeginRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		err         error
 		userCreated bool
 	)
 
@@ -470,12 +470,11 @@ func oldGetUserName(r *http.Request) (string, bool) {
 }
 
 func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
-
-	var err error
 
 	username, ok := oldGetUserName(r)
 	assert.That(ok)
@@ -509,12 +508,11 @@ func oldFinishRegistration(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
-
-	var err error
 
 	username, ok := oldGetUserName(r)
 	assert.That(ok)
@@ -531,12 +529,11 @@ func oldBeginLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func oldFinishLogin(w http.ResponseWriter, r *http.Request) {
-	defer err2.Catch(func(err error) error {
+	var err error
+	defer err2.Handle(&err, func(err error) error {
 		jsonResponse(w, err.Error(), err)
 		return nil
 	})
-
-	var err error
 
 	username, ok := oldGetUserName(r)
 	assert.That(ok)
