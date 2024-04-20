@@ -10,6 +10,7 @@ echo "CERT_PATH: $CERT_PATH"
 enclaveFile="MEMORY_enclave.bolt" 
 
 go run .. \
+	-err2-trace=stderr -v=10 -asserter=Debug \
 	-agency "localhost" \
 	-logging "-logtostderr -v=3" \
 	-origin http://localhost:8090 \
