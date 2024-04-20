@@ -364,7 +364,6 @@ func jsonResponse(w http.ResponseWriter, d any, err error) {
 		c = http.StatusBadRequest
 	default:
 		c = http.StatusInternalServerError
-		break
 	}
 
 	dj := try.To1(json.Marshal(d))
