@@ -357,7 +357,6 @@ func jsonResponse(w http.ResponseWriter, d any, err error) {
 	c := http.StatusOK
 	switch {
 	case err == nil:
-		break
 	case errors.Is(err, errInternal):
 		c = http.StatusInternalServerError
 	case errors.Is(err, errBadRequest):
