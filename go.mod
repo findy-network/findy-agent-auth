@@ -13,7 +13,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
 	github.com/lainio/err2 v1.0.0
-	github.com/rs/cors v1.10.1
+	github.com/rs/cors v1.11.0
 	golang.org/x/net v0.24.0
 	google.golang.org/grpc v1.63.2
 )
