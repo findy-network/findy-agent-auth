@@ -108,9 +108,7 @@ loop:
 			break loop
 
 		case pb.CmdStatus_READY_ERR:
-			glog.V(3).Infoln("gRPC authn call ERR:",
-				status.GetErr(),
-			)
+			fmt.Fprintln(os.Stderr, status.GetErr())
 			break loop
 		}
 	}
